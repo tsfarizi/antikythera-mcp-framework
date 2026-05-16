@@ -35,9 +35,9 @@ pub use hooks::{
 pub use model_provider::ModelProvider;
 pub use observability::{
     AuditCategory, AuditRecord, AuditTrail, CallerContext, InMemoryMetricsExporter,
-    InMemoryObservabilityHook, InMemoryTracingHook, LatencySummary, LatencyTracker, MetricKind,
-    MetricRecord, MetricsExporter, NoOpObservabilityHook, ObservabilityHook, TelemetryEvent,
-    TraceSpanContext, TraceStatus, TracingHook,
+    InMemoryTracingHook, LatencySummary, LatencyTracker, MetricKind, MetricRecord, MetricsExporter,
+    NoOpObservabilityHook, ObservabilityHook, TelemetryEvent, TraceSpanContext, TraceStatus,
+    TracingHook,
 };
 pub use streaming::{
     AgentEvent, AgentEventStream, BufferPolicy, ClientInputStream, InMemoryStreamingResponse,

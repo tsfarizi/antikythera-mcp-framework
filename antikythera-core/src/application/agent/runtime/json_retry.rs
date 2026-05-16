@@ -3,7 +3,7 @@
 /// When the model returns malformed JSON, the runtime sends a correction
 /// request back and retries up to [`MAX_JSON_RETRIES`] times before giving up.
 /// Moving this into `ToolRuntime` removes the identical copy that previously
-/// lived in both `runner.rs` and `fsm_runner.rs`.
+/// lived in `runner.rs`.
 use super::{AgentDirective, AgentError, ToolRuntime};
 use crate::application::client::{ChatRequest, McpClient};
 use crate::application::model_provider::ModelProvider;

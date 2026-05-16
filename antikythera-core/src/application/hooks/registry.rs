@@ -4,8 +4,8 @@ use super::types::{
     AuthHook, CorrelationHook, HookContext, HookError, PolicyDecision, PolicyDecisionHook,
     PolicyTarget, TelemetryHook,
 };
-use crate::application::observability::TelemetryEvent;
-use crate::logging::AgentLogger;
+use crate::application::observability::{ObservabilityHook, TelemetryEvent};
+use crate::logging::{AgentLogger, TransportLogger};
 
 /// Registry of all host integration hooks.
 #[derive(Clone, Default)]
@@ -218,7 +218,8 @@ impl HostHookMiddleware {
     }
 }
 
-/// In-memory telemetry sink suitable for tests and host-side audit snapshots.
+/// In-memory event buffer suitable for tests and host-side audit snapshots.
+/// Implements both [`TelemetryHook`] and [`ObservabilityHook`].
 #[derive(Debug, Clone, Default)]
 pub struct InMemoryTelemetryHook {
     events: Arc<std::sync::Mutex<Vec<TelemetryEvent>>>,
@@ -232,8 +233,33 @@ impl InMemoryTelemetryHook {
     pub fn snapshot(&self) -> Vec<TelemetryEvent> {
         self.events
             .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .clone()
+            .map(|guard| guard.clone())
+            .unwrap_or_else(|e| {
+                TransportLogger::new("telemetry").warn(format!(
+                    "InMemoryTelemetryHook events lock poisoned in snapshot: {}",
+                    e
+                ));
+                Vec::new()
+            })
+    }
+
+    pub fn clear(&self) {
+        match self.events.lock() {
+            Ok(mut guard) => guard.clear(),
+            Err(e) => {
+                TransportLogger::new("telemetry").warn(format!(
+                    "InMemoryTelemetryHook events lock poisoned in clear: {}",
+                    e
+                ));
+            }
+        }
+    }
+
+    pub fn events_by_type(&self, event_type: &str) -> Vec<TelemetryEvent> {
+        self.snapshot()
+            .into_iter()
+            .filter(|e| e.event_type == event_type)
+            .collect()
     }
 }
 
@@ -243,10 +269,32 @@ impl TelemetryHook for InMemoryTelemetryHook {
     }
 
     fn emit(&self, _context: &HookContext, event: &TelemetryEvent) -> Result<(), HookError> {
-        self.events
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .push(event.clone());
-        Ok(())
+        match self.events.lock() {
+            Ok(mut guard) => {
+                guard.push(event.clone());
+                Ok(())
+            }
+            Err(e) => {
+                TransportLogger::new("telemetry").warn(format!(
+                    "InMemoryTelemetryHook events lock poisoned in emit: {}",
+                    e
+                ));
+                Ok(())
+            }
+        }
+    }
+}
+
+impl ObservabilityHook for InMemoryTelemetryHook {
+    fn record_event(&self, event: TelemetryEvent) {
+        match self.events.lock() {
+            Ok(mut guard) => guard.push(event),
+            Err(e) => {
+                TransportLogger::new("telemetry").warn(format!(
+                    "InMemoryTelemetryHook events lock poisoned in record_event: {}",
+                    e
+                ));
+            }
+        }
     }
 }

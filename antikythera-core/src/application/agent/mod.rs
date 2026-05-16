@@ -23,25 +23,18 @@
 mod context;
 mod directive;
 mod errors;
-mod fsm_runner;
 mod memory;
 mod models;
 mod runner;
 mod runtime;
-mod state;
-mod state_persistence;
-mod terminal_handler;
 
 #[cfg(feature = "multi-agent")]
 pub mod multi_agent;
 
 pub use context::{ServerGuidance, ToolContext, ToolDescriptor};
 pub use errors::{AgentError, ToolError};
-pub use fsm_runner::FsmAgent;
 pub use memory::{
     AgentStateSnapshot, MemoryError, MemoryProvider, STATE_SCHEMA_VERSION, StateMetadata,
 };
 pub use models::{AgentOptions, AgentOutcome, AgentStep};
 pub use runner::Agent;
-
-pub use state::{AgentState, Event, TerminationReason};

@@ -340,48 +340,7 @@ pub(crate) fn reconfigure_runtime(
     ));
 
     // Build a PostcardAppConfig to persist — merge core routing fields with CLI providers.
-    // Convert runtime PromptsConfig (Option<String> fields) to the postcard form (String fields).
-    let postcard_prompts = {
-        use crate::config::PromptsConfig as PcPrompts;
-        let defaults = PcPrompts::default();
-        let r = &app.runtime_config.prompts;
-        PcPrompts {
-            template: r.template.clone().unwrap_or(defaults.template),
-            tool_guidance: r.tool_guidance.clone().unwrap_or(defaults.tool_guidance),
-            fallback_guidance: r
-                .fallback_guidance
-                .clone()
-                .unwrap_or(defaults.fallback_guidance),
-            json_retry_message: r
-                .json_retry_message
-                .clone()
-                .unwrap_or(defaults.json_retry_message),
-            tool_result_instruction: r
-                .tool_result_instruction
-                .clone()
-                .unwrap_or(defaults.tool_result_instruction),
-            agent_instructions: r
-                .agent_instructions
-                .clone()
-                .unwrap_or(defaults.agent_instructions),
-            language_instructions: r
-                .language_instructions
-                .clone()
-                .unwrap_or(defaults.language_instructions),
-            agent_max_steps_error: r
-                .agent_max_steps_error
-                .clone()
-                .unwrap_or(defaults.agent_max_steps_error),
-            no_tools_guidance: r
-                .no_tools_guidance
-                .clone()
-                .unwrap_or(defaults.no_tools_guidance),
-            fallback_response_keys: r
-                .fallback_response_keys
-                .clone()
-                .unwrap_or(defaults.fallback_response_keys),
-        }
-    };
+    let postcard_prompts = app.runtime_config.prompts.clone().into();
     // Persist system_prompt in the extensible custom map (PostcardAppConfig has no dedicated field).
     let mut custom = HashMap::new();
     if let Some(sp) = &app.runtime_config.system_prompt {

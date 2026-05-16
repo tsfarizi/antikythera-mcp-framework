@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use antikythera_core::application::observability::metrics::percentile;
 use antikythera_core::{
     AuditCategory, AuditRecord, AuditTrail, CallerContext, InMemoryMetricsExporter,
-    InMemoryObservabilityHook, InMemoryTracingHook, LatencyTracker, MetricKind, MetricsExporter,
+    InMemoryTelemetryHook, InMemoryTracingHook, LatencyTracker, MetricKind, MetricsExporter,
     ObservabilityHook, TelemetryEvent, TraceSpanContext, TraceStatus, TracingHook,
 };
 

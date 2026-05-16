@@ -26,9 +26,9 @@ pub use application::hooks::{
 };
 pub use application::observability::{
     AuditCategory, AuditRecord, AuditTrail, CallerContext, InMemoryMetricsExporter,
-    InMemoryObservabilityHook, InMemoryTracingHook, LatencySummary, LatencyTracker, MetricKind,
-    MetricRecord, MetricsExporter, NoOpObservabilityHook, ObservabilityHook, TelemetryEvent,
-    TraceSpanContext, TraceStatus, TracingHook,
+    InMemoryTracingHook, LatencySummary, LatencyTracker, MetricKind, MetricRecord, MetricsExporter,
+    NoOpObservabilityHook, ObservabilityHook, TelemetryEvent, TraceSpanContext, TraceStatus,
+    TracingHook,
 };
 pub use application::resilience;
 pub use application::resilience::{

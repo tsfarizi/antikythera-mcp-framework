@@ -18,8 +18,8 @@ fn in_memory_tracing_hook_records_started_and_ended_spans() {
 }
 
 #[test]
-fn in_memory_observability_hook() {
-    let hook = InMemoryObservabilityHook::new();
+fn in_memory_telemetry_hook_as_observability() {
+    let hook = InMemoryTelemetryHook::new();
 
     let event1 = TelemetryEvent::new("llm_request", None, Some("s1".to_string()));
     hook.record_event(event1);

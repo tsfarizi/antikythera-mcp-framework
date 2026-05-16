@@ -2,7 +2,7 @@
 //!
 //! All configuration is stored as a single Postcard binary file (`app.pc`).
 
-use super::app::{PromptsConfig, RestServerConfig};
+use super::app::RestServerConfig;
 use super::error::ConfigError;
 use super::postcard_config;
 use crate::logging::ConfigLogger;
@@ -124,30 +124,7 @@ fn convert_to_app_config(pc: &postcard_config::PostcardAppConfig) -> super::AppC
                 })
                 .collect(),
         },
-        prompts: PromptsConfig {
-            template: opt_nonempty(&pc.prompts.template),
-            tool_guidance: opt_nonempty(&pc.prompts.tool_guidance),
-            fallback_guidance: opt_nonempty(&pc.prompts.fallback_guidance),
-            json_retry_message: opt_nonempty(&pc.prompts.json_retry_message),
-            tool_result_instruction: opt_nonempty(&pc.prompts.tool_result_instruction),
-            agent_instructions: opt_nonempty(&pc.prompts.agent_instructions),
-            language_instructions: opt_nonempty(&pc.prompts.language_instructions),
-            agent_max_steps_error: opt_nonempty(&pc.prompts.agent_max_steps_error),
-            no_tools_guidance: opt_nonempty(&pc.prompts.no_tools_guidance),
-            fallback_response_keys: if pc.prompts.fallback_response_keys.is_empty() {
-                None
-            } else {
-                Some(pc.prompts.fallback_response_keys.clone())
-            },
-        },
-    }
-}
-
-fn opt_nonempty(s: &str) -> Option<String> {
-    if s.is_empty() {
-        None
-    } else {
-        Some(s.to_string())
+        prompts: pc.prompts.clone().into(),
     }
 }
 
@@ -178,42 +155,7 @@ fn convert_to_postcard_config(config: &super::AppConfig) -> postcard_config::Pos
             default_provider: config.default_provider.clone(),
             model: config.model.clone(),
         },
-        prompts: postcard_config::PromptsConfig {
-            template: config.prompts.template.clone().unwrap_or_default(),
-            tool_guidance: config.prompts.tool_guidance.clone().unwrap_or_default(),
-            fallback_guidance: config.prompts.fallback_guidance.clone().unwrap_or_default(),
-            json_retry_message: config
-                .prompts
-                .json_retry_message
-                .clone()
-                .unwrap_or_default(),
-            tool_result_instruction: config
-                .prompts
-                .tool_result_instruction
-                .clone()
-                .unwrap_or_default(),
-            agent_instructions: config
-                .prompts
-                .agent_instructions
-                .clone()
-                .unwrap_or_default(),
-            language_instructions: config
-                .prompts
-                .language_instructions
-                .clone()
-                .unwrap_or_default(),
-            agent_max_steps_error: config
-                .prompts
-                .agent_max_steps_error
-                .clone()
-                .unwrap_or_default(),
-            no_tools_guidance: config.prompts.no_tools_guidance.clone().unwrap_or_default(),
-            fallback_response_keys: config
-                .prompts
-                .fallback_response_keys
-                .clone()
-                .unwrap_or_default(),
-        },
+        prompts: config.prompts.clone().into(),
         agent: postcard_config::AgentConfig::default(),
         security: crate::security::config::SecurityConfig::default(),
         custom: std::collections::HashMap::new(),

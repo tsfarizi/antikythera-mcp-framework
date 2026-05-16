@@ -169,6 +169,22 @@ name = "cli_tests"
 path = "cli/mod.rs"
 
 # ============================================================================
+# Core Unit Tests (moved from antikythera-core/tests/)
+# ============================================================================
+
+[[test]]
+name = "core_multi_agent"
+path = "core/multi_agent.rs"
+
+[[test]]
+name = "core_tooling_tests"
+path = "core/tooling_tests.rs"
+
+[[test]]
+name = "core_transport_tests"
+path = "core/transport_tests.rs"
+
+# ============================================================================
 # Dependencies
 # ============================================================================
 

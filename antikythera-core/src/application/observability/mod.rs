@@ -40,8 +40,8 @@ pub use metrics::{
 };
 pub use telemetry::{CallerContext, TelemetryEvent};
 pub use tracing::{
-    InMemoryObservabilityHook, InMemoryTracingHook, NoOpObservabilityHook, ObservabilityHook,
-    TraceSpanContext, TraceStatus, TracingHook,
+    InMemoryTracingHook, NoOpObservabilityHook, ObservabilityHook, TraceSpanContext, TraceStatus,
+    TracingHook,
 };
 
 pub(crate) fn now_unix_ms() -> u64 {

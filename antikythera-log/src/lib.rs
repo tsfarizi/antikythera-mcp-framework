@@ -171,7 +171,7 @@ mod tests {
     fn log_filter_pagination() {
         let logger = Logger::new("test");
         for i in 0..10 {
-            logger.info(&format!("msg-{i}"));
+            logger.info(format!("msg-{i}"));
         }
 
         let filter = LogFilter::new().offset(3).limit(2);

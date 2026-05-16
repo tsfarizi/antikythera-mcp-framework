@@ -150,26 +150,72 @@ pub struct PromptsConfig {
 
 impl Default for PromptsConfig {
     fn default() -> Self {
+        use super::app::PromptsConfig as AppPrompts;
         Self {
-            template: Self::default_template().to_string(),
-            tool_guidance: "You have access to the following tools. Use them only when necessary to fulfill the user request:".to_string(),
-            fallback_guidance: "If the request is outside the scope of available tools, apologize politely and explain your limitations.".to_string(),
-            json_retry_message: "System Error: Invalid JSON format returned. Please output ONLY the raw JSON object for the tool call or final response. Do not use Markdown blocks or explanations.".to_string(),
-            tool_result_instruction: "Tool execution complete. Process this result and respond with a VALID JSON object.".to_string(),
-            agent_instructions: "You are an autonomous assistant that can call tools to solve user requests.".to_string(),
-            language_instructions: "Detect the user's language automatically and answer using that same language.".to_string(),
-            agent_max_steps_error: "agent exceeded the maximum number of tool interactions".to_string(),
-            no_tools_guidance: "No additional tools are currently configured.".to_string(),
-            fallback_response_keys: vec!["response".into(), "content".into(), "message".into()],
+            template: AppPrompts::default_template().to_string(),
+            tool_guidance: AppPrompts::default_tool_guidance().to_string(),
+            fallback_guidance: AppPrompts::default_fallback_guidance().to_string(),
+            json_retry_message: AppPrompts::default_json_retry_message().to_string(),
+            tool_result_instruction: AppPrompts::default_tool_result_instruction().to_string(),
+            agent_instructions: AppPrompts::default_agent_instructions().to_string(),
+            language_instructions: AppPrompts::default_language_instructions().to_string(),
+            agent_max_steps_error: AppPrompts::default_agent_max_steps_error().to_string(),
+            no_tools_guidance: AppPrompts::default_no_tools_guidance().to_string(),
+            fallback_response_keys: AppPrompts::default_fallback_response_keys()
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
         }
     }
 }
 
 impl PromptsConfig {
-    /// Default prompt template
+    /// Default prompt template (delegates to runtime default)
     pub fn default_template() -> &'static str {
-        "You are a helpful AI assistant.\n\n{{custom_instruction}}\n\n{{language_guidance}}\n\n{{tool_guidance}}"
+        super::app::PromptsConfig::default_template()
     }
+}
+
+impl From<super::app::PromptsConfig> for PromptsConfig {
+    fn from(app: super::app::PromptsConfig) -> Self {
+        Self {
+            template: app.template.unwrap_or_default(),
+            tool_guidance: app.tool_guidance.unwrap_or_default(),
+            fallback_guidance: app.fallback_guidance.unwrap_or_default(),
+            json_retry_message: app.json_retry_message.unwrap_or_default(),
+            tool_result_instruction: app.tool_result_instruction.unwrap_or_default(),
+            agent_instructions: app.agent_instructions.unwrap_or_default(),
+            language_instructions: app.language_instructions.unwrap_or_default(),
+            agent_max_steps_error: app.agent_max_steps_error.unwrap_or_default(),
+            no_tools_guidance: app.no_tools_guidance.unwrap_or_default(),
+            fallback_response_keys: app.fallback_response_keys.unwrap_or_default(),
+        }
+    }
+}
+
+impl From<PromptsConfig> for super::app::PromptsConfig {
+    fn from(pc: PromptsConfig) -> Self {
+        Self {
+            template: opt_nonempty(pc.template),
+            tool_guidance: opt_nonempty(pc.tool_guidance),
+            fallback_guidance: opt_nonempty(pc.fallback_guidance),
+            json_retry_message: opt_nonempty(pc.json_retry_message),
+            tool_result_instruction: opt_nonempty(pc.tool_result_instruction),
+            agent_instructions: opt_nonempty(pc.agent_instructions),
+            language_instructions: opt_nonempty(pc.language_instructions),
+            agent_max_steps_error: opt_nonempty(pc.agent_max_steps_error),
+            no_tools_guidance: opt_nonempty(pc.no_tools_guidance),
+            fallback_response_keys: if pc.fallback_response_keys.is_empty() {
+                None
+            } else {
+                Some(pc.fallback_response_keys)
+            },
+        }
+    }
+}
+
+fn opt_nonempty(s: String) -> Option<String> {
+    if s.is_empty() { None } else { Some(s) }
 }
 
 // ============================================================================

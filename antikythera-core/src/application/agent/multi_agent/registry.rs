@@ -82,10 +82,8 @@ impl AgentProfile {
 /// Simplified synchronous memory-provider trait used by the multi-agent
 /// registry layer.
 ///
-/// For the full async persistence contract used by [`FsmAgent`] refer to
+/// For the full async persistence contract refer to
 /// [`crate::application::agent::memory::MemoryProvider`].
-///
-/// [`FsmAgent`]: crate::application::agent::FsmAgent
 pub trait SyncMemoryProvider: Send + Sync {
     type Error: std::fmt::Debug;
 
