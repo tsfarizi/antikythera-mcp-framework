@@ -1,6 +1,7 @@
 //! Buffering and event streams
 
 use super::types::{AgentEvent, ToolEventPhase};
+use crate::logging::StreamingLogger;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
@@ -110,12 +111,23 @@ impl AgentEventStream {
     fn enforce_bound(&mut self) {
         if let Some(max) = self.max_buffered_events {
             if max == 0 {
+                let dropped = self.events.len();
                 self.events.clear();
+                if dropped > 0 {
+                    StreamingLogger::new(&crate::logging::get_active_session())
+                        .buffer_overflow(&crate::logging::get_active_session(), dropped);
+                }
                 return;
             }
 
+            let mut dropped = 0usize;
             while self.events.len() > max {
                 let _ = self.events.pop_front();
+                dropped += 1;
+            }
+            if dropped > 0 {
+                StreamingLogger::new(&crate::logging::get_active_session())
+                    .buffer_overflow(&crate::logging::get_active_session(), dropped);
             }
         }
     }
@@ -166,6 +178,10 @@ impl StreamingBuffer {
     pub fn flush(&mut self) -> Vec<AgentEvent> {
         let batch = std::mem::take(&mut self.pending);
         self.flushed_total += batch.len();
+        if !batch.is_empty() {
+            StreamingLogger::new(&crate::logging::get_active_session())
+                .buffer_flushed(&crate::logging::get_active_session(), batch.len());
+        }
         batch
     }
 

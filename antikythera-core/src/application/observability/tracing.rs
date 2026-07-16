@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use super::telemetry::TelemetryEvent;
-use crate::logging::TransportLogger;
+use crate::logging::ObservabilityLogger;
 
 /// Minimal span context used by tracing hooks.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -81,7 +81,7 @@ impl InMemoryTracingHook {
             .lock()
             .map(|guard| guard.clone())
             .unwrap_or_else(|e| {
-                TransportLogger::new("tracing").warn(format!(
+                ObservabilityLogger::new("tracing").warn(format!(
                     "InMemoryTracingHook started lock poisoned in started_spans: {}",
                     e
                 ));
@@ -94,7 +94,7 @@ impl InMemoryTracingHook {
             .lock()
             .map(|guard| guard.clone())
             .unwrap_or_else(|e| {
-                TransportLogger::new("tracing").warn(format!(
+                ObservabilityLogger::new("tracing").warn(format!(
                     "InMemoryTracingHook ended lock poisoned in ended_spans: {}",
                     e
                 ));
@@ -108,7 +108,7 @@ impl TracingHook for InMemoryTracingHook {
         match self.started.lock() {
             Ok(mut guard) => guard.push(span),
             Err(e) => {
-                TransportLogger::new("tracing").warn(format!(
+                ObservabilityLogger::new("tracing").warn(format!(
                     "InMemoryTracingHook started lock poisoned in on_span_start: {}",
                     e
                 ));
@@ -120,7 +120,7 @@ impl TracingHook for InMemoryTracingHook {
         match self.ended.lock() {
             Ok(mut guard) => guard.push((span, status)),
             Err(e) => {
-                TransportLogger::new("tracing").warn(format!(
+                ObservabilityLogger::new("tracing").warn(format!(
                     "InMemoryTracingHook ended lock poisoned in on_span_end: {}",
                     e
                 ));

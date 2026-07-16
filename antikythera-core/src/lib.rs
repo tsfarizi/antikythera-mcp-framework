@@ -53,10 +53,11 @@ pub use infrastructure::model::{
 pub use antikythera_log::LogLevel;
 /// Re-export logging for easy access
 pub use logging::{
-    AgentLogger, ChatLogger, ConfigLogger, DiscoveryLogger, OrchestratorLogger, ProviderLogger,
-    ResilienceLogger, SecurityLogger, SessionLogger, StdioLogger, StreamingLogger, TransportLogger,
-    WasmLogger, clear_all_loggers, clear_logs, get_active_session, get_latest_logs, get_logger,
-    get_logs_json, logger_count, query_logs, set_active_session, subscribe_logs,
+    AgentLogger, ChatLogger, ConfigLogger, DiscoveryLogger, ObservabilityLogger,
+    OrchestratorLogger, ProviderLogger, ResilienceLogger, SecurityLogger, SessionLogger,
+    StdioLogger, StreamingLogger, TransportLogger, WasmLogger, clear_all_loggers, clear_logs,
+    get_active_session, get_latest_logs, get_logger, get_logs_json, logger_count, query_logs,
+    set_active_session, subscribe_logs,
 };
 
 /// Crate version

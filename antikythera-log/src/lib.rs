@@ -82,6 +82,7 @@ pub mod logger;
 pub mod subscriber;
 
 pub mod session_logs;
+pub mod session_logger;
 
 /// Compile-time lint module.
 ///
@@ -98,6 +99,7 @@ pub use logger::*;
 pub use subscriber::{LogSender, LogSubscriber};
 
 pub use session_logs::{BatchLogExport, SessionLogExport};
+pub use session_logger::{SessionLogger, clear_all_loggers, get_logger, logger_count};
 
 /// Shared trait for Postcard binary serialization / deserialization.
 ///

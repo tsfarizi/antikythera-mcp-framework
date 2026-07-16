@@ -2,7 +2,8 @@
 
 use super::buffer::AgentEventStream;
 use super::request::StreamingRequest;
-use super::types::{AgentEvent, StreamingMode};
+use super::types::{AgentEvent, StreamingMode, ToolEventPhase};
+use crate::logging::StreamingLogger;
 use serde::{Deserialize, Serialize};
 
 /// Snapshot returned by in-memory streaming responders.
@@ -50,11 +51,16 @@ impl StreamingResponse for InMemoryStreamingResponse {
     }
 
     fn push_token(&mut self, token: String) {
+        let log = StreamingLogger::new(&crate::logging::get_active_session());
+        let session_id = crate::logging::get_active_session();
         if self.request.wants_tokens() {
             self.tokens.push(token.clone());
         }
         if self.request.wants_events() {
-            self.events.push(AgentEvent::Token { content: token });
+            self.events.push(AgentEvent::Token { content: token.clone() });
+        }
+        if self.request.wants_tokens() || self.request.wants_events() {
+            log.token_emitted(&session_id, token.len());
         }
     }
 
@@ -70,16 +76,35 @@ impl StreamingResponse for InMemoryStreamingResponse {
                 _ => {}
             }
         }
+        let log = StreamingLogger::new(&crate::logging::get_active_session());
+        let session_id = crate::logging::get_active_session();
+        if let AgentEvent::Tool { tool_name, phase } = &event {
+            let phase_str = match phase {
+                ToolEventPhase::Started => "started",
+                ToolEventPhase::Finished => "finished",
+            };
+            log.tool_event(&session_id, tool_name, phase_str);
+        }
         self.events.push(event);
     }
 
     fn set_final_response(&mut self, response: String) {
         if self.request.include_final_response {
+            StreamingLogger::new(&crate::logging::get_active_session()).debug(format!(
+                "Final response set | len={}",
+                response.len()
+            ));
             self.final_response = Some(response);
         }
     }
 
     fn snapshot(&self) -> StreamingSnapshot {
+        StreamingLogger::new(&crate::logging::get_active_session()).debug(format!(
+            "Streaming snapshot taken | tokens={} events={} has_final={}",
+            self.tokens.len(),
+            self.events.len(),
+            self.final_response.is_some()
+        ));
         StreamingSnapshot {
             mode: self.request.mode,
             tokens: self.tokens.clone(),

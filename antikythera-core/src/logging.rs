@@ -10,8 +10,11 @@
 //! (agent, transport, provider, etc.) has its own logger type that ensures
 //! every log entry is annotated with its origin.
 //!
-//! The global `LOGGERS` registry maps session IDs to `Logger` instances,
-//! allowing log entries from different sessions to be queried independently.
+//! The global `LOGGERS` registry is owned by `antikythera-log` (in
+//! `antikythera_log::session_logger`) so that any crate depending on
+//! `antikythera-log` can share the same per-session buffers. This module
+//! re-exports the registry helpers for backward compatibility and layers on
+//! the typed module loggers below.
 
 use antikythera_log::{LogBatch, LogEntry, LogFilter, LogLevel, Logger};
 use std::sync::{Arc, LazyLock};
@@ -19,10 +22,16 @@ use std::sync::{Arc, LazyLock};
 // ============================================================================
 // Global Logger Registry
 // ============================================================================
+//
+// `get_logger` / `clear_all_loggers` / `logger_count` are re-exported from
+// `antikythera_log::session_logger` below. The actual `LOGGERS` static
+// lives in `antikythera-log` so any downstream crate (notably
+// `antikythera-session`) can share the same buffers without a cyclic
+// dependency through this crate.
 
-/// Global logger storage
-static LOGGERS: LazyLock<std::sync::Mutex<std::collections::HashMap<String, Arc<Logger>>>> =
-    LazyLock::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
+pub use antikythera_log::session_logger::{
+    SessionLogger, clear_all_loggers, get_logger, logger_count,
+};
 
 /// Active session key used by the logging bridge.
 /// Defaults to "tui" so events land in a predictable bucket.
@@ -44,34 +53,6 @@ pub fn get_active_session() -> String {
         .lock()
         .expect("ACTIVE_SESSION lock poisoned in get_active_session")
         .clone()
-}
-
-/// Get or create a logger for a session
-pub fn get_logger(session_id: &str) -> Arc<Logger> {
-    let mut loggers = LOGGERS
-        .lock()
-        .expect("LOGGERS registry lock poisoned in get_logger");
-
-    loggers
-        .entry(session_id.to_string())
-        .or_insert_with(|| Arc::new(Logger::new(session_id)))
-        .clone()
-}
-
-/// Clear all loggers
-pub fn clear_all_loggers() {
-    let mut loggers = LOGGERS
-        .lock()
-        .expect("LOGGERS registry lock poisoned in clear_all_loggers");
-    loggers.clear();
-}
-
-/// Get logger count
-pub fn logger_count() -> usize {
-    let loggers = LOGGERS
-        .lock()
-        .expect("LOGGERS registry lock poisoned in logger_count");
-    loggers.len()
 }
 
 // ============================================================================
@@ -278,10 +259,9 @@ define_module_logger! {
     pub struct ResilienceLogger => "resilience"
 }
 
-define_module_logger! {
-    /// Session store module logger
-    pub struct SessionLogger => "session"
-}
+// `SessionLogger` is defined in `antikythera-log` (`session_logger` module)
+// so that it can be reused by `antikythera-session` without a cyclic
+// dependency. It is re-exported from `antikythera_log` and this module above.
 
 define_module_logger! {
     /// Orchestrator module logger — covers multi-agent orchestration
@@ -291,6 +271,94 @@ define_module_logger! {
 define_module_logger! {
     /// Streaming module logger — covers LLM streaming
     pub struct StreamingLogger => "streaming"
+}
+
+impl StreamingLogger {
+    /// Log a streaming session start
+    pub fn session_start(&self, mode: &str, session_id: &str) {
+        self.logger.log_with_source(
+            LogLevel::Info,
+            "streaming",
+            format!(
+                "Streaming session started | mode={} session_id={}",
+                mode, session_id
+            ),
+        );
+    }
+
+    /// Log a streaming session end
+    pub fn session_end(&self, session_id: &str, total_events: usize) {
+        self.logger.log_with_source(
+            LogLevel::Info,
+            "streaming",
+            format!(
+                "Streaming session ended | session_id={} total_events={}",
+                session_id, total_events
+            ),
+        );
+    }
+
+    /// Log a token stream
+    pub fn token_emitted(&self, session_id: &str, content_len: usize) {
+        self.logger.log_with_source(
+            LogLevel::Debug,
+            "streaming",
+            format!(
+                "Token emitted | session_id={} content_len={}",
+                session_id, content_len
+            ),
+        );
+    }
+
+    /// Log buffer flush
+    pub fn buffer_flushed(&self, session_id: &str, event_count: usize) {
+        self.logger.log_with_source(
+            LogLevel::Debug,
+            "streaming",
+            format!(
+                "Buffer flushed | session_id={} event_count={}",
+                session_id, event_count
+            ),
+        );
+    }
+
+    /// Log buffer overflow
+    pub fn buffer_overflow(&self, session_id: &str, dropped: usize) {
+        self.logger.log_with_source(
+            LogLevel::Warn,
+            "streaming",
+            format!(
+                "Buffer overflow | session_id={} dropped={}",
+                session_id, dropped
+            ),
+        );
+    }
+
+    /// Log a tool event
+    pub fn tool_event(&self, session_id: &str, tool_name: &str, phase: &str) {
+        self.logger.log_with_source(
+            LogLevel::Debug,
+            "streaming",
+            format!(
+                "Tool event | session_id={} tool={} phase={}",
+                session_id, tool_name, phase
+            ),
+        );
+    }
+
+    /// Log a streaming error
+    pub fn stream_error(&self, session_id: &str, error: &str) {
+        self.logger.log_with_source(
+            LogLevel::Error,
+            "streaming",
+            format!("Stream error | session_id={} error={}", session_id, error),
+        );
+    }
+}
+
+define_module_logger! {
+    /// Observability module logger — covers telemetry, metrics, audit, tracing
+    pub struct ObservabilityLogger => "observability"
 }
 
 define_module_logger! {
@@ -378,62 +446,32 @@ impl SecurityLogger {
 // ============================================================================
 // Log Query API
 // ============================================================================
+//
+// The query helpers below all use the shared logger registry from
+// `antikythera_log::session_logger` so that callers can read logs written
+// by any crate in the workspace (including `antikythera-session`).
 
 /// Query logs across all modules
 pub fn query_logs(session_id: &str, filter: &LogFilter) -> LogBatch {
-    if let Some(logger) = LOGGERS
-        .lock()
-        .expect("LOGGERS registry lock poisoned in query_logs")
-        .get(session_id)
-    {
-        logger.get_logs(filter)
-    } else {
-        LogBatch::new(Vec::new(), 0, false)
-    }
+    get_logger(session_id).get_logs(filter)
 }
 
 /// Get latest logs across all modules
 pub fn get_latest_logs(session_id: &str, count: usize) -> Vec<LogEntry> {
-    if let Some(logger) = LOGGERS
-        .lock()
-        .expect("LOGGERS registry lock poisoned in get_latest_logs")
-        .get(session_id)
-    {
-        logger.get_latest(count)
-    } else {
-        Vec::new()
-    }
+    get_logger(session_id).get_latest(count)
 }
 
 /// Get logs as JSON
 pub fn get_logs_json(session_id: &str, filter: &LogFilter) -> Result<String, String> {
-    if let Some(logger) = LOGGERS
-        .lock()
-        .expect("LOGGERS registry lock poisoned in get_logs_json")
-        .get(session_id)
-    {
-        logger.get_logs_json(filter)
-    } else {
-        Ok(r#"{"entries":[],"total_count":0,"has_more":false}"#.to_string())
-    }
+    get_logger(session_id).get_logs_json(filter)
 }
 
 /// Subscribe to real-time log stream
 pub fn subscribe_logs(session_id: &str) -> Option<antikythera_log::LogSubscriber> {
-    LOGGERS
-        .lock()
-        .expect("LOGGERS registry lock poisoned in subscribe_logs")
-        .get(session_id)
-        .map(|l| l.subscribe())
+    Some(get_logger(session_id).subscribe())
 }
 
 /// Clear logs for a session
 pub fn clear_logs(session_id: &str) {
-    if let Some(logger) = LOGGERS
-        .lock()
-        .expect("LOGGERS registry lock poisoned in clear_logs")
-        .get(session_id)
-    {
-        logger.clear();
-    }
+    get_logger(session_id).clear();
 }

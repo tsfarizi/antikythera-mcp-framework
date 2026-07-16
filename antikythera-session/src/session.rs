@@ -1,49 +1,7 @@
 //! Session and Message Types
 
-use antikythera_log::{LogLevel, Logger};
+use antikythera_log::SessionLogger;
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, LazyLock, Mutex};
-
-// ============================================================================
-// Global Session Logger Registry
-// ============================================================================
-
-static SESSION_LOGGERS: LazyLock<Mutex<std::collections::HashMap<String, Arc<Logger>>>> =
-    LazyLock::new(|| Mutex::new(std::collections::HashMap::new()));
-
-pub(crate) fn get_session_logger(session_id: &str) -> Arc<Logger> {
-    SESSION_LOGGERS
-        .lock()
-        .unwrap_or_else(|e| e.into_inner())
-        .entry(session_id.to_string())
-        .or_insert_with(|| Arc::new(Logger::new(session_id)))
-        .clone()
-}
-
-struct SessionLog {
-    logger: Arc<Logger>,
-}
-
-#[allow(dead_code)]
-impl SessionLog {
-    fn new(session_id: &str) -> Self {
-        Self {
-            logger: get_session_logger(session_id),
-        }
-    }
-    fn info(&self, msg: &str) {
-        self.logger.log_with_source(LogLevel::Info, "session", msg);
-    }
-    fn debug(&self, msg: &str) {
-        self.logger.log_with_source(LogLevel::Debug, "session", msg);
-    }
-    fn warn(&self, msg: &str) {
-        self.logger.log_with_source(LogLevel::Warn, "session", msg);
-    }
-    fn error(&self, msg: &str) {
-        self.logger.log_with_source(LogLevel::Error, "session", msg);
-    }
-}
 
 // ============================================================================
 // Message Role
@@ -389,12 +347,7 @@ impl Message {
     /// Serialize to JSON
     pub fn to_json(&self) -> Result<String, String> {
         serde_json::to_string(self).map_err(|e| {
-            let log = Logger::new("message");
-            log.log_with_source(
-                LogLevel::Error,
-                "session",
-                format!("Serialize error: {}", e),
-            );
+            SessionLogger::new("message").error(format!("Serialize error: {}", e));
             format!("Serialize error: {}", e)
         })
     }
@@ -402,12 +355,7 @@ impl Message {
     /// Deserialize from JSON
     pub fn from_json(json: &str) -> Result<Self, String> {
         serde_json::from_str(json).map_err(|e| {
-            let log = Logger::new("message");
-            log.log_with_source(
-                LogLevel::Error,
-                "session",
-                format!("Deserialize error: {}", e),
-            );
+            SessionLogger::new("message").error(format!("Deserialize error: {}", e));
             format!("Deserialize error: {}", e)
         })
     }
@@ -449,8 +397,7 @@ impl Session {
     pub fn new(user_id: impl Into<String>, model: impl Into<String>) -> Self {
         let now = chrono::Utc::now().to_rfc3339();
         let id = uuid::Uuid::new_v4().to_string();
-        let log = SessionLog::new(&id);
-        log.info(&format!("Session created | id={}", id));
+        SessionLogger::new(&id).info(format!("Session created | id={}", id));
         Self {
             id,
             user_id: user_id.into(),
@@ -468,8 +415,7 @@ impl Session {
 
     /// Add a message
     pub fn add_message(&mut self, message: Message) {
-        let log = SessionLog::new(&self.id);
-        log.debug(&format!(
+        SessionLogger::new(&self.id).debug(format!(
             "Message added | role={:?} | total_messages={}",
             message.role,
             self.messages.len() + 1
@@ -508,8 +454,7 @@ impl Session {
 
     /// Clear all messages
     pub fn clear_messages(&mut self) {
-        let log = SessionLog::new(&self.id);
-        log.debug("History cleared");
+        SessionLogger::new(&self.id).debug("History cleared");
         self.messages.clear();
         self.total_steps = 0;
         self.tools_used.clear();

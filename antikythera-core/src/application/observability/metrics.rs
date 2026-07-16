@@ -1,4 +1,4 @@
-use crate::logging::TransportLogger;
+use crate::logging::ObservabilityLogger;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -90,7 +90,7 @@ impl InMemoryMetricsExporter {
             .lock()
             .map(|guard| guard.clone())
             .unwrap_or_else(|e| {
-                TransportLogger::new("metrics").warn(format!(
+                ObservabilityLogger::new("metrics").warn(format!(
                     "InMemoryMetricsExporter metrics lock poisoned in snapshot: {}",
                     e
                 ));
@@ -102,7 +102,7 @@ impl InMemoryMetricsExporter {
         match self.metrics.lock() {
             Ok(mut guard) => guard.clear(),
             Err(e) => {
-                TransportLogger::new("metrics").warn(format!(
+                ObservabilityLogger::new("metrics").warn(format!(
                     "InMemoryMetricsExporter metrics lock poisoned in clear: {}",
                     e
                 ));
@@ -116,7 +116,7 @@ impl MetricsExporter for InMemoryMetricsExporter {
         match self.metrics.lock() {
             Ok(mut guard) => guard.push(metric),
             Err(e) => {
-                TransportLogger::new("metrics").warn(format!(
+                ObservabilityLogger::new("metrics").warn(format!(
                     "InMemoryMetricsExporter metrics lock poisoned in export_metric: {}",
                     e
                 ));

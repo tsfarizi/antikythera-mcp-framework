@@ -3,7 +3,7 @@
 //! Manages multiple concurrent sessions with thread-safe operations.
 
 use crate::session::*;
-use antikythera_log::{LogLevel, Logger};
+use antikythera_log::SessionLogger;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
@@ -68,12 +68,7 @@ impl SessionManager {
             .map_err(|e| SessionManagerError::LockPoisoned(format!("create_session: {}", e)))?;
         sessions.insert(id.clone(), session);
 
-        let log = Logger::new(&id);
-        log.log_with_source(
-            LogLevel::Info,
-            "session",
-            format!("Session created | id={}", id),
-        );
+        SessionLogger::new(&id).info(format!("Session created | id={}", id));
 
         Ok(id)
     }
@@ -94,12 +89,8 @@ impl SessionManager {
         })?;
         sessions.insert(id.clone(), session);
 
-        let log = Logger::new(&id);
-        log.log_with_source(
-            LogLevel::Info,
-            "session",
-            format!("Session created with custom ID | id={}", id),
-        );
+        SessionLogger::new(&id)
+            .info(format!("Session created with custom ID | id={}", id));
 
         Ok(id)
     }
@@ -161,12 +152,8 @@ impl SessionManager {
         match sessions.get_mut(session_id) {
             Some(session) => {
                 session.add_message(message);
-                let log = Logger::new(session_id);
-                log.log_with_source(
-                    LogLevel::Debug,
-                    "session",
-                    format!("Message appended | id={}", session_id),
-                );
+                SessionLogger::new(session_id)
+                    .debug(format!("Message appended | id={}", session_id));
                 Ok(())
             }
             None => Err(SessionManagerError::SessionNotFound(format!(
@@ -203,12 +190,8 @@ impl SessionManager {
             .map_err(|e| SessionManagerError::LockPoisoned(format!("delete_session: {}", e)))?;
         match sessions.remove(session_id) {
             Some(_) => {
-                let log = Logger::new(session_id);
-                log.log_with_source(
-                    LogLevel::Info,
-                    "session",
-                    format!("Session deleted | id={}", session_id),
-                );
+                SessionLogger::new(session_id)
+                    .info(format!("Session deleted | id={}", session_id));
                 Ok(())
             }
             None => Err(SessionManagerError::SessionNotFound(format!(
@@ -227,12 +210,8 @@ impl SessionManager {
         match sessions.get_mut(session_id) {
             Some(session) => {
                 session.clear_messages();
-                let log = Logger::new(session_id);
-                log.log_with_source(
-                    LogLevel::Debug,
-                    "session",
-                    format!("History cleared | id={}", session_id),
-                );
+                SessionLogger::new(session_id)
+                    .debug(format!("History cleared | id={}", session_id));
                 Ok(())
             }
             None => Err(SessionManagerError::SessionNotFound(format!(
@@ -255,12 +234,8 @@ impl SessionManager {
         match sessions.get_mut(session_id) {
             Some(session) => {
                 session.set_title(title);
-                let log = Logger::new(session_id);
-                log.log_with_source(
-                    LogLevel::Debug,
-                    "session",
-                    format!("Title updated | id={}", session_id),
-                );
+                SessionLogger::new(session_id)
+                    .debug(format!("Title updated | id={}", session_id));
                 Ok(())
             }
             None => Err(SessionManagerError::SessionNotFound(format!(
@@ -279,12 +254,8 @@ impl SessionManager {
         match sessions.get_mut(session_id) {
             Some(session) => {
                 session.add_tokens(tokens);
-                let log = Logger::new(session_id);
-                log.log_with_source(
-                    LogLevel::Debug,
-                    "session",
-                    format!("Tokens recorded | id={} | tokens={}", session_id, tokens),
-                );
+                SessionLogger::new(session_id)
+                    .debug(format!("Tokens recorded | id={} | tokens={}", session_id, tokens));
                 Ok(())
             }
             None => Err(SessionManagerError::SessionNotFound(format!(
@@ -308,15 +279,10 @@ impl SessionManager {
         match sessions.get_mut(session_id) {
             Some(session) => {
                 session.record_tool(tool_name, step);
-                let log = Logger::new(session_id);
-                log.log_with_source(
-                    LogLevel::Debug,
-                    "session",
-                    format!(
-                        "Tool recorded | id={} | tool={} | step={}",
-                        session_id, tool_name, step
-                    ),
-                );
+                SessionLogger::new(session_id).debug(format!(
+                    "Tool recorded | id={} | tool={} | step={}",
+                    session_id, tool_name, step
+                ));
                 Ok(())
             }
             None => Err(SessionManagerError::SessionNotFound(format!(
@@ -371,12 +337,8 @@ impl SessionManager {
             .write()
             .map_err(|e| SessionManagerError::LockPoisoned(format!("import_session: {}", e)))?;
         sessions.insert(session_id.clone(), session);
-        let log = Logger::new(&session_id);
-        log.log_with_source(
-            LogLevel::Info,
-            "session",
-            format!("Session imported | id={}", session_id),
-        );
+        SessionLogger::new(&session_id)
+            .info(format!("Session imported | id={}", session_id));
         Ok(())
     }
 
@@ -393,12 +355,7 @@ impl SessionManager {
         for session in imported_sessions {
             let id = session.id.clone();
             sessions.insert(id.clone(), session);
-            let log = Logger::new(&id);
-            log.log_with_source(
-                LogLevel::Info,
-                "session",
-                format!("Session imported | id={}", id),
-            );
+            SessionLogger::new(&id).info(format!("Session imported | id={}", id));
         }
         Ok(count)
     }

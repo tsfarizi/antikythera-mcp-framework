@@ -33,29 +33,6 @@ pub(crate) fn to_c_string(s: &str) -> *mut c_char {
     }
 }
 
-/// Create success response
-pub(crate) fn success_response() -> *mut c_char {
-    let json = serde_json::json!({
-        "success": true
-    });
-    serialize_result(&json)
-}
-
-/// Create success response with additional fields
-pub(crate) fn success_with(fields: &[(&str, serde_json::Value)]) -> *mut c_char {
-    let mut json = serde_json::json!({
-        "success": true
-    });
-
-    if let Some(obj) = json.as_object_mut() {
-        for (key, value) in fields {
-            obj.insert(key.to_string(), value.clone());
-        }
-    }
-
-    serialize_result(&json)
-}
-
 /// Create error response
 pub(crate) fn error_response(message: &str) -> *mut c_char {
     let json = serde_json::json!({
@@ -71,24 +48,6 @@ pub(crate) fn serialize_result<T: serde::Serialize>(value: &T) -> *mut c_char {
         Ok(json) => to_c_string(&json),
         Err(_) => error_response("Failed to serialize result"),
     }
-}
-
-/// Encode bytes to hex string
-pub(crate) fn hex_encode(data: &[u8]) -> String {
-    data.iter().map(|b| format!("{:02x}", b)).collect()
-}
-
-/// Decode hex string to bytes
-pub(crate) fn hex_decode(hex: &str) -> Result<Vec<u8>, String> {
-    if !hex.len().is_multiple_of(2) {
-        return Err("Invalid hex length".to_string());
-    }
-    (0..hex.len())
-        .step_by(2)
-        .map(|i| {
-            u8::from_str_radix(&hex[i..i + 2], 16).map_err(|e| format!("Hex decode error: {}", e))
-        })
-        .collect()
 }
 
 /// Free C string allocated by Rust

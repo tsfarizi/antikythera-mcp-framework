@@ -1,4 +1,4 @@
-use crate::logging::TransportLogger;
+use crate::logging::ObservabilityLogger;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -62,7 +62,7 @@ impl AuditTrail {
         match self.records.lock() {
             Ok(mut guard) => guard.push(record),
             Err(e) => {
-                TransportLogger::new("audit")
+                ObservabilityLogger::new("audit")
                     .warn(format!("AuditTrail records lock poisoned in append: {}", e));
             }
         }
@@ -73,7 +73,7 @@ impl AuditTrail {
             .lock()
             .map(|guard| guard.clone())
             .unwrap_or_else(|e| {
-                TransportLogger::new("audit").warn(format!(
+                ObservabilityLogger::new("audit").warn(format!(
                     "AuditTrail records lock poisoned in snapshot: {}",
                     e
                 ));
@@ -92,7 +92,7 @@ impl AuditTrail {
         match self.records.lock() {
             Ok(mut guard) => guard.clear(),
             Err(e) => {
-                TransportLogger::new("audit")
+                ObservabilityLogger::new("audit")
                     .warn(format!("AuditTrail records lock poisoned in clear: {}", e));
             }
         }
