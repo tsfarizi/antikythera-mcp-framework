@@ -22,27 +22,24 @@ mod colors {
     pub const RESET: &str = "\x1b[0m";
 }
 
-use colors::*;
+use colors::{BLUE, BOLD, GREEN, RED, RESET, YELLOW};
 
 fn main() {
-    println!(
-        "{}{}=== Building Antikythera WASM Component ==={}\n",
-        BOLD, BLUE, RESET
-    );
+    println!("{BOLD}{BLUE}=== Building Antikythera WASM Component ==={RESET}\n");
 
     let args: Vec<String> = env::args().skip(1).collect();
-    let args: Vec<&str> = args.iter().map(|s| s.as_str()).collect();
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
 
     match args.as_slice() {
         ["wit"] => generate_wit(),
-        ["component"] | ["component-wasm"] => build_component(),
+        ["component" | "component-wasm"] => build_component(),
         ["all"] => {
             generate_wit();
             build_component();
         }
         _ => {
-            eprintln!("{}Usage:{} component-builder <command>\n", RED, RESET);
-            eprintln!("{}Commands:{}", BOLD, RESET);
+            eprintln!("{RED}Usage:{RESET} component-builder <command>\n");
+            eprintln!("{BOLD}Commands:{RESET}");
             eprintln!("  wit          Generate WIT from Rust code");
             eprintln!("  component    Build WASM component");
             eprintln!("  all          Generate WIT and build component");
@@ -53,10 +50,7 @@ fn main() {
 
 /// Generate WIT files from Rust source code
 fn generate_wit() {
-    println!(
-        "{}[1/2] Generating WIT from Rust code...{}{}",
-        YELLOW, RESET, BLUE
-    );
+    println!("{YELLOW}[1/2] Generating WIT from Rust code...{RESET}{BLUE}");
 
     let wit_dir = project_root().join("wit");
     let wit_file = wit_dir.join("antikythera.wit");
@@ -64,26 +58,19 @@ fn generate_wit() {
     // The WIT file is manually curated and checked into the repository.
     // Auto-generation from Rust source is best-effort; the checked-in file
     // is the source of truth for the WASM component interface.
-    if wit_file.exists() {
-        match fs::read_to_string(&wit_file) {
-            Ok(content) if !content.trim().is_empty() => {
-                println!(
-                    "{}✓ WIT file already exists: {}{}",
-                    GREEN,
-                    wit_file.display(),
-                    RESET
-                );
-                println!(
-                    "{}  (using checked-in WIT — auto-generation skipped){}",
-                    BLUE, RESET
-                );
-                // Validate it has a world definition
-                if content.contains("world antikythera-mcp") {
-                    println!("\n{}WIT validation passed{}\n", GREEN, RESET);
-                    return;
-                }
-            }
-            _ => {}
+    if wit_file.exists()
+        && let Ok(content) = fs::read_to_string(&wit_file)
+        && !content.trim().is_empty()
+    {
+        println!(
+            "{GREEN}✓ WIT file already exists: {}{RESET}",
+            wit_file.display()
+        );
+        println!("{BLUE}  (using checked-in WIT — auto-generation skipped){RESET}");
+        // Validate it has a world definition
+        if content.contains("world antikythera-mcp") {
+            println!("\n{GREEN}WIT validation passed{RESET}\n");
+            return;
         }
     }
 
@@ -99,10 +86,7 @@ fn generate_wit() {
         } else if sdk_src.join("component").join("mod.rs").exists() {
             sdk_src.join("component")
         } else {
-            eprintln!(
-                "{}✗ component source not found and no WIT file exists.{}",
-                RED, RESET
-            );
+            eprintln!("{RED}✗ component source not found and no WIT file exists.{RESET}");
             exit(1);
         }
     };
@@ -112,17 +96,15 @@ fn generate_wit() {
     if let Ok(entries) = fs::read_dir(&wasm_agent_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map(|e| e == "rs").unwrap_or(false) {
+            if path.extension().is_some_and(|e| e == "rs") {
                 source_files.push(path);
             }
         }
     }
     if source_files.is_empty() {
         eprintln!(
-            "{}✗ No .rs files found in {}{}",
-            RED,
-            wasm_agent_dir.display(),
-            RESET
+            "{RED}✗ No .rs files found in {}{RESET}",
+            wasm_agent_dir.display()
         );
         exit(1);
     }
@@ -133,39 +115,34 @@ fn generate_wit() {
             fs::create_dir_all(&wit_dir).expect("Failed to create wit directory");
             fs::write(&wit_file, &wit_content).expect("Failed to write WIT file");
 
-            println!("{}✓ WIT generated: {}{}", GREEN, wit_file.display(), RESET);
             println!(
-                "\n{}Generated WIT preview:{}\n{}",
-                BLUE,
-                RESET,
+                "{GREEN}✓ WIT generated: {}{RESET}",
+                wit_file.display()
+            );
+            println!(
+                "\n{BLUE}Generated WIT preview:{RESET}\n{}",
                 &wit_content[..wit_content.len().min(500)]
             );
         }
         Err(e) => {
-            eprintln!("{}✗ WIT generation failed: {}{}", RED, e, RESET);
+            eprintln!("{RED}✗ WIT generation failed: {e}{RESET}");
             exit(1);
         }
     }
 
-    println!("\n{}WIT generation complete{}\n", GREEN, RESET);
+    println!("\n{GREEN}WIT generation complete{RESET}\n");
 }
 
 /// Build the WASM component
 fn build_component() {
-    println!(
-        "{}[2/2] Building WASM component...{}{}",
-        YELLOW, RESET, BLUE
-    );
+    println!("{YELLOW}[2/2] Building WASM component...{RESET}{BLUE}");
 
     // Ensure wasm target is installed
     ensure_target_installed("wasm32-wasip1");
 
     // Build with cargo-component
     if !command_exists("cargo-component") {
-        println!(
-            "{}cargo-component not found. Installing...{}",
-            YELLOW, RESET
-        );
+        println!("{YELLOW}cargo-component not found. Installing...{RESET}");
         run_command("cargo", &["install", "cargo-component"]);
     }
 
@@ -184,7 +161,7 @@ fn build_component() {
         .expect("Failed to run cargo component");
 
     if !status.success() {
-        eprintln!("{}✗ Component build failed{}", RED, RESET);
+        eprintln!("{RED}✗ Component build failed{RESET}");
         exit(1);
     }
 
@@ -205,26 +182,24 @@ fn build_component() {
 
     match wasm_file {
         Some(file) => {
-            println!("{}✓ Component built: {}{}", GREEN, file.display(), RESET);
+            println!("{GREEN}✓ Component built: {}{RESET}", file.display());
 
             // Show component info if wasm-tools is available
             if command_exists("wasm-tools") {
-                println!("\n{}Component details:{}", BLUE, RESET);
+                println!("\n{BLUE}Component details:{RESET}");
                 let _ = Command::new("wasm-tools")
                     .args(["component", "info", file.to_str().unwrap()])
                     .status();
             }
 
-            println!("\n{}Component build complete!{}\n", GREEN, RESET);
+            println!("\n{GREEN}Component build complete!{RESET}\n");
         }
         None => {
             eprintln!(
-                "{}✗ Component output not found in {}{}",
-                RED,
-                output_dir.display(),
-                RESET
+                "{RED}✗ Component output not found in {}{RESET}",
+                output_dir.display()
             );
-            eprintln!("{}Expected one of:{}", RED, RESET);
+            eprintln!("{RED}Expected one of:{RESET}");
             for f in &wasm_files {
                 eprintln!("  - {}", f.display());
             }
@@ -981,7 +956,7 @@ fn command_exists(cmd: &str) -> bool {
 /// Run a command and print output
 fn run_command(cmd: &str, args: &[&str]) {
     let status = Command::new(cmd).args(args).status().unwrap_or_else(|e| {
-        eprintln!("{}Failed to execute {}: {}{}", RED, cmd, e, RESET);
+        eprintln!("{RED}Failed to execute {cmd}: {e}{RESET}");
         exit(1);
     });
 
@@ -1000,7 +975,7 @@ fn ensure_target_installed(target: &str) {
     let installed = String::from_utf8_lossy(&output.stdout);
 
     if !installed.lines().any(|line| line.trim() == target) {
-        println!("{}Installing target: {}{}", YELLOW, target, RESET);
+        println!("{YELLOW}Installing target: {target}{RESET}");
         run_command("rustup", &["target", "add", target]);
     }
 }
