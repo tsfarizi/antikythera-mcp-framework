@@ -1,4 +1,4 @@
-﻿# Streaming (v1.0.10)
+﻿# Streaming
 
 This document covers the currently implemented streaming behavior.
 

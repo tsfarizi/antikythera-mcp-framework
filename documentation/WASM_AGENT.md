@@ -50,7 +50,7 @@ This allows the host to own provider-specific payload shaping while the framewor
 
 ## Session archive and restore flow
 
-The runner now supports automatic in-memory pressure handling and idle timeout archival.
+The runner supports automatic in-memory pressure handling and idle timeout archival.
 
 ### Triggers
 
@@ -70,19 +70,34 @@ If a request arrives for an archived session, the runner emits:
 - `session_restore_requested`
 - `session_restore_progress` (initial stage)
 
-Host can push progress updates at any time using:
-
-- `report_session_restore_progress(session_id, progress_json)`
-
 After host loads state from durable storage, it restores RAM state via:
 
-- `hydrate_session(session_id, state_json)`
-
-Which emits:
-
-- `session_restored`
+- `init(config_json)` with the session ID to recreate the session
 
 This flow allows hosts to stream loading feedback to user interfaces when restore latency is non-trivial.
+
+## Exported WASM functions
+
+The WASM component exports the following host-callable functions:
+
+| Function | Purpose |
+|:---------|:--------|
+| `init(config_json)` | Initialize/configure runtime with session ID and defaults |
+| `prepare_user_turn(request_json)` | Prepare messages for LLM call |
+| `append_llm_chunk(session_id, chunk, correlation_id?)` | Stream LLM token chunks |
+| `commit_llm_response(prepared_turn_json, llm_response_json)` | Commit full LLM response |
+| `commit_llm_stream(prepared_turn_json)` | Commit streamed LLM response |
+| `process_llm_response_for_session(session_id, llm_response_json)` | Process LLM response without prepared turn |
+| `process_tool_result_for_session(session_id, tool_result_json)` | Process tool execution result |
+| `drain_events(session_id)` | Drain pending telemetry events |
+| `get_state(session_id)` | Get session state as JSON |
+| `get_telemetry_snapshot(session_id)` | Get telemetry counters |
+| `get_slo_snapshot(session_id)` | Get SLO latency snapshot |
+| `get_tools_prompt()` | Get formatted tool list for system prompt |
+| `register_tools(tools_json)` | Register MCP tool definitions |
+| `set_context_policy(policy_json)` | Update context management policy |
+| `reset_session(session_id)` | Reset/remove a session |
+| `sweep_idle_sessions(now_unix_ms?)` | Trigger idle timeout sweep manually |
 
 ## Related documents
 

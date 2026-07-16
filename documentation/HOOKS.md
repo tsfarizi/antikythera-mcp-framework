@@ -1,4 +1,4 @@
-﻿# Host Integration Hooks (v1.0.10)
+﻿# Host Integration Hooks
 
 This document describes host hook integration points in the runtime.
 

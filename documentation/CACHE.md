@@ -1,4 +1,4 @@
-﻿# Cache (v1.0.10)
+﻿# Cache
 
 This document describes the active binary cache model for configuration data.
 
