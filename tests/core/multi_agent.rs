@@ -2,10 +2,10 @@
 mod agent_postcard_serialization;
 
 #[path = "multi_agent/guardrails_tests/guardrail_chain_budget_types.rs"]
-mod guardrails_part_14;
+mod guardrail_chain_budget_types;
 
 #[path = "multi_agent/hardening_tests/cancellation_token.rs"]
-mod hardening_part_14;
+mod cancellation_token;
 
 #[path = "multi_agent/hardening_tests/orchestrator_budget.rs"]
-mod hardening_part_15;
+mod orchestrator_budget;

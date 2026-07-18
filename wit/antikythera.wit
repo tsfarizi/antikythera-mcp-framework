@@ -65,10 +65,33 @@ interface host-imports {
   load-state(context-id: string) -> result<option<string>, string>;
 }
 
-/// Combined world exporting both interfaces
+/// PromptManager — host-side prompt storage interface
+interface prompt-manager {
+  /// Retrieve a prompt template by its identifier.
+  get-prompt(prompt-id: string) -> result<option<string>, string>;
+  /// List all available prompt identifiers.
+  list-prompts() -> result<list<string>, string>;
+}
+
+/// McpClient — host-side MCP server proxy interface
+interface mcp-client {
+  /// List tools exposed by a connected MCP server.
+  list-tools(server-id: string) -> result<list<tool-call-event>, string>;
+  /// Invoke a tool on an MCP server and return the result.
+  invoke-tool(server-id: string, tool-name: string, input-json: string) -> result<tool-execution-result, string>;
+}
+
+/// FfiServer — optional REST bridge for non-WASM hosts
+interface ffi-server {
+  /// Start the HTTP bridge on the given bind address.
+  start(bind-address: string) -> result<_, string>;
+  /// Gracefully stop the HTTP bridge.
+  stop() -> result<_, string>;
+}
+
 world antikythera-mcp {
-  export host-imports;
-  // TODO: define and export prompt-manager interface
-  // TODO: define and export mcp-client interface
-  // TODO: define and export ffi-server interface
+    import host-imports;
+    export prompt-manager;
+    export mcp-client;
+    export ffi-server;
 }

@@ -1,4 +1,4 @@
 #[path = "transport_tests/builtin_transport_tests.rs"]
-mod part_06;
+mod builtin_transport;
 #[path = "transport_tests/http_transport_cache.rs"]
-mod part_07;
+mod http_transport_cache;
