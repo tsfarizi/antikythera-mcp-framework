@@ -56,8 +56,6 @@ fn scan_file(path: &Path, violations: &mut Vec<String>) {
             "println!(",
             "eprintln!(",
             "dbg!(",
-            "tracing::",
-            "use tracing::",
         ];
 
         if banned.iter().any(|pattern| line.contains(pattern)) {

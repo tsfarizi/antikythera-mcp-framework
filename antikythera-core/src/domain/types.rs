@@ -1,3 +1,8 @@
+// NOTE: This re-export couples the domain to `antikythera_session`.
+// Full decoupling would require defining MessagePart and MessageRole
+// in domain and providing adapters at the infrastructure boundary.
+// Keeping as-is for now because MessagePart/MessageRole are genuinely
+// domain types (conversation concepts), just defined in an external crate.
 pub use antikythera_session::{MessagePart, MessageRole};
 use serde::{Deserialize, Serialize};
 

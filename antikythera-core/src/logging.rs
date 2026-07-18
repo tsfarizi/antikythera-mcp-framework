@@ -475,3 +475,37 @@ pub fn subscribe_logs(session_id: &str) -> Option<antikythera_log::LogSubscriber
 pub fn clear_logs(session_id: &str) {
     get_logger(session_id).clear();
 }
+
+// ============================================================================
+// AppLogger Port Implementations
+// ============================================================================
+//
+// These implementations satisfy the `AppLogger` trait port, allowing
+// application code to depend on the trait instead of concrete logger types.
+// This follows the Dependency Inversion Principle.
+
+macro_rules! impl_app_logger {
+    ($ty:ty) => {
+        impl crate::application::ports::logging::AppLogger for $ty {
+            fn log_info(&self, message: impl Into<String>) { self.info(message); }
+            fn log_warn(&self, message: impl Into<String>) { self.warn(message); }
+            fn log_error(&self, message: impl Into<String>) { self.error(message); }
+            fn log_debug(&self, message: impl Into<String>) { self.debug(message); }
+        }
+    };
+}
+
+impl_app_logger!(ConfigLogger);
+impl_app_logger!(AgentLogger);
+impl_app_logger!(TransportLogger);
+impl_app_logger!(ProviderLogger);
+impl_app_logger!(DiscoveryLogger);
+impl_app_logger!(StdioLogger);
+impl_app_logger!(ChatLogger);
+impl_app_logger!(WasmLogger);
+impl_app_logger!(ResilienceLogger);
+impl_app_logger!(OrchestratorLogger);
+impl_app_logger!(StreamingLogger);
+impl_app_logger!(ObservabilityLogger);
+impl_app_logger!(SecurityLogger);
+impl_app_logger!(SessionLogger);

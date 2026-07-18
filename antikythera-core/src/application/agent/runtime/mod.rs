@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Semaphore;
 
-use crate::config::ToolConfig;
+use crate::application::config::ToolConfig;
 
 pub(super) use super::context::{ServerGuidance, ToolContext, ToolDescriptor};
 pub(super) use super::directive::AgentDirective;

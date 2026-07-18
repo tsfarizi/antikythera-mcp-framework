@@ -15,7 +15,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use tokio::sync::Mutex as AsyncMutex;
 
-use super::McpTransport;
+use crate::application::tooling::transport::McpTransport;
 use super::config::{HttpTransportConfig, TransportMode};
 use crate::application::tooling::error::ToolInvokeError;
 use crate::application::tooling::interface::{PROTOCOL_VERSION, ServerToolInfo};
@@ -267,7 +267,7 @@ impl McpTransport for HttpTransport {
     }
 
     async fn send_request(&self, method: &str, params: Value) -> Result<Value, ToolInvokeError> {
-        let url = self.resolve_endpoint().await?;
+        let url: String = self.resolve_endpoint().await?;
         rpc::send_request(
             &self.inner.client,
             &self.inner.config.name,
@@ -281,7 +281,7 @@ impl McpTransport for HttpTransport {
     }
 
     async fn send_notification(&self, method: &str, params: Value) -> Result<(), ToolInvokeError> {
-        let url = self.resolve_endpoint().await?;
+        let url: String = self.resolve_endpoint().await?;
         rpc::send_notification(
             &self.inner.client,
             &self.inner.config.name,

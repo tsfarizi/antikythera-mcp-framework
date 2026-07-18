@@ -18,7 +18,7 @@
 //! ## Usage (pure Rust, no CLI dependency)
 //!
 //! ```ignore
-//! use antikythera_core::application::tooling::transport::BuiltinTransport;
+//! use antikythera_core::infrastructure::transport::BuiltinTransport;
 //! use antikythera_core::application::tooling::interface::ServerToolInfo;
 //!
 //! let tools = vec![ServerToolInfo { ... }];
@@ -29,7 +29,7 @@
 
 use crate::application::tooling::error::ToolInvokeError;
 use crate::application::tooling::interface::ServerToolInfo;
-use crate::infrastructure::mcp::validate_tool_name;
+use crate::domain::validation::validate_tool_name;
 use crate::logging::TransportLogger;
 use async_trait::async_trait;
 use serde_json::{Value, json};
@@ -37,7 +37,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex as AsyncMutex;
 
-use super::McpTransport;
+use crate::application::tooling::transport::McpTransport;
 
 /// Builtin tool handler: receives the `arguments` JSON value, returns either
 /// a result JSON value or an error message string.
@@ -105,9 +105,9 @@ impl BuiltinTransport {
 
         let instructions = Self::default_instructions(&valid_tools);
 
-        let mut tool_cache = HashMap::new();
-        let mut input_schemas = HashMap::new();
-        let mut output_schemas = HashMap::new();
+        let mut tool_cache: HashMap<String, ServerToolInfo> = HashMap::new();
+        let mut input_schemas: HashMap<String, Value> = HashMap::new();
+        let mut output_schemas: HashMap<String, Value> = HashMap::new();
         for tool in &valid_tools {
             tool_cache.insert(tool.name.clone(), tool.clone());
             if let Some(ref schema) = tool.input_schema {

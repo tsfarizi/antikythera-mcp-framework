@@ -67,7 +67,8 @@ interface host-imports {
 
 /// Combined world exporting both interfaces
 world antikythera-mcp {
-  export prompt-manager;
-  export mcp-client;
-  export ffi-server;
+  export host-imports;
+  // TODO: define and export prompt-manager interface
+  // TODO: define and export mcp-client interface
+  // TODO: define and export ffi-server interface
 }

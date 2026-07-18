@@ -1,23 +1,4 @@
 #[test]
-fn test_file_content_decode() {
-    let original = b"Hello World";
-    let encoded = BASE64.encode(original);
-
-    let file = FileContent {
-        metadata: FileMetadata {
-            filename: "test.txt".to_string(),
-            mime_type: "text/plain".to_string(),
-            size_bytes: original.len(),
-            created_at: "2024-01-01T00:00:00Z".to_string(),
-        },
-        data: encoded,
-    };
-
-    let decoded = file.decode_data().unwrap();
-    assert_eq!(decoded, original);
-}
-
-#[test]
 fn test_file_content_is_pdf() {
     let file = FileContent {
         metadata: FileMetadata {
@@ -43,7 +24,7 @@ fn test_content_item_to_file_content() {
         metadata: None,
     };
 
-    let file = item.to_file_content().unwrap();
+    let file = item.to_file_content("2024-01-01T00:00:00Z").unwrap();
     assert_eq!(file.metadata.filename, "test.pdf");
     assert_eq!(file.metadata.mime_type, "application/pdf");
 }

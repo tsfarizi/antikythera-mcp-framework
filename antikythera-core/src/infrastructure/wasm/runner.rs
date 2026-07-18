@@ -6,7 +6,7 @@ use crate::logging::WasmLogger;
 use thiserror::Error;
 use wasmtime::{Caller, Engine, Extern, Linker, Module, Store};
 
-use crate::application::agent::multi_agent::task::{AgentTask, TaskResult};
+use crate::domain::task::{AgentTask, TaskResult};
 
 // ============================================================================
 // Error type

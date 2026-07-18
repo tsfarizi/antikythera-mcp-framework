@@ -5,6 +5,7 @@
 use super::config::RateLimitConfig;
 use crate::logging::SecurityLogger;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -14,6 +15,7 @@ pub struct RateLimiter {
     log: SecurityLogger,
     session_limits: Arc<Mutex<HashMap<String, SessionLimits>>>,
     cleanup_task: Option<std::thread::JoinHandle<()>>,
+    shutdown: Arc<AtomicBool>,
 }
 
 /// Session-specific rate limits
@@ -91,13 +93,15 @@ pub enum RateLimitError {
 impl RateLimiter {
     pub fn new(config: RateLimitConfig) -> Self {
         let session_limits = Arc::new(Mutex::new(HashMap::new()));
+        let shutdown = Arc::new(AtomicBool::new(false));
 
         let cleanup_task = if config.enabled {
             let limits_clone = Arc::clone(&session_limits);
+            let shutdown_clone = Arc::clone(&shutdown);
             let cleanup_interval = Duration::from_secs(config.cleanup_interval_secs as u64);
 
             Some(std::thread::spawn(move || {
-                Self::cleanup_task(limits_clone, cleanup_interval);
+                Self::cleanup_task(limits_clone, cleanup_interval, shutdown_clone);
             }))
         } else {
             None
@@ -108,6 +112,7 @@ impl RateLimiter {
             log: SecurityLogger::new(&crate::logging::get_active_session()),
             session_limits,
             cleanup_task,
+            shutdown,
         }
     }
 
@@ -226,15 +231,28 @@ impl RateLimiter {
     }
 
     /// Cleanup task to remove inactive sessions
-    fn cleanup_task(limits: Arc<Mutex<HashMap<String, SessionLimits>>>, interval: Duration) {
+    fn cleanup_task(
+        limits: Arc<Mutex<HashMap<String, SessionLimits>>>,
+        interval: Duration,
+        shutdown: Arc<AtomicBool>,
+    ) {
+        let tick = Duration::from_secs(1);
+        let mut elapsed = Duration::ZERO;
         loop {
-            std::thread::sleep(interval);
+            std::thread::sleep(tick);
+            elapsed += tick;
 
-            let mut limits_guard = limits.lock().unwrap_or_else(|e| e.into_inner());
-            let now = Instant::now();
-            let timeout = Duration::from_secs(300); // 5 minutes inactivity timeout
+            if shutdown.load(Ordering::Relaxed) {
+                break;
+            }
 
-            limits_guard.retain(|_, session| now.duration_since(session.last_activity) < timeout);
+            if elapsed >= interval {
+                elapsed = Duration::ZERO;
+                let mut limits_guard = limits.lock().unwrap_or_else(|e| e.into_inner());
+                let now = Instant::now();
+                let timeout = Duration::from_secs(300); // 5 minutes inactivity timeout
+                limits_guard.retain(|_, session| now.duration_since(session.last_activity) < timeout);
+            }
         }
     }
 
@@ -252,13 +270,21 @@ impl RateLimiter {
         ));
         self.config = config;
 
+        // Stop existing cleanup task if running
+        if let Some(handle) = self.cleanup_task.take() {
+            self.shutdown.store(true, Ordering::Relaxed);
+            let _ = handle.join();
+        }
+
         // Restart cleanup task if enabled
-        if self.config.enabled && self.cleanup_task.is_none() {
+        if self.config.enabled {
+            self.shutdown.store(false, Ordering::Relaxed);
             let limits_clone = Arc::clone(&self.session_limits);
+            let shutdown_clone = Arc::clone(&self.shutdown);
             let cleanup_interval = Duration::from_secs(cleanup_interval_secs as u64);
 
             self.cleanup_task = Some(std::thread::spawn(move || {
-                Self::cleanup_task(limits_clone, cleanup_interval);
+                Self::cleanup_task(limits_clone, cleanup_interval, shutdown_clone);
             }));
         }
     }
@@ -266,9 +292,10 @@ impl RateLimiter {
 
 impl Drop for RateLimiter {
     fn drop(&mut self) {
-        // Note: Thread cleanup is handled automatically when the thread completes
-        // We don't explicitly abort threads as it can cause resource leaks
-        self.cleanup_task.take();
+        self.shutdown.store(true, Ordering::Relaxed);
+        if let Some(handle) = self.cleanup_task.take() {
+            let _ = handle.join();
+        }
     }
 }
 

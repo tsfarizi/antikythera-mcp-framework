@@ -42,7 +42,7 @@ impl ParsedOutput {
 }
 
 /// Parse raw tool output into structured format.
-pub fn parse_step_output(output: &Value) -> ParsedOutput {
+pub fn parse_step_output(output: &Value, created_at: &str) -> ParsedOutput {
     let mut parsed = ParsedOutput {
         raw: output.clone(),
         ..Default::default()
@@ -57,7 +57,7 @@ pub fn parse_step_output(output: &Value) -> ParsedOutput {
                         parsed.texts.push(text.clone());
                     }
                 } else if content_item.is_resource()
-                    && let Some(file) = content_item.to_file_content()
+                    && let Some(file) = content_item.to_file_content(created_at)
                 {
                     parsed.files.push(file);
                 }

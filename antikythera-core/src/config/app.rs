@@ -83,7 +83,25 @@ impl Default for PromptsConfig {
     }
 }
 
+macro_rules! prompt_accessor {
+    ($field:ident, $default_fn:ident) => {
+        pub fn $field(&self) -> &str {
+            if self.$field.is_empty() { Self::$default_fn() } else { &self.$field }
+        }
+    };
+}
+
 impl PromptsConfig {
+    prompt_accessor!(template, default_template);
+    prompt_accessor!(tool_guidance, default_tool_guidance);
+    prompt_accessor!(fallback_guidance, default_fallback_guidance);
+    prompt_accessor!(json_retry_message, default_json_retry_message);
+    prompt_accessor!(tool_result_instruction, default_tool_result_instruction);
+    prompt_accessor!(agent_instructions, default_agent_instructions);
+    prompt_accessor!(language_instructions, default_language_instructions);
+    prompt_accessor!(agent_max_steps_error, default_agent_max_steps_error);
+    prompt_accessor!(no_tools_guidance, default_no_tools_guidance);
+
     pub fn default_template() -> &'static str {
         "You are a helpful AI assistant.\n\n{{custom_instruction}}\n\n{{language_guidance}}\n\n{{tool_guidance}}"
     }
@@ -122,78 +140,6 @@ impl PromptsConfig {
 
     pub fn default_fallback_response_keys() -> &'static [&'static str] {
         &["response", "content", "message"]
-    }
-
-    pub fn template(&self) -> &str {
-        if self.template.is_empty() {
-            Self::default_template()
-        } else {
-            &self.template
-        }
-    }
-
-    pub fn tool_guidance(&self) -> &str {
-        if self.tool_guidance.is_empty() {
-            Self::default_tool_guidance()
-        } else {
-            &self.tool_guidance
-        }
-    }
-
-    pub fn fallback_guidance(&self) -> &str {
-        if self.fallback_guidance.is_empty() {
-            Self::default_fallback_guidance()
-        } else {
-            &self.fallback_guidance
-        }
-    }
-
-    pub fn json_retry_message(&self) -> &str {
-        if self.json_retry_message.is_empty() {
-            Self::default_json_retry_message()
-        } else {
-            &self.json_retry_message
-        }
-    }
-
-    pub fn tool_result_instruction(&self) -> &str {
-        if self.tool_result_instruction.is_empty() {
-            Self::default_tool_result_instruction()
-        } else {
-            &self.tool_result_instruction
-        }
-    }
-
-    pub fn agent_instructions(&self) -> &str {
-        if self.agent_instructions.is_empty() {
-            Self::default_agent_instructions()
-        } else {
-            &self.agent_instructions
-        }
-    }
-
-    pub fn language_instructions(&self) -> &str {
-        if self.language_instructions.is_empty() {
-            Self::default_language_instructions()
-        } else {
-            &self.language_instructions
-        }
-    }
-
-    pub fn agent_max_steps_error(&self) -> &str {
-        if self.agent_max_steps_error.is_empty() {
-            Self::default_agent_max_steps_error()
-        } else {
-            &self.agent_max_steps_error
-        }
-    }
-
-    pub fn no_tools_guidance(&self) -> &str {
-        if self.no_tools_guidance.is_empty() {
-            Self::default_no_tools_guidance()
-        } else {
-            &self.no_tools_guidance
-        }
     }
 
     pub fn fallback_response_keys(&self) -> Vec<&str> {

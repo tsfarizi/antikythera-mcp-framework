@@ -3,4 +3,5 @@
 //! This keeps application modules decoupled from concrete infrastructure
 //! module paths while preserving the existing trait contract.
 
-pub use crate::infrastructure::model::ModelProvider;
+// Port re-export: application depends on this trait via the ports boundary
+pub use crate::application::ports::ModelProvider;

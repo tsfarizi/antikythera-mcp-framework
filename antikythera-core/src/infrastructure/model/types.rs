@@ -140,27 +140,27 @@ impl ModelError {
         }
     }
 
-    /// User-friendly error message in Indonesian
+    /// User-friendly error message in English
     pub fn user_message(&self) -> String {
         match self {
             ModelError::ProviderNotFound { provider } => format!(
-                "Penyedia model '{provider}' tidak ditemukan. Periksa pengaturan client.toml."
+                "Model provider '{provider}' not found. Check your client.toml configuration."
             ),
             ModelError::ModelNotFound { provider, model } => {
-                format!("Model '{model}' tidak tersedia pada penyedia '{provider}'.")
+                format!("Model '{model}' is not available for provider '{provider}'.")
             }
             ModelError::MissingApiKey { provider } => {
-                format!("Penyedia '{provider}' memerlukan API key.")
+                format!("Provider '{provider}' requires an API key.")
             }
             ModelError::Network { provider, message } => {
                 // The provider implementation already stringified the transport error.
-                format!("Kesalahan jaringan pada '{provider}': {message}")
+                format!("Network error calling provider '{provider}': {message}")
             }
             ModelError::InvalidResponse { provider, .. } => {
-                format!("Respons dari '{provider}' tidak valid.")
+                format!("Invalid response from provider '{provider}'.")
             }
             ModelError::HostDelegate { provider, message } => {
-                format!("Host gagal memproses permintaan model untuk '{provider}': {message}")
+                format!("Host failed to process model request for '{provider}': {message}")
             }
             ModelError::Unsupported { message } => message.clone(),
         }

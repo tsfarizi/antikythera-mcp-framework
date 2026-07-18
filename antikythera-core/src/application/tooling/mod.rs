@@ -1,15 +1,9 @@
 mod envelope;
-mod error;
-mod interface;
-#[cfg(feature = "native-transport")]
-mod jsonrpc_client;
-mod manager;
-#[cfg(feature = "native-transport")]
-mod process;
-#[cfg(feature = "native-transport")]
-mod tool_catalogue;
+pub(crate) mod error;
+pub(crate) mod interface;
+pub(crate) mod manager;
+
 pub mod transport;
-mod transport_factory;
 
 pub use envelope::{
     EnvelopeError, ToolCallEnvelope, ToolResultEnvelope, validate_tool_call_envelope,
@@ -21,9 +15,12 @@ pub use interface::{
     ToolServerInterface,
 };
 pub use manager::ServerManager;
-#[cfg(feature = "native-transport")]
-pub use tool_catalogue::spawn_and_list_tools;
-pub use transport::{
-    BuiltinTransport, HttpTransport, HttpTransportConfig, McpTransport, TransportMode,
+pub use transport::McpTransport;
+
+// Re-export infrastructure types for backward compatibility.
+pub use crate::infrastructure::transport::{
+    BuiltinTransport, HttpTransport, HttpTransportConfig, TransportMode,
 };
-pub use transport_factory::TransportFactory;
+pub use crate::infrastructure::transport::TransportFactory;
+#[cfg(feature = "native-transport")]
+pub use crate::infrastructure::transport::spawn_and_list_tools;

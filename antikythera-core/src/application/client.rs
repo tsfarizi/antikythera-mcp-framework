@@ -21,9 +21,10 @@
 //! }
 //! ```
 
+use super::prompt_composer::PromptComposer;
 use super::session_store::{DEFAULT_MAX_SESSIONS, SessionStore};
 use super::tooling::{BuiltinTransport, ServerManager, ToolServerInterface};
-use crate::config::{AppConfig, PromptsConfig, ServerConfig, ToolConfig};
+use crate::application::config::{AppConfig, PromptsConfig, ServerConfig, ToolConfig};
 use crate::domain::types::MessagePart;
 use crate::domain::types::{ChatMessage, MessageRole};
 use crate::infrastructure::model::{
@@ -370,7 +371,8 @@ impl<P: ModelProvider> McpClient<P> {
                 let system = request
                     .system_prompt
                     .or_else(|| self.config.default_system_prompt.clone());
-                self.compose_system_prompt(system)
+                let composer = PromptComposer::new(&self.config.prompts, &self.config.tools);
+                composer.compose(system)
             };
 
             if !system_prompt.is_empty() {
@@ -493,59 +495,6 @@ impl<P: ModelProvider> McpClient<P> {
 
         let response = self.provider.chat(prepared.model_request.clone()).await?;
         self.complete_chat(prepared, response).await
-    }
-
-    fn compose_system_prompt(&self, override_prompt: Option<String>) -> String {
-        let template = self.config.prompt_template().to_string();
-        let custom_instruction = override_prompt.unwrap_or_default();
-        if template.is_empty() {
-            return custom_instruction.trim().to_string();
-        }
-
-        let tool_guidance = if self.config.tools.is_empty() {
-            // No MCP tools registered: emit only the fallback guidance so the model
-            // knows it must rely on its own knowledge rather than tool invocations.
-            self.config.prompts.fallback_guidance().to_string()
-        } else {
-            // MCP tools are registered: list each tool name + description so the
-            // model can reason about which tool to invoke for the current request.
-            let mut text = format!("{}\n", self.config.prompts.tool_guidance());
-            for tool in &self.config.tools {
-                let description = tool
-                    .description
-                    .as_deref()
-                    .unwrap_or("No description available.");
-                text.push_str(&format!("- {}: {}\n", tool.name, description));
-            }
-            text.push_str(self.config.prompts.fallback_guidance());
-            text
-        };
-
-        let mut prompt = template
-            .replace("{{language_guidance}}", "")
-            .replace("{{tool_guidance}}", tool_guidance.trim())
-            .replace("{{custom_instruction}}", custom_instruction.trim());
-        prompt = prompt
-            .replace("{{language_guidance}}", "")
-            .replace("{{tool_guidance}}", "")
-            .replace("{{custom_instruction}}", "");
-        let mut cleaned = Vec::new();
-        let mut previous_blank = false;
-        for line in prompt.lines().map(|line| line.trim_end()) {
-            let trimmed = line.trim();
-            let is_blank = trimmed.is_empty();
-            if is_blank {
-                if !previous_blank {
-                    cleaned.push(String::new());
-                }
-                previous_blank = true;
-            } else {
-                cleaned.push(trimmed.to_string());
-                previous_blank = false;
-            }
-        }
-
-        cleaned.join("\n").trim().to_string()
     }
 
     /// Append `user_message` and `assistant` to the in-memory session history.

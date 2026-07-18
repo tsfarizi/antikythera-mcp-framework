@@ -16,10 +16,13 @@
 
 pub mod agent;
 pub mod client;
+pub mod config;
 pub mod discovery;
 pub mod hooks;
 pub mod model_provider;
 pub mod observability;
+pub mod ports;
+pub mod prompt_composer;
 pub mod resilience;
 pub(super) mod session_store;
 #[cfg(feature = "native-transport")]

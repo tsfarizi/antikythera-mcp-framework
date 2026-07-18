@@ -27,13 +27,6 @@ pub struct FileContent {
 }
 
 impl FileContent {
-    /// Decode base64 data back to bytes.
-    pub fn decode_data(&self) -> Result<Vec<u8>, base64::DecodeError> {
-        use base64::Engine;
-        use base64::engine::general_purpose::STANDARD as BASE64;
-        BASE64.decode(&self.data)
-    }
-
     /// Check if this is a PDF file.
     pub fn is_pdf(&self) -> bool {
         self.metadata.mime_type == "application/pdf"
@@ -83,7 +76,8 @@ impl ContentItem {
     }
 
     /// Convert to FileContent if this is a resource.
-    pub fn to_file_content(&self) -> Option<FileContent> {
+    /// `created_at` must be provided by the caller (injected, not global clock).
+    pub fn to_file_content(&self, created_at: &str) -> Option<FileContent> {
         if !self.is_resource() {
             return None;
         }
@@ -107,7 +101,7 @@ impl ContentItem {
                 filename,
                 mime_type: mime_type.clone(),
                 size_bytes: data.len(),
-                created_at: chrono::Utc::now().to_rfc3339(),
+                created_at: created_at.to_string(),
             }
         });
 

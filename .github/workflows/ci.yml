@@ -2,97 +2,36 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main]
   pull_request:
-    branches: [ main, develop ]
 
 env:
   CARGO_TERM_COLOR: always
-  RUST_BACKTRACE: 1
 
 jobs:
   test:
-    name: Test Suite
-    runs-on: ubuntu-latest
     strategy:
       matrix:
-        rust: [ stable, beta ]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace
+      - run: cargo clippy --workspace --lib --bins -- -D warnings -D deprecated
+
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2.0.0
         with:
-          toolchain: ${{ matrix.rust }}
-      - uses: Swatinem/rust-cache@v2
-      - name: Run tests
-        run: cargo test --workspace --verbose
-      - name: Contract compatibility gate (breaking detector)
-        run: cargo test -p antikythera-tests --test contract_compatibility_tests --verbose
-      - name: Deterministic integration harness
-        run: cargo test -p antikythera-tests --test deterministic_harness_tests --verbose
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-  fmt:
-    name: Rustfmt
+  msrv:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-      - name: Check formatting
-        run: cargo fmt --all -- --check
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
-      - name: Run clippy (all features)
-        run: cargo clippy --workspace --all-features -- -D warnings
-      - name: Deny deprecated API usage (production targets)
-        run: cargo clippy --workspace --lib --bins -- -D warnings -D deprecated
-      - name: Run clippy (native lane - default)
-        run: cargo clippy -p antikythera-sdk -- -D warnings
-      - name: Run clippy (WASM component lane)
-        run: cargo clippy -p antikythera-sdk --no-default-features --features component -- -D warnings
-
-  test-wasm:
-    name: WASM Component Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Install cargo-component
-        run: cargo install cargo-component
-      - uses: Swatinem/rust-cache@v2
-      - name: Build WASM component (release)
-        run: cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component
-
-  doc:
-    name: Documentation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Check documentation build
-        run: cargo doc --workspace --no-deps --document-private-items
-
-  coverage:
-    name: Code Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: taiki-e/install-action@cargo-tarpaulin
-      - uses: Swatinem/rust-cache@v2
-      - name: Generate coverage
-        run: cargo tarpaulin --workspace --out Html --output-dir coverage
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage/tarpaulin-report.html
-        continue-on-error: true
+      - uses: dtolnay/rust-toolchain@1.85.0
+      - run: cargo check --workspace

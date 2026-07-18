@@ -28,19 +28,19 @@ impl AgentError {
             AgentError::Tool(err) => err.user_message(),
             AgentError::InvalidResponse(msg) => {
                 format!(
-                    "AI memberikan respons yang tidak dapat dipahami. Coba ulangi instruksi Anda. Error: {}",
+                    "AI gave an incomprehensible response. Please try rephrasing your instructions. Error: {}",
                     msg
                 )
             }
             AgentError::MaxStepsExceeded => {
-                "Langkah maksimum terlampaui. Proses dihentikan.".to_string()
+                "Maximum steps exceeded. Process has been stopped.".to_string()
             }
-            AgentError::Timeout => "Operasi timeout. Silakan coba lagi.".to_string(),
+            AgentError::Timeout => "Operation timed out. Please try again.".to_string(),
             AgentError::MemoryError(err) => {
-                format!("Error penyimpanan state: {}", err)
+                format!("State storage error: {}", err)
             }
             AgentError::RateLimited => {
-                "Batas rate terlampaui. Silakan tunggu sebanyak sebelum mencoba lagi.".to_string()
+                "Rate limit exceeded. Please wait a moment before trying again.".to_string()
             }
         }
     }
@@ -64,16 +64,16 @@ impl ToolError {
     pub fn user_message(&self) -> String {
         match self {
             ToolError::UnknownTool(name) => {
-                format!("Tool \"{name}\" belum tersedia di server.")
+                format!("Tool \"{name}\" is not available on the server.")
             }
             ToolError::UnboundTool(name) => {
                 format!(
-                    "Tool \"{name}\" belum terhubung ke MCP server apa pun. Mohon periksa konfigurasi client."
+                    "Tool \"{name}\" is not bound to any MCP server. Please check the client configuration."
                 )
             }
             ToolError::Execution { tool, source } => {
                 format!(
-                    "Eksekusi tool \"{tool}\" gagal: {message}",
+                    "Tool \"{tool}\" execution failed: {message}",
                     message = source
                 )
             }

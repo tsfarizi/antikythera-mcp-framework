@@ -1,7 +1,7 @@
 #[test]
 fn test_parse_empty_output() {
     let output = json!({});
-    let parsed = parse_step_output(&output);
+    let parsed = parse_step_output(&output, "2024-01-01T00:00:00Z");
 
     assert!(parsed.texts.is_empty());
     assert!(parsed.files.is_empty());
@@ -18,7 +18,7 @@ fn test_parse_text_content() {
         ]
     });
 
-    let parsed = parse_step_output(&output);
+    let parsed = parse_step_output(&output, "2024-01-01T00:00:00Z");
 
     assert_eq!(parsed.texts.len(), 1);
     assert_eq!(parsed.texts[0], "Hello World");
@@ -42,7 +42,7 @@ fn test_parse_resource_content() {
         ]
     });
 
-    let parsed = parse_step_output(&output);
+    let parsed = parse_step_output(&output, "2024-01-01T00:00:00Z");
 
     assert_eq!(parsed.texts.len(), 1);
     assert_eq!(parsed.files.len(), 1);
@@ -70,7 +70,7 @@ fn test_parse_multiple_files() {
         ]
     });
 
-    let parsed = parse_step_output(&output);
+    let parsed = parse_step_output(&output, "2024-01-01T00:00:00Z");
 
     assert_eq!(parsed.files.len(), 2);
     assert_eq!(parsed.pdf_files().len(), 1);
@@ -86,6 +86,6 @@ fn test_combined_text() {
         ]
     });
 
-    let parsed = parse_step_output(&output);
+    let parsed = parse_step_output(&output, "2024-01-01T00:00:00Z");
     assert_eq!(parsed.combined_text(), "Line 1\nLine 2");
 }

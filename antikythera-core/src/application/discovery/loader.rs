@@ -32,7 +32,7 @@
 
 use super::types::{DiscoveredServer, DiscoverySummary, LoadStatus};
 use crate::application::tooling::spawn_and_list_tools;
-use crate::config::ServerConfig;
+use crate::application::config::ServerConfig;
 use crate::logging::DiscoveryLogger;
 use std::collections::HashMap;
 use std::path::Path;
@@ -157,7 +157,7 @@ pub async fn load_server(server: &mut DiscoveredServer) {
     }
 }
 
-use crate::config::TransportType;
+use crate::application::config::TransportType;
 
 /// Create a `ServerConfig` from a binary path.
 ///

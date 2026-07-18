@@ -17,6 +17,10 @@ name = "security_rate_limit_tests"
 path = "security/rate_limit_tests.rs"
 
 [[test]]
+name = "security_rate_limit_concurrent"
+path = "security/rate_limit_concurrent.rs"
+
+[[test]]
 name = "security_secrets_tests"
 path = "security/secrets_tests.rs"
 

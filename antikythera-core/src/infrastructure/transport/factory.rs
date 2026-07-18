@@ -1,8 +1,9 @@
-use super::error::ToolInvokeError;
-use super::manager::ServerInstance;
+use crate::application::tooling::error::ToolInvokeError;
+use crate::application::tooling::manager::ServerInstance;
+use crate::application::tooling::transport::McpTransport;
 #[cfg(feature = "native-transport")]
-use super::process::McpProcess;
-use super::transport::{HttpTransport, HttpTransportConfig, McpTransport, TransportMode};
+use super::stdio::McpProcess;
+use super::{HttpTransport, HttpTransportConfig, TransportMode};
 use crate::config::{ServerConfig, TransportType};
 use std::sync::Arc;
 

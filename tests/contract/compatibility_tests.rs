@@ -2,9 +2,9 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::PathBuf;
 
+use antikythera_core::domain::validation::validate_tool_name;
 use antikythera_core::infrastructure::mcp::contract::{
     ContractValidator, ResultOutcome, ToolCallEnvelope, ToolExecutionError, ToolResultEnvelope,
-    validate_tool_name,
 };
 use antikythera_sdk::wasm_agent::runner::{
     commit_llm_response, get_slo_snapshot, init, prepare_user_turn,

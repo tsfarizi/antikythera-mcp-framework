@@ -1,5 +1,5 @@
-use super::error::ToolInvokeError;
-use super::interface::{PROTOCOL_VERSION, ServerToolInfo};
+use crate::application::tooling::error::ToolInvokeError;
+use crate::application::tooling::interface::{PROTOCOL_VERSION, ServerToolInfo};
 use serde::Deserialize;
 use serde_json::{Map as JsonMap, Value, json};
 use std::collections::HashMap;
@@ -15,18 +15,18 @@ use crate::logging::TransportLogger;
 
 #[derive(Clone)]
 pub struct McpProcess {
-    pub(super) inner: Arc<McpProcessInner>,
+    pub(crate) inner: Arc<McpProcessInner>,
 }
 
-pub(super) struct McpProcessInner {
-    pub(super) server: ServerConfig,
+pub(crate) struct McpProcessInner {
+    pub(crate) server: ServerConfig,
     state: AsyncMutex<Option<RunningState>>,
-    pub(super) writer: AsyncMutex<Option<BufWriter<ChildStdin>>>,
-    pub(super) pending:
+    pub(crate) writer: AsyncMutex<Option<BufWriter<ChildStdin>>>,
+    pub(crate) pending:
         AsyncMutex<HashMap<String, oneshot::Sender<Result<Value, ToolInvokeError>>>>,
-    pub(super) id_counter: AtomicU64,
+    pub(crate) id_counter: AtomicU64,
     instructions: AsyncMutex<Option<String>>,
-    pub(super) tool_cache: AsyncMutex<HashMap<String, ServerToolInfo>>,
+    pub(crate) tool_cache: AsyncMutex<HashMap<String, ServerToolInfo>>,
 }
 
 struct RunningState {
@@ -48,11 +48,11 @@ impl McpProcess {
         }
     }
 
-    pub(super) async fn ensure_running(&self) -> Result<(), ToolInvokeError> {
+    pub(crate) async fn ensure_running(&self) -> Result<(), ToolInvokeError> {
         self.inner.ensure_running().await
     }
 
-    pub(super) async fn call_tool(
+    pub(crate) async fn call_tool(
         &self,
         tool: &str,
         arguments: Value,
@@ -61,11 +61,11 @@ impl McpProcess {
         self.inner.call_tool(tool, arguments).await
     }
 
-    pub(super) async fn instructions(&self) -> Option<String> {
+    pub(crate) async fn instructions(&self) -> Option<String> {
         self.inner.instructions.lock().await.clone()
     }
 
-    pub(super) async fn tool_metadata(&self, tool: &str) -> Option<ServerToolInfo> {
+    pub(crate) async fn tool_metadata(&self, tool: &str) -> Option<ServerToolInfo> {
         self.inner.tool_cache.lock().await.get(tool).cloned()
     }
 }
@@ -166,7 +166,7 @@ impl McpProcessInner {
         Ok(())
     }
 
-    pub(super) async fn call_tool(
+    pub(crate) async fn call_tool(
         &self,
         tool: &str,
         arguments: Value,
@@ -199,7 +199,7 @@ impl McpProcessInner {
         Value::Object(response)
     }
 
-    pub(super) async fn reset(&self) {
+    pub(crate) async fn reset(&self) {
         {
             let mut writer = self.writer.lock().await;
             *writer = None;
@@ -231,7 +231,7 @@ impl McpProcessInner {
         }
     }
 
-    pub(super) fn transport_error(&self, message: impl Into<String>) -> ToolInvokeError {
+    pub(crate) fn transport_error(&self, message: impl Into<String>) -> ToolInvokeError {
         ToolInvokeError::Transport {
             server: self.server.name.clone(),
             message: message.into(),

@@ -55,6 +55,100 @@ use crate::application::model_provider::ModelProvider;
 use crate::logging::OrchestratorLogger;
 use runtime::{ExecuteTaskRuntime, execute_task};
 
+/// Outcome of pre-dispatch checks and resource acquisition.
+///
+/// Holding this struct alive keeps the concurrency slot reserved.
+#[derive(Debug)]
+struct DispatchPrepared {
+    task: AgentTask,
+    _permit: Option<tokio::sync::OwnedSemaphorePermit>,
+    concurrency_wait_ms: u64,
+}
+
+/// Perform pre-dispatch checks: retry defaults, budget guards, and concurrency
+/// slot acquisition.
+///
+/// This is a free function (not a method) so it can be used both by
+/// [`MultiAgentOrchestrator::dispatch`] and inside the async closures
+/// passed to the task scheduler in [`MultiAgentOrchestrator::dispatch_many`].
+async fn prepare_dispatch(
+    mut task: AgentTask,
+    budget: &OrchestratorBudget,
+    default_retry_condition: &RetryCondition,
+    concurrency_sem: &Option<Arc<Semaphore>>,
+) -> Result<DispatchPrepared, TaskResult> {
+    // 1. Default retry policy — applied only when the task does not define its own.
+    if task.retry_policy.is_none() {
+        task.retry_policy = Some(TaskRetryPolicy {
+            max_retries: 0,
+            backoff_ms: 0,
+            condition: default_retry_condition.clone(),
+        });
+    }
+
+    // 2. Task budget guard.
+    let dispatch_count = budget.record_task_dispatch();
+    if budget.is_task_budget_exhausted() {
+        let meta = TaskExecutionMetadata {
+            budget_exhausted: true,
+            correlation_id: task.correlation_id.clone(),
+            error_kind: Some(ErrorKind::BudgetExhausted),
+            ..TaskExecutionMetadata::default()
+        };
+        return Err(TaskResult::failure_with_kind(
+            task.task_id.clone(),
+            task.agent_id.clone().unwrap_or_default(),
+            format!(
+                "Orchestrator task budget exhausted (dispatched {})",
+                dispatch_count
+            ),
+            ErrorKind::BudgetExhausted,
+        )
+        .with_metadata(meta));
+    }
+
+    // 3. Step budget guard.
+    if budget.is_step_budget_exhausted() {
+        let meta = TaskExecutionMetadata {
+            budget_exhausted: true,
+            correlation_id: task.correlation_id.clone(),
+            error_kind: Some(ErrorKind::BudgetExhausted),
+            ..TaskExecutionMetadata::default()
+        };
+        return Err(TaskResult::failure_with_kind(
+            task.task_id.clone(),
+            task.agent_id.clone().unwrap_or_default(),
+            format!(
+                "Orchestrator step budget exhausted ({} / {} steps consumed)",
+                budget.consumed_steps(),
+                budget.max_total_steps.unwrap_or(0),
+            ),
+            ErrorKind::BudgetExhausted,
+        )
+        .with_metadata(meta));
+    }
+
+    // 4. Concurrency slot (optional semaphore).
+    let concurrency_wait_start = Instant::now();
+    let _permit = if let Some(sem) = concurrency_sem {
+        Some(
+            sem.clone()
+                .acquire_owned()
+                .await
+                .expect("orchestrator concurrency semaphore closed"),
+        )
+    } else {
+        None
+    };
+    let concurrency_wait_ms = concurrency_wait_start.elapsed().as_millis() as u64;
+
+    Ok(DispatchPrepared {
+        task,
+        _permit,
+        concurrency_wait_ms,
+    })
+}
+
 /// Coordinates multiple agents across a shared [`McpClient`].
 ///
 /// # Builder pattern
@@ -255,66 +349,18 @@ impl<P: ModelProvider + 'static> MultiAgentOrchestrator<P> {
     /// The router is called to resolve the target agent.  If the router
     /// returns `None` a [`TaskResult::failure`] is returned immediately.
     pub async fn dispatch(&self, task: AgentTask) -> TaskResult {
-        let mut task = task;
-        if task.retry_policy.is_none() {
-            task.retry_policy = Some(TaskRetryPolicy {
-                max_retries: 0,
-                backoff_ms: 0,
-                condition: self.default_retry_condition.clone(),
-            });
-        }
-
-        // ---- budget guard -----------------------------------------------
-        let dispatch_count = self.budget.record_task_dispatch();
-        if self.budget.is_task_budget_exhausted() {
-            self.log.warn(format!(
-                "Task budget exhausted | dispatched={}",
-                dispatch_count
-            ));
-            let meta = TaskExecutionMetadata {
-                budget_exhausted: true,
-                execution_mode: Some(self.execution_mode().to_string()),
-                correlation_id: task.correlation_id.clone(),
-                error_kind: Some(ErrorKind::BudgetExhausted),
-                ..TaskExecutionMetadata::default()
-            };
-            return TaskResult::failure_with_kind(
-                task.task_id.clone(),
-                task.agent_id.clone().unwrap_or_default(),
-                format!(
-                    "Orchestrator task budget exhausted (dispatched {})",
-                    dispatch_count
-                ),
-                ErrorKind::BudgetExhausted,
-            )
-            .with_metadata(meta);
-        }
-
-        if self.budget.is_step_budget_exhausted() {
-            self.log.warn(format!(
-                "Step budget exhausted | consumed={} max={}",
-                self.budget.consumed_steps(),
-                self.budget.max_total_steps.unwrap_or(0)
-            ));
-            let meta = TaskExecutionMetadata {
-                budget_exhausted: true,
-                execution_mode: Some(self.execution_mode().to_string()),
-                correlation_id: task.correlation_id.clone(),
-                error_kind: Some(ErrorKind::BudgetExhausted),
-                ..TaskExecutionMetadata::default()
-            };
-            return TaskResult::failure_with_kind(
-                task.task_id.clone(),
-                task.agent_id.clone().unwrap_or_default(),
-                format!(
-                    "Orchestrator step budget exhausted ({} / {} steps consumed)",
-                    self.budget.consumed_steps(),
-                    self.budget.max_total_steps.unwrap_or(0),
-                ),
-                ErrorKind::BudgetExhausted,
-            )
-            .with_metadata(meta);
-        }
+        let prepared = match prepare_dispatch(
+            task,
+            &self.budget,
+            &self.default_retry_condition,
+            &self.concurrency_sem,
+        )
+        .await
+        {
+            Ok(p) => p,
+            Err(result) => return result,
+        };
+        let task = prepared.task;
 
         // ---- routing -------------------------------------------------------
         let profiles: Vec<&AgentProfile> = self.registry.list_profiles();
@@ -339,20 +385,6 @@ impl<P: ModelProvider + 'static> MultiAgentOrchestrator<P> {
             reason: self.router.routing_reason(&task, &profile),
         };
 
-        // ---- concurrency slot (optional semaphore) -------------------------
-        let concurrency_wait_start = Instant::now();
-        let _permit = if let Some(sem) = &self.concurrency_sem {
-            Some(
-                sem.clone()
-                    .acquire_owned()
-                    .await
-                    .expect("orchestrator concurrency semaphore closed in dispatch"),
-            )
-        } else {
-            None
-        };
-        let concurrency_wait_ms = concurrency_wait_start.elapsed().as_millis() as u64;
-
         self.log.info(format!(
             "Task dispatched | task={} agent={} router={}",
             task.task_id,
@@ -370,7 +402,7 @@ impl<P: ModelProvider + 'static> MultiAgentOrchestrator<P> {
                 cancel_token: self.cancel_token.child_token(),
                 budget: self.budget.clone(),
                 guardrails: self.guardrails.clone(),
-                concurrency_wait_ms,
+                concurrency_wait_ms: prepared.concurrency_wait_ms,
             },
         )
         .await;
@@ -450,48 +482,18 @@ impl<P: ModelProvider + 'static> MultiAgentOrchestrator<P> {
                 let default_retry_condition = default_retry_condition.clone();
                 let guardrails = guardrails.clone();
                 async move {
-                    let mut task = task;
-                    if task.retry_policy.is_none() {
-                        task.retry_policy = Some(TaskRetryPolicy {
-                            max_retries: 0,
-                            backoff_ms: 0,
-                            condition: default_retry_condition,
-                        });
-                    }
-
-                    // Budget guard per-task inside batch
-                    let dispatch_count = budget.record_task_dispatch();
-                    if budget.is_task_budget_exhausted() {
-                        let meta = TaskExecutionMetadata {
-                            budget_exhausted: true,
-                            execution_mode: Some(execution_mode),
-                            routing_decision: Some(routing_decision),
-                            error_kind: Some(ErrorKind::BudgetExhausted),
-                            ..TaskExecutionMetadata::default()
-                        };
-                        return TaskResult::failure_with_kind(
-                            task.task_id.clone(),
-                            task.agent_id.clone().unwrap_or_default(),
-                            format!(
-                                "Orchestrator task budget exhausted (dispatched {})",
-                                dispatch_count
-                            ),
-                            ErrorKind::BudgetExhausted,
-                        )
-                        .with_metadata(meta);
-                    }
-
-                    // Concurrency slot
-                    let concurrency_wait_start = Instant::now();
-                    let _permit =
-                        if let Some(sem) = &concurrency_sem {
-                            Some(sem.clone().acquire_owned().await.expect(
-                                "orchestrator concurrency semaphore closed in dispatch_many",
-                            ))
-                        } else {
-                            None
-                        };
-                    let concurrency_wait_ms = concurrency_wait_start.elapsed().as_millis() as u64;
+                    let prepared = match prepare_dispatch(
+                        task,
+                        &budget,
+                        &default_retry_condition,
+                        &concurrency_sem,
+                    )
+                    .await
+                    {
+                        Ok(p) => p,
+                        Err(result) => return result,
+                    };
+                    let task = prepared.task;
 
                     match profile {
                         None => TaskResult::failure(
@@ -516,7 +518,7 @@ impl<P: ModelProvider + 'static> MultiAgentOrchestrator<P> {
                                     cancel_token,
                                     budget: budget.clone(),
                                     guardrails,
-                                    concurrency_wait_ms,
+                                    concurrency_wait_ms: prepared.concurrency_wait_ms,
                                 },
                             )
                             .await;
@@ -577,5 +579,108 @@ impl<P: ModelProvider + 'static> MultiAgentOrchestrator<P> {
         }
 
         PipelineResult::from_results(results)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::application::agent::multi_agent::budget::OrchestratorBudget;
+    use crate::application::agent::multi_agent::task::AgentTask;
+
+    /// Regression test: `dispatch_many` must reject tasks when the step budget
+    /// is exhausted.  Before the fix, only the task-budget guard was checked in
+    /// `dispatch_many`; the step-budget guard was missing.
+    #[tokio::test]
+    async fn dispatch_many_rejects_when_step_budget_exhausted() {
+        let budget = OrchestratorBudget::new().with_max_total_steps(5);
+        // Consume all steps.
+        budget.record_steps(5);
+        assert!(budget.is_step_budget_exhausted());
+
+        let sem: Option<Arc<Semaphore>> = None;
+        let default_retry = RetryCondition::Always;
+        let task = AgentTask::new("should be rejected");
+
+        let result = prepare_dispatch(task, &budget, &default_retry, &sem).await;
+        assert!(result.is_err(), "expected step-budget rejection");
+
+        let err = result.unwrap_err();
+        assert!(!err.success);
+        assert_eq!(err.error_kind, Some(ErrorKind::BudgetExhausted));
+        assert!(err.metadata.budget_exhausted);
+        let err_msg = err.error.unwrap();
+        assert!(
+            err_msg.contains("step budget exhausted"),
+            "error should mention step budget, got: {err_msg}"
+        );
+    }
+
+    #[tokio::test]
+    async fn prepare_dispatch_rejects_when_task_budget_exhausted() {
+        let budget = OrchestratorBudget::new().with_max_total_tasks(1);
+        // Dispatch the one allowed task.
+        budget.record_task_dispatch();
+        assert!(budget.is_task_budget_exhausted());
+
+        let sem: Option<Arc<Semaphore>> = None;
+        let default_retry = RetryCondition::Always;
+        let task = AgentTask::new("should be rejected");
+
+        let result = prepare_dispatch(task, &budget, &default_retry, &sem).await;
+        assert!(result.is_err(), "expected task-budget rejection");
+
+        let err = result.unwrap_err();
+        assert!(!err.success);
+        assert_eq!(err.error_kind, Some(ErrorKind::BudgetExhausted));
+    }
+
+    #[tokio::test]
+    async fn prepare_dispatch_sets_default_retry_policy() {
+        let budget = OrchestratorBudget::new();
+        let sem: Option<Arc<Semaphore>> = None;
+        let default_retry = RetryCondition::OnTransient;
+        let task = AgentTask::new("test");
+
+        let result = prepare_dispatch(task, &budget, &default_retry, &sem)
+            .await
+            .unwrap();
+
+        let policy = result.task.retry_policy.unwrap();
+        assert_eq!(policy.condition, RetryCondition::OnTransient);
+        assert_eq!(policy.max_retries, 0);
+        assert_eq!(policy.backoff_ms, 0);
+    }
+
+    #[tokio::test]
+    async fn prepare_dispatch_preserves_existing_retry_policy() {
+        let budget = OrchestratorBudget::new();
+        let sem: Option<Arc<Semaphore>> = None;
+        let default_retry = RetryCondition::Never;
+        let task = AgentTask::new("test").with_retry_policy(TaskRetryPolicy {
+            max_retries: 3,
+            backoff_ms: 100,
+            condition: RetryCondition::Always,
+        });
+
+        let result = prepare_dispatch(task, &budget, &default_retry, &sem)
+            .await
+            .unwrap();
+
+        let policy = result.task.retry_policy.unwrap();
+        assert_eq!(policy.max_retries, 3);
+        assert_eq!(policy.backoff_ms, 100);
+        assert_eq!(policy.condition, RetryCondition::Always);
+    }
+
+    #[tokio::test]
+    async fn prepare_dispatch_succeeds_when_budget_available() {
+        let budget = OrchestratorBudget::new().with_max_total_steps(10);
+        let sem: Option<Arc<Semaphore>> = None;
+        let default_retry = RetryCondition::Always;
+        let task = AgentTask::new("should succeed");
+
+        let result = prepare_dispatch(task, &budget, &default_retry, &sem).await;
+        assert!(result.is_ok(), "expected dispatch to succeed");
     }
 }

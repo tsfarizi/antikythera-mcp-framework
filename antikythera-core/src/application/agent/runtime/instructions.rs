@@ -1,5 +1,5 @@
 use super::{ToolContext, ToolRuntime, json};
-use crate::config::PromptsConfig;
+use crate::application::config::PromptsConfig;
 
 impl ToolRuntime {
     pub fn compose_system_instructions(

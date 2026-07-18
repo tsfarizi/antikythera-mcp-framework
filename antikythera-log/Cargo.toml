@@ -24,7 +24,7 @@ chrono = { workspace = true, features = ["serde"] }
 wasm-bindgen = { workspace = true, optional = true }
 
 # Subscriber support (real-time streaming)
-tokio = { version = "1.39", features = ["sync", "macros"], optional = true }
+tokio = { workspace = true, features = ["sync", "macros"], optional = true }
 crossbeam-channel = { version = "0.5", optional = true }
 
 [dev-dependencies]

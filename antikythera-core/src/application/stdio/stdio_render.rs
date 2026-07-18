@@ -3,7 +3,7 @@ use super::{ACCENT, DIM, RESET, SUCCESS, SessionState, WARN};
 use crate::application::agent::AgentStep;
 use crate::application::client::McpClient;
 use crate::application::model_provider::ModelProvider;
-use crate::config::CONFIG_PATH;
+use crate::application::config::CONFIG_PATH;
 use crate::logging::StdioLogger;
 use serde_json::to_string_pretty;
 use std::fs;

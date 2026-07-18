@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 pub use crate::domain::types::MessageRole;
+use super::dynamic_value::DynamicValue;
 
 /// Chat message in conversation.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -27,7 +28,7 @@ impl Message {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ToolCall {
     pub name: String,
-    pub arguments: serde_json::Value,
+    pub arguments: DynamicValue,
 }
 
 /// Tool execution result.
@@ -35,7 +36,7 @@ pub struct ToolCall {
 pub struct ToolResult {
     pub name: String,
     pub success: bool,
-    pub output: serde_json::Value,
+    pub output: DynamicValue,
     pub error: Option<String>,
 }
 

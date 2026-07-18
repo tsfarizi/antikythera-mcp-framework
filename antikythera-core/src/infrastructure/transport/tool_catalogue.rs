@@ -1,11 +1,12 @@
-use super::error::ToolInvokeError;
-use super::interface::{ServerToolInfo, TaskSupport, ToolAnnotations, ToolExecution, ToolIcon};
-use super::process::{McpProcess, McpProcessInner};
-use super::transport::{HttpTransport, HttpTransportConfig, McpTransport, TransportMode};
+use crate::application::tooling::error::ToolInvokeError;
+use crate::application::tooling::interface::{ServerToolInfo, TaskSupport, ToolAnnotations, ToolExecution, ToolIcon};
+use crate::application::tooling::transport::McpTransport;
+use super::stdio::{McpProcess, McpProcessInner};
+use super::{HttpTransport, HttpTransportConfig, TransportMode};
 use serde_json::{Value, json};
 
 use crate::config::ServerConfig;
-use crate::infrastructure::mcp::validate_tool_name;
+use crate::domain::validation::validate_tool_name;
 use crate::logging::TransportLogger;
 
 impl McpProcessInner {

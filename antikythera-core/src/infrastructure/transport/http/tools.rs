@@ -10,7 +10,7 @@ use tokio::sync::Mutex as AsyncMutex;
 use crate::application::tooling::interface::{
     ServerToolInfo, TaskSupport, ToolAnnotations, ToolExecution, ToolIcon,
 };
-use crate::infrastructure::mcp::validate_tool_name;
+use crate::domain::validation::validate_tool_name;
 
 /// Populate the tool cache from a tools/list response.
 pub async fn populate_tool_cache(

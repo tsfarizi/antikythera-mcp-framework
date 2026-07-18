@@ -1,31 +1,13 @@
-//! MCP Transport Abstraction Layer
+//! MCP Transport Abstraction Layer (Port)
 //!
-//! This module provides transport abstraction for MCP communication,
-//! supporting STDIO (subprocess), HTTP, and Builtin transports.
-//!
-//! ## Module Structure
-//!
-//! - `config` - Transport configuration types (TransportMode, HttpTransportConfig)
-//! - `builtin` - In-process built-in tool transport
-//! - `http` - HTTP transport implementation
-//!   - `sse` - SSE listener and endpoint resolution
-//!   - `rpc` - JSON-RPC request/notification handling
-//!   - `tools` - Tool cache management
-
-mod builtin;
-mod config;
-mod http;
+//! This module defines the `McpTransport` port trait for MCP communication.
+//! Concrete implementations live in `infrastructure::transport`.
 
 use async_trait::async_trait;
 use serde_json::Value;
 
 use super::error::ToolInvokeError;
 use super::interface::ServerToolInfo;
-
-// Re-export public types
-pub use builtin::{BuiltinToolFn, BuiltinTransport, validate_arguments};
-pub use config::{HttpTransportConfig, TransportMode};
-pub use http::HttpTransport;
 
 /// Transport trait for MCP communication.
 ///
@@ -64,5 +46,3 @@ pub trait McpTransport: Send + Sync {
     /// Disconnect from the server.
     async fn disconnect(&self);
 }
-
-

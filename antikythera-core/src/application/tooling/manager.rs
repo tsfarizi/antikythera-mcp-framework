@@ -8,11 +8,11 @@ use super::envelope::{
 };
 use super::error::ToolInvokeError;
 use super::interface::{ServerToolInfo, ToolServerInterface};
+use super::transport::McpTransport;
+use crate::infrastructure::transport::{BuiltinTransport, HttpTransport, TransportFactory};
 #[cfg(feature = "native-transport")]
-use super::process::McpProcess;
-use super::transport::{BuiltinTransport, HttpTransport, McpTransport};
-use super::transport_factory::TransportFactory;
-use crate::config::ServerConfig;
+use crate::infrastructure::transport::stdio::McpProcess;
+use crate::application::config::ServerConfig;
 use crate::logging::TransportLogger;
 use async_trait::async_trait;
 use serde_json::Value;

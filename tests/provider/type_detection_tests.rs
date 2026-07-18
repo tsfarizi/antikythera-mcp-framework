@@ -9,8 +9,6 @@ use antikythera_core::domain::content::{
 };
 use antikythera_core::domain::types::{ChatMessage, MessagePart, MessageRole};
 use antikythera_core::infrastructure::model::{HostModelResponse, ModelError};
-use base64::Engine;
-use base64::engine::general_purpose::STANDARD as BASE64;
 use serde_json::json;
 
 // Split into 8 parts for consistent test organization.

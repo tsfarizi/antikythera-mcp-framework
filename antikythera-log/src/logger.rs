@@ -245,7 +245,7 @@ impl Logger {
 
     #[cfg(feature = "subscriber")]
     fn notify_subscribers(&self, entry: LogEntry) {
-        let subscribers = self.subscribers.lock().unwrap_or_else(|e| e.into_inner());
+        let mut subscribers = self.subscribers.lock().unwrap_or_else(|e| e.into_inner());
         let mut to_remove = Vec::new();
 
         for (i, tx) in subscribers.iter().enumerate() {
@@ -254,9 +254,6 @@ impl Logger {
             }
         }
 
-        // Remove dead subscribers
-        drop(subscribers);
-        let mut subscribers = self.subscribers.lock().unwrap_or_else(|e| e.into_inner());
         for i in to_remove.into_iter().rev() {
             subscribers.remove(i);
         }
