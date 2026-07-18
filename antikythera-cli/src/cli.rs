@@ -61,6 +61,13 @@ pub struct Cli {
     #[arg(long)]
     pub wasm: Option<String>,
 
+    /// Enable session storage initialization from app.toml `[storage]` section.
+    ///
+    /// When set, the storage engine is initialized at startup and sessions
+    /// are persisted according to the configured backend.
+    #[arg(long)]
+    pub storage: bool,
+
     /// Stub LLM response returned by host callback in `--mode wasm-harness`.
     ///
     /// If omitted, a deterministic JSON stub response is used.

@@ -1,3 +1,5 @@
+//! Individual cache entry with TTL and access tracking metadata.
+
 use std::time::Instant;
 
 /// A single cached session entry with metadata for TTL and LRU tracking.

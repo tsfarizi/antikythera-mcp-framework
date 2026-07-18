@@ -1,4 +1,12 @@
+//! REST API for standalone storage service.
+//!
+//! Provides HTTP endpoints for session CRUD operations when running
+//! as a separate process.
+
+/// Route definitions for session endpoints.
 pub mod routes;
+
+/// Request validation middleware.
 pub mod middleware;
 
 use axum::Router;

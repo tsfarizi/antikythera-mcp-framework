@@ -1,3 +1,9 @@
+//! In-memory session cache with configurable eviction policies.
+//!
+//! The cache uses a combination of TTL (time-to-live) and LRU (least-recently-used)
+//! eviction to bound memory consumption while keeping actively used sessions fast.
+
+/// Cache entry metadata.
 pub mod entry;
 
 use std::collections::{HashMap, VecDeque};
@@ -86,7 +92,6 @@ impl CacheManager {
             return;
         }
 
-        // Evict if at capacity.
         while self.entries.len() >= self.max_sessions {
             self.evict_lru();
         }
@@ -171,8 +176,6 @@ impl CacheManager {
         self.entries.clear();
         self.access_order.clear();
     }
-
-    // -- internal helpers --
 
     fn is_expired(&self, entry: &CacheEntry) -> bool {
         matches!(

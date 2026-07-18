@@ -1,5 +1,8 @@
+//! Storage error types.
+
 use std::path::PathBuf;
 
+/// Errors that can occur during storage operations.
 #[derive(Debug, thiserror::Error)]
 pub enum StorageError {
     #[error("IO error: {0}")]

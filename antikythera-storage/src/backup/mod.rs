@@ -1,4 +1,12 @@
+//! Backup coordination between cache and persistent storage.
+//!
+//! Manages the lifecycle of backup files: creation, synchronization to
+//! primary storage, verification, and cleanup.
+
+/// Periodic backup synchronization scheduler.
 pub mod scheduler;
+
+/// Backup verification utilities.
 pub mod verifier;
 
 use std::sync::Arc;

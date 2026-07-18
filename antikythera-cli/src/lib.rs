@@ -38,6 +38,9 @@ pub mod config;
 // Runtime slice — provider auto-detection and McpClient wiring.
 pub mod runtime;
 
+// Storage slice — session storage initialization and management.
+pub mod storage;
+
 // CLI argument parsing (owned by CLI crate, not core).
 pub mod cli;
 

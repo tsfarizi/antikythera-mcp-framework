@@ -1,3 +1,5 @@
+//! Request validation middleware for the REST API.
+
 use axum::http::StatusCode;
 
 /// Validate that the request has a valid session ID format.

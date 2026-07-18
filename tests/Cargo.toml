@@ -165,6 +165,30 @@ name = "chat_tests"
 path = "services/chat_tests.rs"
 
 # ============================================================================
+# Storage Module Tests
+# ============================================================================
+
+[[test]]
+name = "storage_cache_tests"
+path = "storage/cache_tests.rs"
+
+[[test]]
+name = "storage_filesystem_tests"
+path = "storage/filesystem_tests.rs"
+
+[[test]]
+name = "storage_config_tests"
+path = "storage/config_tests.rs"
+
+[[test]]
+name = "storage_backup_tests"
+path = "storage/backup_tests.rs"
+
+[[test]]
+name = "storage_integration_tests"
+path = "storage/integration_tests.rs"
+
+# ============================================================================
 # CLI Unit Tests (moved from antikythera-cli/tests/)
 # ============================================================================
 
@@ -198,6 +222,7 @@ antikythera-session = { path = "../antikythera-session" }
 antikythera-core = { path = "../antikythera-core", features = ["full"] }
 antikythera-cli = { path = "../antikythera-cli" }
 antikythera-sdk = { path = "../antikythera-sdk", features = ["component", "multi-agent"] }
+antikythera-storage = { path = "../antikythera-storage", features = ["filesystem"] }
 serde_json.workspace = true
 base64.workspace = true
 chrono.workspace = true

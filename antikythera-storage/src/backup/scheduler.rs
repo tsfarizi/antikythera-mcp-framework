@@ -1,3 +1,5 @@
+//! Periodic scheduler for syncing backup files to primary storage.
+
 use std::path::PathBuf;
 use std::sync::Arc;
 

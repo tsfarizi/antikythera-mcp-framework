@@ -1,3 +1,7 @@
+//! Configuration types for the storage layer.
+//!
+//! All settings are deserialized from the `[storage]` section in `app.toml`.
+
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 

@@ -1,3 +1,5 @@
+//! HTTP request/response types for the SSE backup service.
+
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -9,17 +11,22 @@ use std::path::PathBuf;
 /// Request body for backup events.
 #[derive(Debug, Deserialize)]
 pub struct BackupEvent {
+    /// Session identifier.
     pub session_id: String,
+    /// Serialized session data.
     pub data: Vec<u8>,
 }
 
 /// Response for backup operations.
 #[derive(Debug, Serialize)]
 pub struct BackupResponse {
+    /// Whether the operation succeeded.
     pub success: bool,
+    /// Human-readable status message.
     pub message: String,
 }
 
+/// Build the SSE backup router with backup and health endpoints.
 pub fn build_sse_router(backup_dir: PathBuf) -> Router {
     Router::new()
         .route("/backup/:id", axum::routing::post(handle_backup))

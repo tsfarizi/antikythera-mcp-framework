@@ -1,13 +1,20 @@
+//! Storage backend trait and implementations.
+//!
+//! All backends implement the [`StorageBackend`] trait for uniform access.
+
 use async_trait::async_trait;
 
 use crate::error::StorageError;
 
+/// Filesystem-based storage backend.
 pub mod filesystem;
 
 #[cfg(feature = "mongodb")]
+/// MongoDB storage backend.
 pub mod mongodb;
 
 #[cfg(feature = "postgres")]
+/// PostgreSQL storage backend.
 pub mod postgres;
 
 /// Core storage backend trait.

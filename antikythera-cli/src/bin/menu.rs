@@ -17,6 +17,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use antikythera_cli::cli::{Cli, RunMode};
+use antikythera_cli::storage;
 
 /// Load the `.env` file from the CLI module directory so that
 /// environment variables (e.g. `GEMINI_API_KEY`) are available
@@ -63,6 +64,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config_path = cli.config.as_deref().map(Path::new);
     let config = AppConfig::load(config_path)?;
+
+    // Initialize storage engine if --storage flag is set.
+    if cli.storage {
+        let storage_config = storage::load_storage_config(config_path)?;
+        storage::print_storage_status(&storage_config);
+        let _engine = storage::init_storage(config_path).await?;
+        cli_eprint!("[storage] engine initialized successfully");
+    }
+
     // Load provider definitions and last-saved routing choices from app.toml.
     let initial_providers = providers_from_config(&config.providers);
 

@@ -1,19 +1,64 @@
+//! # Antikythera Storage
+//!
+//! Session persistence layer for the Antikythera MCP Framework.
+//!
+//! ## Architecture
+//!
+//! ```text
+//! antikythera-storage/
+//! ├── backend/       # Storage backends (filesystem, MongoDB, PostgreSQL)
+//! ├── cache/         # In-memory cache with TTL and LRU eviction
+//! ├── backup/        # Backup coordination and verification
+//! ├── config/        # TOML configuration types
+//! ├── error/         # Error types
+//! ├── api/           # REST API (feature: standalone)
+//! ├── sse/           # SSE backup service (feature: sse)
+//! ├── wasm/          # WASM integration (feature: wasm)
+//! └── schema/        # Database schema management
+//! ```
+//!
+//! ## Storage Backends
+//!
+//! | Backend | Feature Flag | Description |
+//! |---------|-------------|-------------|
+//! | Filesystem | `filesystem` (default) | JSON files on disk |
+//! | MongoDB | `mongodb` | MongoDB collections |
+//! | PostgreSQL | `postgres` | PostgreSQL with JSONB |
+//!
+//! ## Deployment Modes
+//!
+//! - **embedded**: Storage compiled into WASM, uses WASI filesystem
+//! - **standalone**: Storage runs as separate REST server
+
+/// Storage backends (filesystem, MongoDB, PostgreSQL).
 pub mod backend;
+
+/// Backup coordination and verification.
 pub mod backup;
+
+/// In-memory cache with TTL and LRU eviction.
 pub mod cache;
+
+/// TOML configuration types.
 pub mod config;
+
+/// Error types for storage operations.
 pub mod error;
 
 #[cfg(feature = "standalone")]
+/// REST API for standalone storage service.
 pub mod api;
 
 #[cfg(feature = "sse")]
+/// SSE backup service for independent backup processing.
 pub mod sse;
 
 #[cfg(feature = "wasm")]
+/// WASM integration for embedded storage.
 pub mod wasm;
 
 #[cfg(any(feature = "mongodb", feature = "postgres"))]
+/// Database schema management.
 pub mod schema;
 
 use std::sync::Arc;
@@ -74,17 +119,14 @@ impl StorageEngine {
 
     /// Load session data, using cache when available.
     pub async fn load(&mut self, session_id: &str) -> Result<Option<Vec<u8>>, StorageError> {
-        // Try cache first.
         if self.config.cache.enabled {
             if let Some(data) = self.cache.get(session_id) {
                 return Ok(Some(data));
             }
         }
 
-        // Load from backend.
         let data = self.backend.load(session_id).await?;
 
-        // Populate cache.
         if self.config.cache.enabled {
             if let Some(ref d) = data {
                 self.cache
@@ -97,15 +139,12 @@ impl StorageEngine {
 
     /// Save session data, updating cache and triggering backup.
     pub async fn save(&mut self, session_id: &str, data: Vec<u8>) -> Result<(), StorageError> {
-        // Save to backend.
         self.backend.save(session_id, &data).await?;
 
-        // Update cache.
         if self.config.cache.enabled {
             self.cache.insert(session_id.to_string(), data.clone());
         }
 
-        // Trigger backup if enabled.
         if self.config.backup.enabled {
             self.backend.backup(session_id, &data).await?;
         }

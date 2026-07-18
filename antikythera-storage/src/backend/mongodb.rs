@@ -1,3 +1,8 @@
+//! MongoDB storage backend.
+//!
+//! Sessions are stored as documents with binary data. Supports
+//! automatic schema creation with JSON Schema validation.
+
 use std::path::PathBuf;
 
 use async_trait::async_trait;

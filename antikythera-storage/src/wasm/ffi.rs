@@ -1,3 +1,5 @@
+//! C FFI exports for WASM storage interop.
+
 use super::WasmStorage;
 use crate::config::StorageConfig;
 

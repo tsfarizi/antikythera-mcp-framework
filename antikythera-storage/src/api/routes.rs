@@ -1,3 +1,5 @@
+//! HTTP route handlers for session CRUD operations.
+
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -8,6 +10,7 @@ use tokio::sync::Mutex;
 
 use crate::StorageEngine;
 
+/// Build the session API router with all endpoints.
 pub fn api_routes(engine: Arc<Mutex<StorageEngine>>) -> Router {
     Router::new()
         .route("/sessions", axum::routing::get(list_sessions))

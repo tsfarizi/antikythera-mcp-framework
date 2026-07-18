@@ -1,3 +1,8 @@
+//! Filesystem-based storage backend.
+//!
+//! Sessions are stored as JSON files. This is the default backend
+//! and does not require any external database.
+
 use std::path::PathBuf;
 
 use async_trait::async_trait;

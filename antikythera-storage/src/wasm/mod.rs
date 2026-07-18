@@ -1,3 +1,9 @@
+//! WASM integration for embedded storage.
+//!
+//! Provides a WASM-compatible wrapper around `StorageEngine` and
+//! C FFI exports for cross-language interop.
+
+/// C FFI exports for WASM consumers.
 pub mod ffi;
 
 use crate::config::StorageConfig;

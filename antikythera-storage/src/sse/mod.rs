@@ -1,3 +1,9 @@
+//! SSE backup service for independent backup processing.
+//!
+//! Runs as a separate microservice that receives backup events via
+//! HTTP and persists them to the configured storage backend.
+
+/// HTTP handlers for backup events.
 pub mod handler;
 
 use std::net::SocketAddr;

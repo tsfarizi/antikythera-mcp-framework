@@ -1,3 +1,5 @@
+//! PostgreSQL schema definitions for the sessions table.
+
 /// Returns the SQL for creating the sessions table.
 pub fn sessions_schema() -> &'static str {
     r#"

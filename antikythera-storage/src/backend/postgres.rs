@@ -1,3 +1,9 @@
+//! PostgreSQL storage backend using `sqlx`.
+//!
+//! Sessions are stored in a `sessions` table with JSONB data column.
+//! Backups use the local filesystem as intermediate storage before
+//! syncing to the database.
+
 use std::path::PathBuf;
 
 use async_trait::async_trait;

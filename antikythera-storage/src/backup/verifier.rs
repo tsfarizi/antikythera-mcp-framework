@@ -1,3 +1,5 @@
+//! Verification utilities for backup integrity.
+
 use crate::backend::StorageBackend;
 use crate::error::StorageError;
 
