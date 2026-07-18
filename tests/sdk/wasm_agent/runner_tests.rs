@@ -11,20 +11,20 @@ use antikythera_sdk::wasm_agent::runner::{
 };
 
 // Split by concern to keep file size manageable and improve readability.
-include!("runner_tests/part_01.rs");
-include!("runner_tests/part_02.rs");
-include!("runner_tests/part_03.rs");
-include!("runner_tests/part_04.rs");
-include!("runner_tests/part_05.rs");
-include!("runner_tests/part_06.rs");
-include!("runner_tests/part_07.rs");
-include!("runner_tests/part_08.rs");
-include!("runner_tests/part_09.rs");
-include!("runner_tests/part_10.rs");
-include!("runner_tests/part_11.rs");
-include!("runner_tests/part_12.rs");
-include!("runner_tests/part_13.rs");
-include!("runner_tests/part_14.rs");
-include!("runner_tests/part_15.rs");
-include!("runner_tests/part_16.rs");
-include!("runner_tests/part_17.rs");
+include!("runner_tests/session_config_prepare.rs");
+include!("runner_tests/plain_text_commit.rs");
+include!("runner_tests/structured_tool_call.rs");
+include!("runner_tests/stream_drain_events.rs");
+include!("runner_tests/telemetry_counters.rs");
+include!("runner_tests/context_policy_global.rs");
+include!("runner_tests/keep_balanced_truncation.rs");
+include!("runner_tests/register_tools_prompt.rs");
+include!("runner_tests/unknown_tool_error.rs");
+include!("runner_tests/missing_param_error.rs");
+include!("runner_tests/valid_tool_passes.rs");
+include!("runner_tests/empty_registry_any_tool.rs");
+include!("runner_tests/capacity_pressure_archive.rs");
+include!("runner_tests/archived_session_restore.rs");
+include!("runner_tests/archived_session_unavailable.rs");
+include!("runner_tests/sweep_idle_sessions.rs");
+include!("runner_tests/p95_session_id_utils.rs");

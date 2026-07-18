@@ -1,4 +1,4 @@
-﻿//! Comprehensive Configuration Security Tests
+//! Comprehensive Configuration Security Tests
 //!
 //! Extensive test suite for antikythera-core configuration with focus on:
 //! - Input validation and bounds checking
@@ -16,10 +16,10 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 // Split by concern to keep file size manageable and improve readability.
-include!("comprehensive_config_security_tests/part_01.rs");
-include!("comprehensive_config_security_tests/part_02.rs");
-include!("comprehensive_config_security_tests/part_03.rs");
-include!("comprehensive_config_security_tests/part_04.rs");
-include!("comprehensive_config_security_tests/part_05.rs");
-include!("comprehensive_config_security_tests/part_06.rs");
-include!("comprehensive_config_security_tests/part_07.rs");
+include!("comprehensive_config_security_tests/provider_config_basics.rs");
+include!("comprehensive_config_security_tests/server_config_basics.rs");
+include!("comprehensive_config_security_tests/injection_prevention.rs");
+include!("comprehensive_config_security_tests/edge_case_boundaries.rs");
+include!("comprehensive_config_security_tests/url_protocol_validation.rs");
+include!("comprehensive_config_security_tests/transport_type_tests.rs");
+include!("comprehensive_config_security_tests/stress_performance.rs");

@@ -31,8 +31,8 @@ fn minimal_postcard_config() -> PostcardAppConfig {
 }
 
 // Split into 5 parts for consistent test organization.
-include!("loading_tests/part_01.rs");
-include!("loading_tests/part_02.rs");
-include!("loading_tests/part_03.rs");
-include!("loading_tests/part_04.rs");
-include!("loading_tests/part_05.rs");
+include!("loading_tests/config_not_found.rs");
+include!("loading_tests/self_heal_corrupt_data.rs");
+include!("loading_tests/prompt_template_loading.rs");
+include!("loading_tests/postcard_roundtrip.rs");
+include!("loading_tests/actual_config_loading.rs");

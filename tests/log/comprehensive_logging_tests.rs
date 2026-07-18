@@ -1,4 +1,4 @@
-﻿//! Comprehensive Logging Module Tests
+//! Comprehensive Logging Module Tests
 //!
 //! Extensive test suite for antikythera-log with focus on:
 //! - Edge cases and boundary conditions
@@ -14,11 +14,11 @@ use std::thread;
 use std::time::Instant;
 
 // Split by concern to keep file size manageable and improve readability.
-include!("comprehensive_logging_tests/part_01.rs");
-include!("comprehensive_logging_tests/part_02.rs");
-include!("comprehensive_logging_tests/part_03.rs");
-include!("comprehensive_logging_tests/part_04.rs");
-include!("comprehensive_logging_tests/part_05.rs");
-include!("comprehensive_logging_tests/part_06.rs");
-include!("comprehensive_logging_tests/part_07.rs");
-include!("comprehensive_logging_tests/part_08.rs");
+include!("comprehensive_logging_tests/edge_cases_boundaries.rs");
+include!("comprehensive_logging_tests/concurrency_thread_safety.rs");
+include!("comprehensive_logging_tests/input_validation_security.rs");
+include!("comprehensive_logging_tests/data_integrity_serialization.rs");
+include!("comprehensive_logging_tests/performance_resource.rs");
+include!("comprehensive_logging_tests/panic_safety_error.rs");
+include!("comprehensive_logging_tests/filtering_edge_cases.rs");
+include!("comprehensive_logging_tests/clone_share_behavior.rs");

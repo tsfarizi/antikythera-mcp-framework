@@ -1,4 +1,4 @@
-#[path = "transport_tests/part_06.rs"]
+#[path = "transport_tests/builtin_transport_tests.rs"]
 mod part_06;
-#[path = "transport_tests/part_07.rs"]
+#[path = "transport_tests/http_transport_cache.rs"]
 mod part_07;

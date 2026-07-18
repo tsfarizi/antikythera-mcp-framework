@@ -12,14 +12,14 @@ use antikythera_core::resilience::{
 };
 
 // Split into 13 parts for consistent test organization.
-include!("resilience_tests/part_01.rs");
-include!("resilience_tests/part_02.rs");
-include!("resilience_tests/part_03.rs");
-include!("resilience_tests/part_04.rs");
-include!("resilience_tests/part_05.rs");
-include!("resilience_tests/part_06.rs");
-include!("resilience_tests/part_07.rs");
-include!("resilience_tests/part_08.rs");
-include!("resilience_tests/part_09.rs");
-include!("resilience_tests/part_10.rs");
-include!("resilience_tests/part_11.rs");
+include!("resilience_tests/retry_timeout_serialization.rs");
+include!("resilience_tests/token_estimator.rs");
+include!("resilience_tests/prune_messages_health.rs");
+include!("resilience_tests/health_resilience_lifecycle.rs");
+include!("resilience_tests/resilience_prune_empty.rs");
+include!("resilience_tests/token_estimation_pruning.rs");
+include!("resilience_tests/health_tracker_states.rs");
+include!("resilience_tests/retry_timeout_config.rs");
+include!("resilience_tests/resilience_manager_api.rs");
+include!("resilience_tests/with_retry_if_logic.rs");
+include!("resilience_tests/policy_audit.rs");

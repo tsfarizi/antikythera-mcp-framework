@@ -1,4 +1,4 @@
-﻿//! Antikythera Log Module Tests
+//! Antikythera Log Module Tests
 //!
 //! Tests for the unified logging system including:
 //! - Basic logging operations
@@ -9,8 +9,8 @@
 use antikythera_log::*;
 
 // Split into 5 parts for consistent test organization.
-include!("logger_tests/part_01.rs");
-include!("logger_tests/part_02.rs");
-include!("logger_tests/part_03.rs");
-include!("logger_tests/part_04.rs");
-include!("logger_tests/part_05.rs");
+include!("logger_tests/basic_logging_levels.rs");
+include!("logger_tests/log_filter_json.rs");
+include!("logger_tests/log_source_context.rs");
+include!("logger_tests/clear_session_id.rs");
+include!("logger_tests/serialization_capacity.rs");

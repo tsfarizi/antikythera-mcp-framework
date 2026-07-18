@@ -1,11 +1,11 @@
-﻿use antikythera_sdk::wasm_agent::runner::{
+use antikythera_sdk::wasm_agent::runner::{
     append_llm_chunk, commit_llm_response, commit_llm_stream, drain_events, init,
     prepare_user_turn, process_tool_result_for_session, sweep_idle_sessions,
 };
 
 // Split into 5 parts for consistent test organization.
-include!("deterministic_harness_tests/part_01.rs");
-include!("deterministic_harness_tests/part_02.rs");
-include!("deterministic_harness_tests/part_03.rs");
-include!("deterministic_harness_tests/part_04.rs");
-include!("deterministic_harness_tests/part_05.rs");
+include!("deterministic_harness_tests/empty_placeholder.rs");
+include!("deterministic_harness_tests/replay_trace_determinism.rs");
+include!("deterministic_harness_tests/malformed_tool_result.rs");
+include!("deterministic_harness_tests/partial_stream_commit.rs");
+include!("deterministic_harness_tests/timeout_mode_sweep.rs");

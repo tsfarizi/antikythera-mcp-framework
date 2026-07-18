@@ -1,4 +1,4 @@
-﻿// Wizard tests - verifying configuration wizard functionality
+// Wizard tests - verifying configuration wizard functionality
 //
 // Tests for wizard configuration generation including HTTP server support.
 
@@ -31,8 +31,8 @@ url = "{}"{}"#,
     }
 
 // Split into 5 parts for consistent test organization.
-include!("wizard_tests/part_01.rs");
-include!("wizard_tests/part_02.rs");
-include!("wizard_tests/part_03.rs");
-include!("wizard_tests/part_04.rs");
-include!("wizard_tests/part_05.rs");
+include!("wizard_tests/http_server_toml_headers.rs");
+include!("wizard_tests/toml_generation_stdio.rs");
+include!("wizard_tests/mask_sensitive_values.rs");
+include!("wizard_tests/mask_boundary_transport.rs");
+include!("wizard_tests/transport_config_creation.rs");

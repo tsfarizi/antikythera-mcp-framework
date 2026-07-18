@@ -95,10 +95,10 @@ fn sorted_keys(value: &serde_json::Value) -> Vec<String> {
     keys
 }
 
-// Split into 5 parts for consistent test organization.
-include!("compatibility_tests/part_01.rs");
-include!("compatibility_tests/part_02.rs");
-include!("compatibility_tests/part_03.rs");
-include!("compatibility_tests/part_04.rs");
-include!("compatibility_tests/part_05.rs");
-include!("compatibility_tests/part_06.rs");
+// Split into 6 parts for consistent test organization.
+include!("compatibility_tests/empty_placeholder.rs");
+include!("compatibility_tests/wit_contract_signatures.rs");
+include!("compatibility_tests/empty_placeholder.rs");
+include!("compatibility_tests/payload_contract_shapes.rs");
+include!("compatibility_tests/correlation_slo_contract.rs");
+include!("compatibility_tests/envelope_contract_types.rs");

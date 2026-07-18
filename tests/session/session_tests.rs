@@ -1,4 +1,4 @@
-﻿//! Antikythera Session Module Tests
+//! Antikythera Session Module Tests
 //!
 //! Tests for session management including:
 //! - Session creation and deletion
@@ -9,8 +9,8 @@
 use antikythera_session::*;
 
 // Split into 5 parts for consistent test organization.
-include!("session_tests/part_01.rs");
-include!("session_tests/part_02.rs");
-include!("session_tests/part_03.rs");
-include!("session_tests/part_04.rs");
-include!("session_tests/part_05.rs");
+include!("session_tests/create_add_message.rs");
+include!("session_tests/list_delete.rs");
+include!("session_tests/clear_export_import.rs");
+include!("session_tests/batch_search.rs");
+include!("session_tests/user_query_serialization.rs");

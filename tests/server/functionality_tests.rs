@@ -1,4 +1,4 @@
-﻿// Server functionality tests - verifying MCP server communication
+// Server functionality tests - verifying MCP server communication
 //
 // Tests that spawn configured servers and verify JSON-RPC communication.
 
@@ -153,10 +153,10 @@ impl Drop for McpTestClient {
 macro_rules! server_test {
     ($test_name:ident, $server_name:expr) => {
         // Split into 5 parts for consistent test organization.
-        include!("functionality_tests/part_01.rs");
-        include!("functionality_tests/part_02.rs");
-        include!("functionality_tests/part_03.rs");
-        include!("functionality_tests/part_04.rs");
-        include!("functionality_tests/part_05.rs");
+        include!("functionality_tests/empty_placeholder.rs");
+        include!("functionality_tests/config_serialization.rs");
+        include!("functionality_tests/config_custom_values.rs");
+        include!("functionality_tests/config_size.rs");
+        include!("functionality_tests/config_defaults.rs");
     };
 }

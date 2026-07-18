@@ -7,12 +7,12 @@ use antikythera_core::{
     ObservabilityHook, TelemetryEvent, TraceSpanContext, TraceStatus, TracingHook,
 };
 
-include!("observability_tests/part_01.rs");
-include!("observability_tests/part_02.rs");
-include!("observability_tests/part_03.rs");
-include!("observability_tests/part_04.rs");
-include!("observability_tests/part_05.rs");
-include!("observability_tests/part_06.rs");
-include!("observability_tests/part_07.rs");
-include!("observability_tests/part_08.rs");
-include!("observability_tests/part_09.rs");
+include!("observability_tests/empty_placeholder.rs");
+include!("observability_tests/latency_tracker_sla.rs");
+include!("observability_tests/metrics_exporter_histogram.rs");
+include!("observability_tests/audit_trail_events.rs");
+include!("observability_tests/tracing_hook_lifecycle.rs");
+include!("observability_tests/audit_filter_detail.rs");
+include!("observability_tests/metrics_latency_percentiles.rs");
+include!("observability_tests/tracing_telemetry.rs");
+include!("observability_tests/caller_context_telemetry.rs");

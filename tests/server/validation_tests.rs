@@ -17,14 +17,14 @@ use std::path::{Path, PathBuf};
 use tempfile::tempdir;
 
 // Split into 11 parts for consistent test organization.
-include!("validation_tests/part_01.rs");
-include!("validation_tests/part_02.rs");
-include!("validation_tests/part_03.rs");
-include!("validation_tests/part_04.rs");
-include!("validation_tests/part_05.rs");
-include!("validation_tests/part_06.rs");
-include!("validation_tests/part_07.rs");
-include!("validation_tests/part_08.rs");
-include!("validation_tests/part_09.rs");
-include!("validation_tests/part_10.rs");
-include!("validation_tests/part_11.rs");
+include!("validation_tests/empty_placeholder.rs");
+include!("validation_tests/empty_placeholder.rs");
+include!("validation_tests/server_commands_valid.rs");
+include!("validation_tests/empty_placeholder.rs");
+include!("validation_tests/tool_server_refs.rs");
+include!("validation_tests/server_config_types.rs");
+include!("validation_tests/discovered_server_types.rs");
+include!("validation_tests/scanner_folder.rs");
+include!("validation_tests/config_loader.rs");
+include!("validation_tests/startup_discovery.rs");
+include!("validation_tests/default_folder_reexports.rs");

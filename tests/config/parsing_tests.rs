@@ -1,4 +1,4 @@
-﻿// Config parsing tests - testing postcard serialization and provider conversion.
+// Config parsing tests - testing postcard serialization and provider conversion.
 //
 // The application stores all configuration as a single Postcard binary (app.pc).
 // These tests verify that the postcard roundtrip preserves field values correctly
@@ -33,6 +33,6 @@ fn minimal_postcard_config() -> PostcardAppConfig {
 }
 
 // Split into parts for consistent test organization.
-include!("parsing_tests/part_02.rs");
-include!("parsing_tests/part_04.rs");
-include!("parsing_tests/part_05.rs");
+include!("parsing_tests/minimal_valid_config.rs");
+include!("parsing_tests/provider_type_detection.rs");
+include!("parsing_tests/prompt_template_parse.rs");

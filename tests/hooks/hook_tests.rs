@@ -1,4 +1,4 @@
-﻿use std::collections::HashMap;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use antikythera_core::{
@@ -61,9 +61,9 @@ impl PolicyDecisionHook for ToolPolicy {
 }
 
 // Split into 6 parts for consistent test organization.
-include!("hook_tests/part_01.rs");
-include!("hook_tests/part_02.rs");
-include!("hook_tests/part_03.rs");
-include!("hook_tests/part_04.rs");
-include!("hook_tests/part_05.rs");
-include!("hook_tests/part_06.rs");
+include!("hook_tests/empty_placeholder.rs");
+include!("hook_tests/middleware_prepare_context.rs");
+include!("hook_tests/empty_placeholder.rs");
+include!("hook_tests/middleware_policy_tool.rs");
+include!("hook_tests/telemetry_hook_emit.rs");
+include!("hook_tests/hook_registry_comprehensive.rs");
