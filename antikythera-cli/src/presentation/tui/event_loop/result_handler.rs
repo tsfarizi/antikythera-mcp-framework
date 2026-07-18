@@ -1,6 +1,6 @@
 use chrono::Utc;
 
-use antikythera_core::ProviderLogger;
+use antikythera_core::logging::ProviderLogger;
 use antikythera_core::application::agent::{AgentOutcome, AgentStep};
 use antikythera_core::application::client::ChatResult;
 
@@ -10,7 +10,7 @@ use super::super::app::ChatApp;
 use super::super::types::{UiMessage, UiTone};
 
 pub(super) fn apply_chat_result(app: &mut ChatApp, result: ChatResult) {
-    ProviderLogger::new(&antikythera_core::get_active_session()).info(format!(
+    ProviderLogger::new(&antikythera_core::logging::get_active_session()).info(format!(
         "CORE → CLI: chat response received | provider={} model={} session={} chars={}",
         result.provider,
         result.model,
@@ -18,7 +18,7 @@ pub(super) fn apply_chat_result(app: &mut ChatApp, result: ChatResult) {
         result.content.len(),
     ));
     app.session_id = Some(result.session_id.clone());
-    antikythera_core::set_active_session(&result.session_id);
+    antikythera_core::logging::set_active_session(&result.session_id);
     app.status = format!(
         "Respons diterima dari {}/{}.",
         result.provider, result.model
@@ -49,14 +49,14 @@ pub(super) fn apply_chat_result(app: &mut ChatApp, result: ChatResult) {
 }
 
 pub(super) fn apply_agent_outcome(app: &mut ChatApp, outcome: AgentOutcome) {
-    ProviderLogger::new(&antikythera_core::get_active_session()).info(format!(
+    ProviderLogger::new(&antikythera_core::logging::get_active_session()).info(format!(
         "CORE → CLI: agent outcome received | session={} steps={} chars={}",
         outcome.session_id,
         outcome.steps.len(),
         outcome.response.to_string().len(),
     ));
     app.session_id = Some(outcome.session_id.clone());
-    antikythera_core::set_active_session(&outcome.session_id);
+    antikythera_core::logging::set_active_session(&outcome.session_id);
     app.status = format!("Agent selesai dengan {} langkah tool.", outcome.steps.len());
     let response_text = format_agent_response(&outcome.response);
     app.push_message(UiMessage::new(

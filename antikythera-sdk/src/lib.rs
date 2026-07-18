@@ -91,7 +91,7 @@ pub use wasm_agent::{
 };
 
 #[cfg(feature = "sdk-core")]
-pub use antikythera_core::{HostModelClient, HostModelResponse, HostModelTransport};
+pub use antikythera_core::infrastructure::model::{HostModelClient, HostModelResponse, HostModelTransport};
 
 /// SDK version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

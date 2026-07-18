@@ -8,7 +8,7 @@ pub mod storage;
 
 use crypto::CryptoProvider;
 pub use error::SecretManagerError;
-pub use storage::{SecretRotationPolicy, SecretStorage, StoredSecret};
+pub use storage::{SecretStorage, StoredSecret};
 
 use crate::logging::SecurityLogger;
 use crate::security::config::{SecretMetadata, SecretsConfig};

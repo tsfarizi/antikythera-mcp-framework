@@ -3,7 +3,7 @@
 //! Implements `ModelClient` for a locally-running Ollama instance.  This is
 //! the CLI-owned version; the core crate is free of this HTTP dependency.
 
-use antikythera_core::ProviderLogger;
+use antikythera_core::logging::ProviderLogger;
 use antikythera_core::infrastructure::model::traits::ModelClient;
 use antikythera_core::infrastructure::model::types::{ModelError, ModelRequest, ModelResponse};
 use async_trait::async_trait;
@@ -60,7 +60,7 @@ impl ModelClient for OllamaClient {
             request
                 .session_id
                 .as_deref()
-                .unwrap_or(&antikythera_core::get_active_session()),
+                .unwrap_or(&antikythera_core::logging::get_active_session()),
         );
         if force_json {
             log.debug("ModelParams detected output_format=json — Ollama format set to json");

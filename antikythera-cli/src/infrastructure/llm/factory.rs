@@ -15,7 +15,7 @@ use std::sync::Once;
 use antikythera_core::infrastructure::model::traits::ModelClient;
 
 use super::types::ModelProviderConfig;
-use antikythera_core::ProviderLogger;
+use antikythera_core::logging::ProviderLogger;
 
 use super::clients::{GeminiClient, OllamaClient, OpenAIClient};
 
@@ -65,7 +65,7 @@ pub fn resolve_api_key(provider: &str, spec: Option<&str>) -> Option<String> {
         return Some(raw.to_string());
     }
     // It looks like an env-var name but wasn't set.
-    ProviderLogger::new(&antikythera_core::get_active_session()).warn(format!(
+    ProviderLogger::new(&antikythera_core::logging::get_active_session()).warn(format!(
         "API key environment variable is not set | provider={} env_var={}",
         provider, raw
     ));

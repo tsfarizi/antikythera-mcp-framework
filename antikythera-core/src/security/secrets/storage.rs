@@ -22,13 +22,3 @@ pub enum SecretStorage {
     },
 }
 
-/// Secret rotation policy
-#[derive(Debug, Clone)]
-pub enum SecretRotationPolicy {
-    /// Rotate based on time interval
-    TimeBased { interval_hours: u32 },
-    /// Rotate based on usage count
-    UsageBased { max_uses: u32, current_uses: u32 },
-    /// Manual rotation only
-    Manual,
-}

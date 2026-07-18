@@ -12,7 +12,6 @@ async fn test_http_transport_list_tools() {
         url: "https://example.com/mcp".to_string(),
         headers: HashMap::new(),
         mode: TransportMode::Auto,
-        required_capabilities: Vec::new(),
     };
     let transport = HttpTransport::new(config);
 
@@ -48,7 +47,6 @@ async fn test_http_transport_disconnect() {
         url: "https://example.com/mcp".to_string(),
         headers: HashMap::new(),
         mode: TransportMode::Auto,
-        required_capabilities: Vec::new(),
     };
     let transport = HttpTransport::new(config);
     transport.inner.connected.store(true, Ordering::SeqCst);

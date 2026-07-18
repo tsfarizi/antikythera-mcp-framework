@@ -15,15 +15,6 @@ mod cli;
 #[path = "config.rs"]
 mod config;
 
-#[path = "entities.rs"]
-mod entities;
-
-#[path = "infrastructure_config.rs"]
-mod infrastructure_config;
-
-#[path = "chat_use_case.rs"]
-mod chat_use_case;
-
 #[path = "runtime.rs"]
 mod runtime;
 

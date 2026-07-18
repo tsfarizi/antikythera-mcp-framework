@@ -22,7 +22,7 @@
 //! ## Quick start
 //!
 //! ```rust,ignore
-//! use antikythera_core::resilience::{ResilienceManager, RetryPolicy, with_retry_if};
+//! use antikythera_core::application::resilience::{ResilienceManager, RetryPolicy, with_retry_if};
 //!
 //! // Create a manager with default policies
 //! let mut mgr = ResilienceManager::new();

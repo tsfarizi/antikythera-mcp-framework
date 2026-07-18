@@ -56,5 +56,4 @@ pub fn save_config(config: &AppConfig, path: Option<&Path>) -> Result<(), String
 /// Backwards-compatible alias.  Prefer [`AppConfig`] directly.
 pub type PostcardAppConfig = AppConfig;
 
-/// Backwards-compatible alias for the server config sub-struct.
-pub type ServerConfig = super::app::RestServerConfig;
+

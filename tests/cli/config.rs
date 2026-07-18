@@ -23,21 +23,6 @@ fn missing_file_returns_typed_error() {
 }
 
 #[test]
-fn deprecated_aliases_delegate_to_new_names() {
-    #[allow(deprecated)]
-    use antikythera_cli::config::load_config;
-    let missing = Path::new("definitely-not-exists-app.pc");
-    let e1 = load_app_config(Some(missing))
-        .expect_err("expected error")
-        .to_string();
-    #[allow(deprecated)]
-    let e2 = load_config(Some(missing))
-        .expect_err("expected error")
-        .to_string();
-    assert_eq!(e1, e2);
-}
-
-#[test]
 fn recommended_default_config_includes_primary_providers() {
     let config = recommended_default_config();
     let ids: Vec<&str> = config.providers.iter().map(|p| p.id.as_str()).collect();

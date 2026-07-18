@@ -8,7 +8,7 @@
 const DEFAULT_GEMINI_API_PATH: &str = "v1beta/models";
 
 use super::super::types::ModelProviderConfig;
-use antikythera_core::ProviderLogger;
+use antikythera_core::logging::ProviderLogger;
 use antikythera_core::infrastructure::model::traits::ModelClient;
 use antikythera_core::infrastructure::model::types::{ModelError, ModelRequest, ModelResponse};
 use async_trait::async_trait;
@@ -72,7 +72,7 @@ impl ModelClient for GeminiClient {
             request
                 .session_id
                 .as_deref()
-                .unwrap_or(&antikythera_core::get_active_session()),
+                .unwrap_or(&antikythera_core::logging::get_active_session()),
         );
         if force_json {
             log.debug("ModelParams detected output_format=json — Gemini responseMimeType set to application/json");

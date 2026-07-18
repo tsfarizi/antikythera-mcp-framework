@@ -53,7 +53,6 @@ impl TransportFactory {
                     url,
                     headers: config.headers.clone(),
                     mode: TransportMode::Auto,
-                    required_capabilities: Vec::new(),
                 };
                 let transport = Arc::new(HttpTransport::new(transport_config));
                 transport.connect().await?;

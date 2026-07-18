@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use antikythera_core::application::observability::metrics::percentile;
-use antikythera_core::{
+use antikythera_core::application::hooks::InMemoryTelemetryHook;
+use antikythera_core::application::observability::{
     AuditCategory, AuditRecord, AuditTrail, CallerContext, InMemoryMetricsExporter,
-    InMemoryTelemetryHook, InMemoryTracingHook, LatencyTracker, MetricKind, MetricsExporter,
-    ObservabilityHook, TelemetryEvent, TraceSpanContext, TraceStatus, TracingHook,
+    InMemoryTracingHook, LatencyTracker, MetricKind, MetricsExporter, ObservabilityHook,
+    TelemetryEvent, TraceSpanContext, TraceStatus, TracingHook,
 };
 
 include!("observability_tests/empty_placeholder.rs");

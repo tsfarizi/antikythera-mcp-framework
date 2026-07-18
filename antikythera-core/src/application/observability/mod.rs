@@ -11,7 +11,7 @@
 //!
 //! # Example
 //! ```
-//! use antikythera_core::{
+//! use antikythera_core::application::observability::{
 //!     CallerContext, InMemoryMetricsExporter, LatencyTracker, MetricsExporter, TelemetryEvent,
 //! };
 //!

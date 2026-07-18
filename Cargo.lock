@@ -181,15 +181,11 @@ dependencies = [
  "antikythera-core",
  "antikythera-log",
  "antikythera-session",
- "async-trait",
  "chrono",
- "postcard",
  "serde",
  "serde_json",
  "serial_test",
- "thiserror 2.0.18",
  "tokio",
- "tracing",
 ]
 
 [[package]]
@@ -198,7 +194,6 @@ version = "1.0.10"
 dependencies = [
  "antikythera-log",
  "chrono",
- "postcard",
  "serde",
  "serde_json",
  "tempfile",

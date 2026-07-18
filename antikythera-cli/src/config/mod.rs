@@ -80,15 +80,6 @@ pub fn load_app_config(path: Option<&Path>) -> CliResult<AppConfig> {
     config_from_postcard_wrapped(&data)
 }
 
-/// Deprecated compatibility alias.
-#[deprecated(
-    since = "0.9.9",
-    note = "use load_app_config instead; scheduled removal in 2.0.0"
-)]
-pub fn load_config(path: Option<&Path>) -> CliResult<AppConfig> {
-    load_app_config(path)
-}
-
 /// Save `AppConfig` to `path` (defaults to [`CONFIG_PATH`] = `app.pc`).
 pub fn save_app_config(config: &AppConfig, path: Option<&Path>) -> CliResult<()> {
     let config_path = path.unwrap_or(Path::new(CONFIG_PATH));

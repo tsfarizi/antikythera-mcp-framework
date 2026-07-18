@@ -12,16 +12,11 @@ use std::sync::Once;
 
 static ENV_LOADER: Once = Once::new();
 
-/// Ensures environment variables are loaded from .env (project root)
-pub fn ensure_env_loaded() {
+/// Load and validate configuration from Postcard binary
+pub fn load_config(path: Option<&Path>) -> Result<AppConfig, ConfigError> {
     ENV_LOADER.call_once(|| {
         let _ = from_filename(super::ENV_PATH);
     });
-}
-
-/// Load and validate configuration from Postcard binary
-pub fn load_config(path: Option<&Path>) -> Result<AppConfig, ConfigError> {
-    ensure_env_loaded();
 
     let config_path = path.unwrap_or_else(|| Path::new(postcard_config::CONFIG_PATH));
 
@@ -102,19 +97,4 @@ pub fn save_config(config: &AppConfig, path: Option<&Path>) -> Result<(), Config
     Ok(())
 }
 
-/// Initialize default configuration
-pub fn init_default_config() -> Result<AppConfig, ConfigError> {
-    let logger = ConfigLogger::new("config");
-    logger.info("Initializing default configuration");
 
-    let config = AppConfig::default();
-    save_config(&config, None)?;
-
-    logger.info("Default configuration created");
-    Ok(config)
-}
-
-/// Check if configuration exists
-pub fn config_exists() -> bool {
-    Path::new(postcard_config::CONFIG_PATH).exists()
-}

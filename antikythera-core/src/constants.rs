@@ -8,5 +8,3 @@ pub const CONFIG_PATH: &str = "app.pc";
 /// Environment file path (project root)
 pub const ENV_PATH: &str = ".env";
 
-/// Example environment file path (project root)
-pub const ENV_EXAMPLE_PATH: &str = ".env.example";

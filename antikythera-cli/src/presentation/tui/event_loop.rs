@@ -6,10 +6,10 @@ use std::io::{self, Stdout};
 use std::sync::Arc;
 use std::time::Duration;
 
-use antikythera_core::ConfigLogger;
+use antikythera_core::logging::ConfigLogger;
 use antikythera_core::application::client::McpClient;
 use antikythera_core::config::AppConfig;
-use antikythera_core::get_latest_logs;
+use antikythera_core::logging::get_latest_logs;
 use antikythera_core::infrastructure::model::DynamicModelProvider;
 use antikythera_sdk::sdk_logging::get_latest_sdk_logs;
 use crossterm::event::{self, Event};
@@ -52,7 +52,7 @@ pub async fn run_chat_app(
     // Server auto-discovery, builtin transport registration, prompt customisation.
     let (discovery_msg, builtin_transports) = bootstrap_servers_and_transports(&mut config).await;
 
-    ConfigLogger::new(&antikythera_core::get_active_session()).info(format!(
+    ConfigLogger::new(&antikythera_core::logging::get_active_session()).info(format!(
         "Building runtime client | provider={} model={} providers_count={}",
         config.default_provider(),
         config.model_name(),

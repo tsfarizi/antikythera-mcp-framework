@@ -9,7 +9,7 @@ use crate::infrastructure::llm::{StreamEvent, set_stream_event_sink};
 use crate::presentation::tui::app::ChatApp;
 use crate::presentation::tui::event_loop::scroll_to_bottom;
 use crate::presentation::tui::types::{PendingResponse, UiMessage, UiTone};
-use antikythera_core::ProviderLogger;
+use antikythera_core::logging::ProviderLogger;
 use antikythera_core::application::agent::{Agent, AgentOptions};
 use antikythera_core::application::client::{ChatRequest, McpClient};
 use antikythera_core::application::resilience::{ContextWindowPolicy, RetryPolicy, with_retry_if};
@@ -82,7 +82,7 @@ pub(crate) fn submit_input(client: &mut Arc<McpClient<DynamicModelProvider>>, ap
     let health_ref = Arc::clone(&app.health);
     let provider_id = app.provider.clone();
     let model_id = app.model.clone();
-    ProviderLogger::new(&antikythera_core::get_active_session()).info(format!(
+    ProviderLogger::new(&antikythera_core::logging::get_active_session()).info(format!(
         "CLI → CORE: dispatching request | provider={} model={} mode={} session={}",
         provider_id,
         model_id,
@@ -124,7 +124,7 @@ pub(crate) fn submit_input(client: &mut Arc<McpClient<DynamicModelProvider>>, ap
             if let Some(ref sid) = session_id {
                 let removed = client_arc.prune_session(sid, &cw_policy).await;
                 if removed > 0 {
-                    antikythera_core::SessionLogger::new(sid).info(format!(
+                    antikythera_core::logging::SessionLogger::new(sid).info(format!(
                         "Context window pruned before request | removed={}",
                         removed
                     ));

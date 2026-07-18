@@ -7,7 +7,7 @@
 use antikythera_core::infrastructure::model::traits::ModelClient;
 
 use super::super::types::ModelProviderConfig;
-use antikythera_core::ProviderLogger;
+use antikythera_core::logging::ProviderLogger;
 use antikythera_core::infrastructure::model::types::{ModelError, ModelRequest, ModelResponse};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -70,7 +70,7 @@ impl ModelClient for OpenAIClient {
             request
                 .session_id
                 .as_deref()
-                .unwrap_or(&antikythera_core::get_active_session()),
+                .unwrap_or(&antikythera_core::logging::get_active_session()),
         );
         if force_json {
             log.debug("ModelParams detected output_format=json — OpenAI response_format set to json_object");

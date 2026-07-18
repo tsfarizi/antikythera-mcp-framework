@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use antikythera_core::ConfigLogger;
+use antikythera_core::logging::ConfigLogger;
 use antikythera_core::application::client::{ClientConfigSnapshot, McpClient};
 use antikythera_core::infrastructure::model::DynamicModelProvider;
 
@@ -278,7 +278,7 @@ pub(crate) fn apply_runtime_selection(
     app.provider = app.runtime_config.default_provider().to_string();
     app.model = app.runtime_config.model_name().to_string();
     app.session_id = None;
-    antikythera_core::set_active_session("tui");
+    antikythera_core::logging::set_active_session("tui");
     // Provider/model changed — start a fresh history session next turn.
     app.history.current_session = None;
 
@@ -333,7 +333,7 @@ pub(crate) fn reconfigure_runtime(
     app: &mut ChatApp,
     client: &mut Arc<McpClient<DynamicModelProvider>>,
 ) -> Result<(), String> {
-    ConfigLogger::new(&antikythera_core::get_active_session()).info(format!(
+    ConfigLogger::new(&antikythera_core::logging::get_active_session()).info(format!(
         "CLI reconfiguring runtime | new_provider={} new_model={}",
         app.provider, app.model
     ));

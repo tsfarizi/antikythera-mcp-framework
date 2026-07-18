@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use antikythera_core::{
-    AuthHook, CallerContext, CorrelationHook, HookContext, HookError, HookOperation, HookRegistry,
+use antikythera_core::application::hooks::{
+    AuthHook, CorrelationHook, HookContext, HookError, HookOperation, HookRegistry,
     HostHookMiddleware, InMemoryTelemetryHook, PolicyDecision, PolicyDecisionHook,
-    PolicyDecisionInput, PolicyTarget, TelemetryEvent,
+    PolicyDecisionInput, PolicyTarget,
 };
+use antikythera_core::application::observability::{CallerContext, TelemetryEvent};
 
 struct RequireUser;
 
@@ -51,7 +52,7 @@ impl PolicyDecisionHook for ToolPolicy {
 
     fn decide(
         &self,
-        input: &antikythera_core::PolicyDecisionInput,
+        input: &antikythera_core::application::hooks::PolicyDecisionInput,
     ) -> Result<PolicyDecision, HookError> {
         match &input.target {
             PolicyTarget::Tool { tool_name } if tool_name == "blocked" => Ok(PolicyDecision::Deny),

@@ -6,5 +6,5 @@
 pub mod entities;
 pub mod use_cases;
 
-pub use entities::*;
+pub use entities::{AgentAction, Message, MessageRole, ToolCall, ToolResult};
 pub use use_cases::*;

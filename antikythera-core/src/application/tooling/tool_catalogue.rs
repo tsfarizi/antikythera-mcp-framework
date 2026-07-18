@@ -139,7 +139,6 @@ pub async fn spawn_and_list_tools(
             url,
             headers: config.headers.clone(),
             mode: TransportMode::Auto,
-            required_capabilities: Vec::new(),
         };
         let transport = HttpTransport::new(transport_config);
         transport.connect().await?;
