@@ -14,6 +14,7 @@
 # Reference Guides
 
 - [Config](documentation/CONFIG.md)
+- [Storage](documentation/STORAGE.md)
 - [Cache](documentation/CACHE.md)
 - [Import Export](documentation/IMPORT_EXPORT.md)
 - [JSON Schema](documentation/JSON_SCHEMA.md)

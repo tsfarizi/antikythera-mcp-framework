@@ -113,6 +113,7 @@ task setup-config PROVIDER_ID=openai PROVIDER_TYPE=openai PROVIDER_ENDPOINT=http
 | `--stream` | Enable live token streaming to stderr (terminal sink) |
 | `--wasm <path>` | Path to wasm module used by `wasm-harness` |
 | `--wasm-llm-response <json>` | Host callback response stub for `wasm-harness` |
+| `--storage` | Enable session persistence via `antikythera-storage` |
 
 ### Multi-agent flags
 

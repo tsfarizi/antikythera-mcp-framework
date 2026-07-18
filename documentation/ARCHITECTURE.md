@@ -11,6 +11,7 @@ flowchart TD
     SDK[antikythera-sdk]
     CORE[antikythera-core]
     SESSION[antikythera-session]
+    STORAGE[antikythera-storage]
     LOG[antikythera-log]
     MCP[MCP servers]
     LLM[LLM providers]
@@ -19,6 +20,7 @@ flowchart TD
     USER --> SDK
     CLI --> CORE
     CLI --> SDK
+    CLI --> STORAGE
     CLI -.->|Debug History| SESSION
     SDK --> CORE
     SDK --> SESSION
@@ -27,12 +29,15 @@ flowchart TD
     CORE --> SESSION
     CORE --> MCP
     CORE --> LLM
+    STORAGE --> SESSION
+    STORAGE --> LOG
 ```
 
 ## Core Principles
 
 - **Single Source of Truth for Session:** `antikythera-session` owns the conversational data model (`Message`, `MessageRole`, `MessagePart`) and provides the thread-safe `SessionManager`. Both `CORE` (for actual context injection) and `CLI` (for debug persistence) utilize this unified model.
-- **Stateless Tooling:** `CORE` orchestrates LLM dispatch, agent loops, and MCP tools, delegating long-term conversational memory to `SESSION`.
+- **Pluggable Persistence:** `antikythera-storage` provides session persistence with pluggable backends (filesystem, MongoDB, PostgreSQL), in-memory caching with TTL/LRU eviction, and backup coordination. The `--storage` flag in CLI enables automatic session persistence.
+- **Stateless Tooling:** `CORE` orchestrates LLM dispatch, agent loops, and MCP tools, delegating long-term conversational memory to `SESSION` and `STORAGE`.
 - **FFI & Portability:** `SDK` exposes `SESSION` and `LOG` components over safe FFI boundaries, allowing host languages (e.g. Node.js, Python) to import/export chat histories easily using the `Postcard` binary format.
 
 ## Request flow

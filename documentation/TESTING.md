@@ -18,6 +18,18 @@ flowchart TD
 - `tests/` contains integration suites and module-specific binaries.
 - Large suites use part-based organization for readability and maintenance.
 - Contract fixtures are used for compatibility detection.
+- Storage tests are in `tests/storage/` covering cache, filesystem, config, backup, and integration.
+
+## Storage Tests
+
+```bash
+# Run all storage tests
+cargo test -p antikythera-tests --test storage_cache_tests
+cargo test -p antikythera-tests --test storage_filesystem_tests
+cargo test -p antikythera-tests --test storage_config_tests
+cargo test -p antikythera-tests --test storage_backup_tests
+cargo test -p antikythera-tests --test storage_integration_tests
+```
 
 ## Standard Commands
 
