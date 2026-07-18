@@ -313,7 +313,7 @@ impl SecretManager {
             };
 
             // Check for secrets that need rotation
-            for (_id, entry) in secrets.iter_mut() {
+            for entry in secrets.values_mut() {
                 if let Some(latest) = entry
                     .iter_mut()
                     .filter(|s| s.metadata.active)

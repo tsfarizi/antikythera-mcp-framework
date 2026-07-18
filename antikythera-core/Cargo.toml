@@ -77,7 +77,7 @@ crossterm = { workspace = true, optional = true }
 ratatui = { workspace = true, optional = true }
 
 # WASM runtime (optional, for sandboxed execution)
-wasmtime = { version = "15.0", optional = true }
+wasmtime = { version = "36.0", optional = true }
 anyhow = { version = "1.0", optional = true }
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
