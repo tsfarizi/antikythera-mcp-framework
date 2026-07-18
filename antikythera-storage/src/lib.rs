@@ -119,19 +119,19 @@ impl StorageEngine {
 
     /// Load session data, using cache when available.
     pub async fn load(&mut self, session_id: &str) -> Result<Option<Vec<u8>>, StorageError> {
-        if self.config.cache.enabled {
-            if let Some(data) = self.cache.get(session_id) {
-                return Ok(Some(data));
-            }
+        if self.config.cache.enabled
+            && let Some(data) = self.cache.get(session_id)
+        {
+            return Ok(Some(data));
         }
 
         let data = self.backend.load(session_id).await?;
 
-        if self.config.cache.enabled {
-            if let Some(ref d) = data {
-                self.cache
-                    .insert(session_id.to_string(), d.clone());
-            }
+        if self.config.cache.enabled
+            && let Some(ref d) = data
+        {
+            self.cache
+                .insert(session_id.to_string(), d.clone());
         }
 
         Ok(data)

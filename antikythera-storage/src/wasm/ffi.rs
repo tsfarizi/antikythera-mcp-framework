@@ -5,6 +5,7 @@ use crate::config::StorageConfig;
 
 /// Opaque handle for FFI consumers.
 pub struct WasmStorageHandle {
+    #[allow(dead_code)]
     storage: WasmStorage,
 }
 
@@ -12,6 +13,10 @@ pub struct WasmStorageHandle {
 ///
 /// Returns a pointer to the handle, or null on error.
 /// The caller must free with `storage_free`.
+///
+/// # Safety
+/// `config_ptr` must point to valid UTF-8 bytes of length `config_len`.
+#[allow(clippy::not_unsafe_ptr_arg_deref)]
 #[unsafe(no_mangle)]
 pub extern "C" fn storage_new(config_ptr: *const u8, config_len: usize) -> *mut WasmStorageHandle {
     let config_str = match unsafe {

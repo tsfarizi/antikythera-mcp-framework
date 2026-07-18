@@ -45,16 +45,21 @@ impl BackupCoordinator {
         let mut success = 0;
         let mut failure = 0;
 
-        let mut entries = tokio::fs::read_dir(backup_dir)
+        let backup_dir = backup_dir.to_path_buf();
+        let entries: Vec<std::path::PathBuf> =
+            tokio::task::spawn_blocking(move || {
+                let mut result = Vec::new();
+                if let Ok(read_dir) = std::fs::read_dir(&backup_dir) {
+                    for entry in read_dir.flatten() {
+                        result.push(entry.path());
+                    }
+                }
+                result
+            })
             .await
             .map_err(|e| StorageError::Backup(format!("failed to read backup dir: {e}")))?;
 
-        while let Some(entry) = entries
-            .next_entry()
-            .await
-            .map_err(|e| StorageError::Backup(format!("failed to read entry: {e}")))?
-        {
-            let path = entry.path();
+        for path in entries {
             if path.extension().and_then(|s| s.to_str()) == Some("json")
                 && path
                     .file_stem()
@@ -84,22 +89,26 @@ impl BackupCoordinator {
         session_id: &str,
         backup_path: &std::path::Path,
     ) -> Result<(), StorageError> {
-        let data = tokio::fs::read(backup_path)
+        let path = backup_path.to_path_buf();
+        let data = tokio::task::spawn_blocking(move || std::fs::read(&path))
             .await
+            .map_err(|e| StorageError::Backup(format!("failed to read backup: {e}")))?
             .map_err(|e| StorageError::Backup(format!("failed to read backup: {e}")))?;
 
         self.backend.save(session_id, &data).await?;
 
-        if self.config.verify_before_delete {
-            if !verifier::verify_sync(self.backend.as_ref(), session_id).await? {
-                return Err(StorageError::Backup(format!(
-                    "verification failed after sync for {session_id}"
-                )));
-            }
+        if self.config.verify_before_delete
+            && !verifier::verify_sync(self.backend.as_ref(), session_id).await?
+        {
+            return Err(StorageError::Backup(format!(
+                "verification failed after sync for {session_id}"
+            )));
         }
 
-        tokio::fs::remove_file(backup_path)
+        let path = backup_path.to_path_buf();
+        tokio::task::spawn_blocking(move || std::fs::remove_file(&path))
             .await
+            .map_err(|e| StorageError::Backup(format!("failed to delete backup: {e}")))?
             .map_err(|e| StorageError::Backup(format!("failed to delete backup: {e}")))?;
 
         Ok(())

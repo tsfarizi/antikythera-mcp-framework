@@ -19,7 +19,7 @@ wasm = []
 serde = { workspace = true }
 serde_json = { workspace = true }
 async-trait = { workspace = true }
-tokio = { workspace = true, features = ["fs"] }
+tokio = { version = "1.52.1", features = ["macros", "rt", "sync", "time"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }

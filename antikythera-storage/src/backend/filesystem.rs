@@ -6,7 +6,6 @@
 use std::path::PathBuf;
 
 use async_trait::async_trait;
-use tokio::fs;
 
 use crate::error::StorageError;
 
@@ -45,80 +44,104 @@ impl FilesystemBackend {
 impl StorageBackend for FilesystemBackend {
     async fn save(&self, session_id: &str, data: &[u8]) -> Result<(), StorageError> {
         let path = self.session_path(session_id);
-        fs::write(&path, data).await.map_err(|e| StorageError::Path {
-            path,
-            source: e,
-        })
+        let data = data.to_vec();
+        let path_clone = path.clone();
+        tokio::task::spawn_blocking(move || std::fs::write(&path_clone, data))
+            .await
+            .map_err(|e| StorageError::Backend(e.to_string()))?
+            .map_err(|e| StorageError::Path {
+                path,
+                source: e,
+            })
     }
 
     async fn load(&self, session_id: &str) -> Result<Option<Vec<u8>>, StorageError> {
         let path = self.session_path(session_id);
-        match fs::read(&path).await {
-            Ok(data) => Ok(Some(data)),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
-            Err(e) => Err(StorageError::Path {
-                path,
-                source: e,
-            }),
-        }
+        let path_clone = path.clone();
+        tokio::task::spawn_blocking(move || std::fs::read(&path_clone))
+            .await
+            .map_err(|e| StorageError::Backend(e.to_string()))?
+            .map(Some)
+            .or_else(|e| {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    Ok(None)
+                } else {
+                    Err(StorageError::Path {
+                        path,
+                        source: e,
+                    })
+                }
+            })
     }
 
     async fn delete(&self, session_id: &str) -> Result<(), StorageError> {
         let path = self.session_path(session_id);
-        match fs::remove_file(&path).await {
+        let path_clone = path.clone();
+        tokio::task::spawn_blocking(move || match std::fs::remove_file(&path_clone) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
             Err(e) => Err(StorageError::Path {
                 path,
                 source: e,
             }),
-        }
+        })
+        .await
+        .map_err(|e| StorageError::Backend(e.to_string()))?
     }
 
     async fn list(&self) -> Result<Vec<String>, StorageError> {
-        let mut entries = fs::read_dir(&self.data_dir)
-            .await
-            .map_err(StorageError::Io)?;
-        let mut ids = Vec::new();
-        while let Some(entry) = entries
-            .next_entry()
-            .await
-            .map_err(StorageError::Io)?
-        {
-            let name = entry.file_name();
-            let name = name.to_string_lossy();
-            if let Some(id) = name.strip_suffix(".json") {
-                ids.push(id.to_string());
+        let data_dir = self.data_dir.clone();
+        tokio::task::spawn_blocking(move || {
+            let mut ids = Vec::new();
+            for entry in std::fs::read_dir(&data_dir)? {
+                let entry = entry?;
+                let name = entry.file_name();
+                let name = name.to_string_lossy();
+                if let Some(id) = name.strip_suffix(".json") {
+                    ids.push(id.to_string());
+                }
             }
-        }
-        Ok(ids)
+            Ok(ids)
+        })
+        .await
+        .map_err(|e| StorageError::Backend(e.to_string()))?
     }
 
     async fn exists(&self, session_id: &str) -> Result<bool, StorageError> {
         let path = self.session_path(session_id);
-        match fs::metadata(&path).await {
+        let path_clone = path.clone();
+        tokio::task::spawn_blocking(move || match std::fs::metadata(&path_clone) {
             Ok(_) => Ok(true),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
             Err(e) => Err(StorageError::Path {
                 path,
                 source: e,
             }),
-        }
+        })
+        .await
+        .map_err(|e| StorageError::Backend(e.to_string()))?
     }
 
     async fn backup(&self, session_id: &str, data: &[u8]) -> Result<(), StorageError> {
         let path = self.backup_path(session_id);
-        fs::write(&path, data).await.map_err(|e| StorageError::Path {
-            path,
-            source: e,
-        })
+        let data = data.to_vec();
+        let path_clone = path.clone();
+        tokio::task::spawn_blocking(move || std::fs::write(&path_clone, data))
+            .await
+            .map_err(|e| StorageError::Backend(e.to_string()))?
+            .map_err(|e| StorageError::Path {
+                path,
+                source: e,
+            })
     }
 
     async fn sync_backup(&self, session_id: &str) -> Result<(), StorageError> {
         let backup = self.backup_path(session_id);
         let target = self.session_path(session_id);
-        fs::copy(&backup, &target)
+        let session_id = session_id.to_string();
+        tokio::task::spawn_blocking(move || std::fs::copy(&backup, &target))
             .await
+            .map_err(|e| StorageError::Backend(e.to_string()))?
             .map_err(|e| StorageError::Backup(format!(
                 "failed to sync backup for {session_id}: {e}"
             )))?;
@@ -127,25 +150,31 @@ impl StorageBackend for FilesystemBackend {
 
     async fn verify_sync(&self, session_id: &str) -> Result<bool, StorageError> {
         let path = self.session_path(session_id);
-        match fs::metadata(&path).await {
+        let path_clone = path.clone();
+        tokio::task::spawn_blocking(move || match std::fs::metadata(&path_clone) {
             Ok(_) => Ok(true),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
             Err(e) => Err(StorageError::Path {
                 path,
                 source: e,
             }),
-        }
+        })
+        .await
+        .map_err(|e| StorageError::Backend(e.to_string()))?
     }
 
     async fn delete_backup(&self, session_id: &str) -> Result<(), StorageError> {
         let path = self.backup_path(session_id);
-        match fs::remove_file(&path).await {
+        let path_clone = path.clone();
+        tokio::task::spawn_blocking(move || match std::fs::remove_file(&path_clone) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
             Err(e) => Err(StorageError::Path {
                 path,
                 source: e,
             }),
-        }
+        })
+        .await
+        .map_err(|e| StorageError::Backend(e.to_string()))?
     }
 }

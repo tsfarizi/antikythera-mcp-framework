@@ -8,7 +8,6 @@ use std::path::PathBuf;
 
 use async_trait::async_trait;
 use sqlx::PgPool;
-use tokio::fs;
 
 use crate::config::PostgresConfig;
 use crate::error::StorageError;
@@ -137,23 +136,26 @@ impl StorageBackend for PostgresBackend {
     }
 
     async fn backup(&self, session_id: &str, data: &[u8]) -> Result<(), StorageError> {
-        fs::create_dir_all(&self.backup_dir)
-            .await
-            .map_err(StorageError::Io)?;
-
-        let path = self.backup_dir.join(format!("{session_id}.backup.json"));
-        fs::write(&path, data).await.map_err(|e| StorageError::Path {
-            path,
-            source: e,
+        let backup_dir = self.backup_dir.clone();
+        let session_id = session_id.to_string();
+        let data = data.to_vec();
+        tokio::task::spawn_blocking(move || {
+            std::fs::create_dir_all(&backup_dir)?;
+            let path = backup_dir.join(format!("{session_id}.backup.json"));
+            std::fs::write(&path, data)
         })
+        .await
+        .map_err(|e| StorageError::Backend(e.to_string()))?
+        .map_err(StorageError::Io)
     }
 
     async fn sync_backup(&self, session_id: &str) -> Result<(), StorageError> {
         let path = self.backup_dir.join(format!("{session_id}.backup.json"));
-        let bytes = fs::read(&path).await.map_err(|e| StorageError::Path {
-            path: path.clone(),
-            source: e,
-        })?;
+        let path_clone = path.clone();
+        let bytes = tokio::task::spawn_blocking(move || std::fs::read(&path_clone))
+            .await
+            .map_err(|e| StorageError::Backend(e.to_string()))?
+            .map_err(StorageError::Io)?;
 
         self.save(session_id, &bytes).await?;
 
@@ -166,13 +168,16 @@ impl StorageBackend for PostgresBackend {
 
     async fn delete_backup(&self, session_id: &str) -> Result<(), StorageError> {
         let path = self.backup_dir.join(format!("{session_id}.backup.json"));
-        match fs::remove_file(&path).await {
+        let path_clone = path.clone();
+        tokio::task::spawn_blocking(move || match std::fs::remove_file(&path_clone) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
             Err(e) => Err(StorageError::Path {
                 path,
                 source: e,
             }),
-        }
+        })
+        .await
+        .map_err(|e| StorageError::Backend(e.to_string()))?
     }
 }
