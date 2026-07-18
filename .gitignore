@@ -7,7 +7,6 @@
 .env
 .code-review-graph/
 .cargo/
-app.pc
 debug/
 .*
 graphify-out/
