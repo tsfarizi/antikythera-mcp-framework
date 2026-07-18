@@ -66,8 +66,11 @@ pub mod sdk_logging;
 
 pub use sdk_logging::{
     ConfigFfiLogger, clear_sdk_loggers, clear_sdk_session_logs, get_latest_sdk_logs,
-    get_sdk_logger, get_sdk_logs_json, query_sdk_logs, subscribe_sdk_logs,
+    get_sdk_logger, get_sdk_logs_json, query_sdk_logs,
 };
+
+#[cfg(feature = "subscriber")]
+pub use sdk_logging::subscribe_sdk_logs;
 
 /// Shared FFI helper utilities
 pub mod ffi_helpers;
