@@ -9,4 +9,4 @@
 .cargo/
 debug/
 .*
-graphify-out/
+app.toml

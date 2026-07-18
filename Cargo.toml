@@ -6,13 +6,14 @@ members = [
     "antikythera-cli",
     "antikythera-log",
     "antikythera-session",
+    "antikythera-storage",
     "tests",
     "scripts",
 ]
 default-members = ["antikythera-cli"]
 
 [workspace.package]
-version = "1.1.0"
+version = "1.2.0"
 edition = "2024"
 authors = ["tsfarizi"]
 license = "MIT"

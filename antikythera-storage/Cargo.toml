@@ -1,0 +1,43 @@
+[package]
+name = "antikythera-storage"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[features]
+default = ["filesystem"]
+filesystem = []
+mongodb = ["dep:mongodb", "dep:tokio-util", "dep:futures"]
+postgres = ["dep:sqlx"]
+standalone = ["dep:axum", "dep:tower-http"]
+sse = []
+wasm = []
+
+[dependencies]
+# Workspace dependencies
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true, features = ["fs"] }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+toml = { workspace = true }
+
+# Optional: MongoDB
+mongodb = { version = "2.8", optional = true }
+tokio-util = { version = "0.7", optional = true }
+futures = { workspace = true, optional = true }
+
+# Optional: PostgreSQL
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "json"], optional = true }
+
+# Optional: HTTP server (standalone mode)
+axum = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
+tempfile = "3"
