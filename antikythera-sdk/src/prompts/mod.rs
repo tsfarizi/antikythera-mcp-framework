@@ -1,18 +1,18 @@
 //! Prompt Management Feature Slice
 //!
-//! Provides FFI bindings for managing prompt templates via Postcard config.
+//! Provides FFI bindings for managing prompt templates via TOML config.
 
 use std::os::raw::c_char;
 
 use crate::ffi_helpers::{from_c_string, to_c_string};
-use antikythera_core::config::postcard_config;
+use antikythera_core::config::toml_config;
 
-fn load_config() -> Result<postcard_config::PostcardAppConfig, String> {
-    postcard_config::load_config(None)
+fn load_config() -> Result<toml_config::TomlAppConfig, String> {
+    toml_config::load_config(None)
 }
 
-fn save_config(config: &postcard_config::PostcardAppConfig) -> Result<(), String> {
-    postcard_config::save_config(config, None)
+fn save_config(config: &toml_config::TomlAppConfig) -> Result<(), String> {
+    toml_config::save_config(config, None)
 }
 
 /// Get the main system prompt template

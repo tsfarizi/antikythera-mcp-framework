@@ -1,20 +1,20 @@
 ﻿# Cache
 
-This document describes the active binary cache model for configuration data.
+This document describes the active cache model for configuration data.
 
 ## Cache Lifecycle
 
 ```mermaid
 flowchart TD
-    Source[Configuration source] --> Encode[Postcard encode]
-    Encode --> File[Binary cache artifact]
-    File --> Decode[Postcard decode]
+    Source[Configuration source] --> Encode[TOML encode]
+    Encode --> File[Text cache artifact]
+    File --> Decode[TOML decode]
     Decode --> Runtime[Runtime configuration use]
 ```
 
 ## Current Behavior
 
-- Binary configuration artifacts reduce parse overhead on repeated loads.
+- Configuration artifacts are stored as TOML text for human readability.
 - Cache decoding is tied to active schema compatibility checks.
 - Runtime uses cache artifacts only when integrity checks pass.
 

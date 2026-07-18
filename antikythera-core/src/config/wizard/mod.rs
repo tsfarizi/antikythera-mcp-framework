@@ -6,7 +6,7 @@ pub mod generators;
 pub mod prompts;
 pub mod ui;
 
-use crate::config::postcard_config;
+use crate::config::toml_config;
 use generators::client;
 use std::error::Error;
 
@@ -33,7 +33,7 @@ async fn manage_providers() -> Result<(), Box<dyn Error>> {
     ui::print_header("Manage Providers");
 
     let config =
-        postcard_config::load_config(None).map_err(|e| format!("Failed to load config: {}", e))?;
+        toml_config::load_config(None).map_err(|e| format!("Failed to load config: {}", e))?;
 
     if config.providers.is_empty() {
         ui::print_warning("No providers configured.");
@@ -95,7 +95,7 @@ async fn manage_providers() -> Result<(), Box<dyn Error>> {
                     let provider_id = &config.providers[n - 1].id;
                     let mut cfg = config.clone();
                     cfg.model.default_provider = provider_id.clone();
-                    postcard_config::save_config(&cfg, None)?;
+                    toml_config::save_config(&cfg, None)?;
                     ui::print_success(&format!("Default provider set to '{}'!", provider_id));
                 }
                 _ => ui::print_error("Invalid selection"),
@@ -111,7 +111,7 @@ async fn edit_prompt_template() -> Result<(), Box<dyn Error>> {
     ui::print_header("Manage Prompt Template");
 
     let config =
-        postcard_config::load_config(None).map_err(|e| format!("Failed to load config: {}", e))?;
+        toml_config::load_config(None).map_err(|e| format!("Failed to load config: {}", e))?;
 
     ui::print_info("Current prompt template:");
     ui::print_divider();
@@ -136,7 +136,7 @@ async fn edit_prompt_template() -> Result<(), Box<dyn Error>> {
             let default_template = crate::config::PromptsConfig::default_template();
             let mut cfg = config.clone();
             cfg.prompts.template = default_template.to_string();
-            postcard_config::save_config(&cfg, None)?;
+            toml_config::save_config(&cfg, None)?;
             ui::print_success("Prompt template reset to default!");
         }
         "2" => {
@@ -153,7 +153,7 @@ async fn edit_prompt_template() -> Result<(), Box<dyn Error>> {
                 let template = lines.join("\n");
                 let mut cfg = config.clone();
                 cfg.prompts.template = template;
-                postcard_config::save_config(&cfg, None)?;
+                toml_config::save_config(&cfg, None)?;
                 ui::print_success("Prompt template updated!");
             }
         }

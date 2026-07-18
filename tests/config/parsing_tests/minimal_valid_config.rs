@@ -1,9 +1,9 @@
 ﻿#[test]
 fn parses_minimal_valid_config() {
     let dir = tempdir().expect("tempdir");
-    let mut pc = minimal_postcard_config();
+    let mut pc = minimal_toml_config();
     pc.prompts.template = "You are a helpful assistant.".to_string();
-    let path = write_postcard_config(dir.path(), &pc);
+    let path = write_toml_config(dir.path(), &pc);
 
     let config = AppConfig::load(Some(&path)).expect("load config");
 

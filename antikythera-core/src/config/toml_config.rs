@@ -1,23 +1,23 @@
-//! Postcard binary serialization helpers for [`super::AppConfig`].
+//! TOML serialization helpers for [`super::AppConfig`].
 //!
 //! The canonical struct definition lives in [`super::app`].  This module
 //! provides the thin serialize/deserialize/load/save functions that operate
-//! on the Postcard binary blob (`app.pc`).
+//! on the TOML text file (`app.toml`).
 
 pub use super::app::AppConfig;
 use std::path::Path;
 
 /// Configuration file path (project root)
-pub const CONFIG_PATH: &str = "app.pc";
+pub const CONFIG_PATH: &str = "app.toml";
 
-/// Serialize configuration to Postcard binary.
-pub fn config_to_postcard(config: &AppConfig) -> Result<Vec<u8>, String> {
-    postcard::to_allocvec(config).map_err(|e| format!("Failed to serialize config: {}", e))
+/// Serialize configuration to TOML string.
+pub fn config_to_toml(config: &AppConfig) -> Result<String, String> {
+    toml::to_string(config).map_err(|e| format!("Failed to serialize config: {}", e))
 }
 
-/// Deserialize configuration from Postcard binary.
-pub fn config_from_postcard(data: &[u8]) -> Result<AppConfig, String> {
-    postcard::from_bytes(data).map_err(|e| format!("Failed to deserialize config: {}", e))
+/// Deserialize configuration from TOML string.
+pub fn config_from_toml(data: &str) -> Result<AppConfig, String> {
+    toml::from_str(data).map_err(|e| format!("Failed to deserialize config: {}", e))
 }
 
 /// Load configuration from file.
@@ -28,10 +28,10 @@ pub fn load_config(path: Option<&Path>) -> Result<AppConfig, String> {
         return Err(format!("Config file not found: {}", config_path.display()));
     }
 
-    let data =
-        std::fs::read(config_path).map_err(|e| format!("Failed to read config file: {}", e))?;
+    let data = std::fs::read_to_string(config_path)
+        .map_err(|e| format!("Failed to read config file: {}", e))?;
 
-    config_from_postcard(&data)
+    config_from_toml(&data)
 }
 
 /// Save configuration to file.
@@ -43,9 +43,9 @@ pub fn save_config(config: &AppConfig, path: Option<&Path>) -> Result<(), String
             .map_err(|e| format!("Failed to create config directory: {}", e))?;
     }
 
-    let data = config_to_postcard(config)?;
+    let data = config_to_toml(config)?;
 
-    std::fs::write(config_path, &data)
+    std::fs::write(config_path, data)
         .map_err(|e| format!("Failed to write config file: {}", e))?;
 
     Ok(())
@@ -54,6 +54,4 @@ pub fn save_config(config: &AppConfig, path: Option<&Path>) -> Result<(), String
 // ── Backwards-compatible type aliases ────────────────────────────────────────
 
 /// Backwards-compatible alias.  Prefer [`AppConfig`] directly.
-pub type PostcardAppConfig = AppConfig;
-
-
+pub type TomlAppConfig = AppConfig;

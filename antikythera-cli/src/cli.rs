@@ -9,10 +9,10 @@ use clap::{Parser, ValueEnum};
 pub struct Cli {
     #[arg(long, default_value = "http://127.0.0.1:11434")]
     pub ollama_url: String,
-    /// Override the active provider ID without editing app.pc.
+    /// Override the active provider ID without editing app.toml.
     #[arg(long)]
     pub provider: Option<String>,
-    /// Override the active model name without editing app.pc.
+    /// Override the active model name without editing app.toml.
     #[arg(long)]
     pub model: Option<String>,
     /// Override the endpoint for the selected provider.

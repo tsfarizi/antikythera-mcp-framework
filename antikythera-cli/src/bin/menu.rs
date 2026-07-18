@@ -1,7 +1,7 @@
 //! Main CLI Binary Entry Point
 //!
 //! Thin wrapper over `antikythera_core`: parses CLI arguments, loads the
-//! shared `app.pc` config, constructs an `McpClient`, then dispatches to one
+//! shared `app.toml` config, constructs an `McpClient`, then dispatches to one
 //! of the supported run modes:
 //!
 //! | Mode | Description |
@@ -33,7 +33,7 @@ fn load_cli_env() {
 }
 use antikythera_cli::domain::use_cases::{render_wasm_stream_report, run_wasm_stream_probe};
 use antikythera_cli::infrastructure::llm::install_terminal_stream_sink;
-use antikythera_cli::infrastructure::llm::providers_from_postcard;
+use antikythera_cli::infrastructure::llm::providers_from_config;
 use antikythera_cli::presentation::tui;
 use antikythera_cli::runtime::{build_runtime_client, materialize_runtime_config};
 use antikythera_core::application::agent::multi_agent::task::AgentTask;
@@ -63,10 +63,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config_path = cli.config.as_deref().map(Path::new);
     let config = AppConfig::load(config_path)?;
-    // Load provider definitions and last-saved routing choices from app.pc.
-    let initial_providers = providers_from_postcard(&config.providers);
+    // Load provider definitions and last-saved routing choices from app.toml.
+    let initial_providers = providers_from_config(&config.providers);
 
-    // Resolve provider/model: CLI flags > saved app.pc > TOML defaults.
+    // Resolve provider/model: CLI flags > saved app.toml > TOML defaults.
     let provider_override = cli.provider.clone().or_else(|| {
         let p = config.model.default_provider.trim().to_string();
         if p.is_empty() { None } else { Some(p) }

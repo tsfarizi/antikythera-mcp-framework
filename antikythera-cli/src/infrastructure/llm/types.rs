@@ -8,11 +8,11 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::config::{ModelInfo as PostcardModelInfo, ProviderConfig};
+use crate::config::{ModelInfo as ConfigModelInfo, ProviderConfig};
 
 /// Runtime connection parameters for a single LLM provider backend.
 ///
-/// Converted from the serialised [`ProviderConfig`] that lives in `app.pc`.
+/// Converted from the serialised [`ProviderConfig`] that lives in `app.toml`.
 /// The CLI LLM clients (Gemini, Ollama, OpenAI) all accept this type.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ModelProviderConfig {
@@ -70,7 +70,7 @@ pub struct ModelInfo {
     pub display_name: Option<String>,
 }
 
-// ── Conversions from postcard serialisation types ────────────────────────────
+// ── Conversions from config serialisation types ────────────────────────────
 
 impl From<&ProviderConfig> for ModelProviderConfig {
     fn from(pc: &ProviderConfig) -> Self {
@@ -96,13 +96,13 @@ impl From<ModelProviderConfig> for ProviderConfig {
             provider_type: mp.provider_type,
             endpoint: mp.endpoint,
             api_key: mp.api_key.unwrap_or_default(),
-            models: mp.models.into_iter().map(PostcardModelInfo::from).collect(),
+            models: mp.models.into_iter().map(ConfigModelInfo::from).collect(),
         }
     }
 }
 
-impl From<&PostcardModelInfo> for ModelInfo {
-    fn from(pm: &PostcardModelInfo) -> Self {
+impl From<&ConfigModelInfo> for ModelInfo {
+    fn from(pm: &ConfigModelInfo) -> Self {
         Self {
             name: pm.name.clone(),
             display_name: if pm.display_name.is_empty() {
@@ -114,7 +114,7 @@ impl From<&PostcardModelInfo> for ModelInfo {
     }
 }
 
-impl From<ModelInfo> for PostcardModelInfo {
+impl From<ModelInfo> for ConfigModelInfo {
     fn from(mi: ModelInfo) -> Self {
         Self {
             name: mi.name,
@@ -123,14 +123,14 @@ impl From<ModelInfo> for PostcardModelInfo {
     }
 }
 
-/// Convert a slice of postcard [`ProviderConfig`]s to runtime
+/// Convert a slice of config [`ProviderConfig`]s to runtime
 /// [`ModelProviderConfig`]s.
-pub fn providers_from_postcard(configs: &[ProviderConfig]) -> Vec<ModelProviderConfig> {
+pub fn providers_from_config(configs: &[ProviderConfig]) -> Vec<ModelProviderConfig> {
     configs.iter().map(ModelProviderConfig::from).collect()
 }
 
-/// Convert runtime [`ModelProviderConfig`]s back to postcard [`ProviderConfig`]s
+/// Convert runtime [`ModelProviderConfig`]s back to config [`ProviderConfig`]s
 /// for persistence.
-pub fn providers_to_postcard(configs: Vec<ModelProviderConfig>) -> Vec<ProviderConfig> {
+pub fn providers_to_config(configs: Vec<ModelProviderConfig>) -> Vec<ProviderConfig> {
     configs.into_iter().map(ProviderConfig::from).collect()
 }

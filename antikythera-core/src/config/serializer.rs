@@ -1,28 +1,23 @@
 use super::AppConfig;
-use super::tool::ToolConfig;
 
-/// Convert AppConfig to TOML string representation
+/// Convert AppConfig to a human-readable TOML string for display/debug.
+///
+/// This is a *presentation* format, not the canonical on-disk layout.
+/// It inlines `system_prompt` (a runtime-only field) and flattens the
+/// prompt template to a top-level `prompt_template` key so operators
+/// can inspect the active configuration at a glance.
 pub fn to_raw_toml_string(config: &AppConfig) -> String {
-    render_config_raw(
+    render_display_toml(
         config.system_prompt.as_deref(),
         config.prompt_template(),
-        &config.tools,
     )
 }
 
-fn render_config_raw(
-    system_prompt: Option<&str>,
-    prompt_template: &str,
-    tools: &[ToolConfig],
-) -> String {
-    let escape = |value: &str| value.replace('"', "\\\"");
+fn render_display_toml(system_prompt: Option<&str>, prompt_template: &str) -> String {
     let mut raw = String::new();
 
-    if let Some(system_prompt) = system_prompt {
-        raw.push_str(&format!(
-            "system_prompt = \"{}\"\n\n",
-            escape(system_prompt),
-        ));
+    if let Some(sp) = system_prompt {
+        raw.push_str(&format!("system_prompt = \"{}\"\n\n", escape_toml(sp)));
     }
 
     raw.push_str("prompt_template = \"\"\"\n");
@@ -32,20 +27,9 @@ fn render_config_raw(
     }
     raw.push_str("\"\"\"\n");
 
-    if !tools.is_empty() {
-        raw.push_str("tools = [\n");
-        for tool in tools {
-            match &tool.description {
-                Some(desc) => raw.push_str(&format!(
-                    "    {{ name = \"{}\", description = \"{}\" }},\n",
-                    escape(&tool.name),
-                    escape(desc),
-                )),
-                None => raw.push_str(&format!("    \"{}\",\n", escape(&tool.name))),
-            }
-        }
-        raw.push_str("]\n");
-    }
-
     raw
+}
+
+fn escape_toml(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('"', "\\\"")
 }

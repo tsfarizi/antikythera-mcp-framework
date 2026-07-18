@@ -7,9 +7,9 @@ use antikythera_core::application::client::{ClientConfigSnapshot, McpClient};
 use antikythera_core::infrastructure::model::DynamicModelProvider;
 
 use crate::config::{
-    AppConfig as PostcardAppConfig, ModelConfig as PostcardModelConfig, save_app_config,
+    AppConfig as TomlAppConfig, ModelConfig as TomlModelConfig, save_app_config,
 };
-use crate::infrastructure::llm::{ModelProviderConfig, providers_to_postcard};
+use crate::infrastructure::llm::{ModelProviderConfig, providers_to_config};
 use crate::presentation::tui::app::ChatApp;
 use crate::presentation::tui::types::{
     SLASH_COMMANDS, UiMessage, UiTone, slash_command_suggestions,
@@ -338,18 +338,18 @@ pub(crate) fn reconfigure_runtime(
         app.provider, app.model
     ));
 
-    // Build a PostcardAppConfig to persist — merge core routing fields with CLI providers.
+    // Build an AppConfig to persist — merge core routing fields with CLI providers.
     // Persist system_prompt in the extensible custom map.
     let mut custom = app.runtime_config.custom.clone();
     if let Some(sp) = &app.runtime_config.system_prompt {
         custom.insert("system_prompt".to_string(), sp.clone());
     }
-    let pc = PostcardAppConfig {
-        model: PostcardModelConfig {
+    let pc = TomlAppConfig {
+        model: TomlModelConfig {
             default_provider: app.runtime_config.default_provider().to_string(),
             model: app.runtime_config.model_name().to_string(),
         },
-        providers: providers_to_postcard(app.providers.clone()),
+        providers: providers_to_config(app.providers.clone()),
         prompts: app.runtime_config.prompts.clone(),
         custom,
         ..Default::default()

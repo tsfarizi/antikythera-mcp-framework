@@ -1,8 +1,8 @@
 //! CLI Configuration Management Binary
 //!
-//! Manages the shared `app.pc` configuration file used by both the CLI binary
+//! Manages the shared `app.toml` configuration file used by both the CLI binary
 //! and the core runtime.  Provider, model, and server settings are all stored in
-//! a single Postcard blob.
+//! a single TOML file.
 
 use antikythera_cli::config::*;
 use antikythera_cli::error::{CliError, CliResult};
@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
 #[command(name = "antikythera-config")]
-#[command(about = "Manage Antikythera configuration (app.pc)")]
+#[command(about = "Manage Antikythera configuration (app.toml)")]
 pub struct ConfigCli {
     #[command(subcommand)]
     pub command: ConfigCommand,

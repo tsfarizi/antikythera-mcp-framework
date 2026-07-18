@@ -1,4 +1,4 @@
-//! Postcard Configuration Tests
+//! TOML Configuration Tests
 
 use antikythera_sdk::config::*;
 

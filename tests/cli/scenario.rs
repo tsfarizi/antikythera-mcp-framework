@@ -1,13 +1,13 @@
-//! Scenario Test — Hands-on CLI Session (konfigurasi dari app.pc)
+//! Scenario Test — Hands-on CLI Session (konfigurasi dari app.toml)
 //!
-//! Semua konfigurasi (provider, model, API key) diambil dari `app.pc`,
+//! Semua konfigurasi (provider, model, API key) diambil dari `app.toml`,
 //! persis seperti saat pengguna menjalankan binary `antikythera`.
 //!
-//! Prasyarat: `app.pc` sudah dikonfigurasi.
+//! Prasyarat: `app.toml` sudah dikonfigurasi.
 //!   Jika belum: jalankan `task setup-config` atau `antikythera-config init`
 
 use antikythera_cli::config::load_app_config;
-use antikythera_cli::infrastructure::llm::providers_from_postcard;
+use antikythera_cli::infrastructure::llm::providers_from_config;
 use antikythera_cli::runtime::{build_runtime_client, materialize_runtime_config};
 use antikythera_core::AppConfig;
 use antikythera_core::application::client::ChatRequest;
@@ -20,24 +20,24 @@ async fn greet_then_ask_time() {
     let pc_config = match load_app_config(None) {
         Ok(cfg) => cfg,
         Err(_) => {
-            eprintln!("[SKIP] app.pc not configured — skipping scenario test");
+            eprintln!("[SKIP] app.toml not configured — skipping scenario test");
             return;
         }
     };
 
-    let initial_providers = providers_from_postcard(&pc_config.providers);
+    let initial_providers = providers_from_config(&pc_config.providers);
 
     let provider_from_config = pc_config.model.default_provider.trim().to_string();
     let model_from_config = pc_config.model.model.trim().to_string();
 
     assert!(
         !provider_from_config.is_empty(),
-        "app.pc belum dikonfigurasi: default_provider kosong.\n\
+        "app.toml belum dikonfigurasi: default_provider kosong.\n\
          Jalankan `antikythera-config set-model <provider> <model>`"
     );
     assert!(
         !model_from_config.is_empty(),
-        "app.pc belum dikonfigurasi: model kosong.\n\
+        "app.toml belum dikonfigurasi: model kosong.\n\
          Jalankan `antikythera-config set-model <provider> <model>`"
     );
 
@@ -136,7 +136,7 @@ async fn greet_then_ask_time() {
     out.push_str(
         "================================================================================\n",
     );
-    out.push_str("SKENARIO: Percakapan Hands-on via CLI Runtime (konfigurasi dari app.pc)\n");
+    out.push_str("SKENARIO: Percakapan Hands-on via CLI Runtime (konfigurasi dari app.toml)\n");
     out.push_str(&format!("Dijalankan pada Unix time : {now_before}\n"));
     out.push_str(&format!(
         "Provider                  : {selected_provider}\n"

@@ -1,11 +1,11 @@
 ﻿#[test]
-fn detects_provider_types_via_postcard_conversion() {
+fn detects_provider_types_via_config_conversion() {
     let ollama_pc = ProviderConfig {
         id: "ollama".to_string(),
         provider_type: "ollama".to_string(),
         endpoint: "http://localhost:11434".to_string(),
         api_key: String::new(),
-        models: vec![PostcardModelInfo {
+        models: vec![ConfigModelInfo {
             name: "llama3".to_string(),
             display_name: String::new(),
         }],
@@ -15,14 +15,14 @@ fn detects_provider_types_via_postcard_conversion() {
         provider_type: "gemini".to_string(),
         endpoint: "https://generativelanguage.googleapis.com".to_string(),
         api_key: "secret".to_string(),
-        models: vec![PostcardModelInfo {
+        models: vec![ConfigModelInfo {
             name: "gemini-1.5-flash".to_string(),
             display_name: "Gemini Flash".to_string(),
         }],
     };
 
     let providers: Vec<ModelProviderConfig> =
-        providers_from_postcard(&[ollama_pc, gemini_pc]);
+        providers_from_config(&[ollama_pc, gemini_pc]);
 
     assert_eq!(providers.len(), 2);
 

@@ -1,14 +1,14 @@
 use antikythera_cli::config::{
-    AppConfig, config_from_postcard, config_to_postcard, load_app_config, normalize_provider_type,
+    AppConfig, config_from_toml, config_to_toml, load_app_config, normalize_provider_type,
     recommended_default_config,
 };
 use std::path::Path;
 
 #[test]
-fn roundtrip_postcard_uses_typed_result() {
+fn roundtrip_toml_uses_typed_result() {
     let config = AppConfig::default();
-    let bytes = config_to_postcard(&config).expect("serialize");
-    let decoded = config_from_postcard(&bytes).expect("deserialize");
+    let toml_str = config_to_toml(&config).expect("serialize");
+    let decoded = config_from_toml(&toml_str).expect("deserialize");
     assert_eq!(
         decoded.model.default_provider,
         config.model.default_provider
@@ -17,7 +17,7 @@ fn roundtrip_postcard_uses_typed_result() {
 
 #[test]
 fn missing_file_returns_typed_error() {
-    let missing = Path::new("definitely-not-exists-app.pc");
+    let missing = Path::new("definitely-not-exists-app.toml");
     let err = load_app_config(Some(missing)).expect_err("missing file should error");
     assert!(err.to_string().contains("configuration error"));
 }

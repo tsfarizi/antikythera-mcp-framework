@@ -2,7 +2,7 @@
 //!
 //! Captures every chat exchange during a TUI session and persists it as JSON
 //! files under `debug/chat_history/<uuid>.json` (relative to the working
-//! directory, same location as `app.pc`).
+//! directory, same location as `app.toml`).
 //!
 //! This is a **CLI-local, debug-only feature**.  The core protocol layer is
 //! unaware of it.  History is written after each successful assistant turn so

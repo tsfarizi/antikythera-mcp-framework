@@ -1,10 +1,10 @@
 ﻿#[test]
 fn loads_actual_config_if_exists() {
-    let config_path = Path::new("app.pc");
+    let config_path = Path::new("app.toml");
 
     // Skip if the production config file is not present (e.g., in CI).
     if !config_path.exists() {
-        eprintln!("Skipping: app.pc not found");
+        eprintln!("Skipping: app.toml not found");
         return;
     }
 

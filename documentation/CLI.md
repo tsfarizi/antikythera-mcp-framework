@@ -13,7 +13,7 @@ flowchart LR
     MAIN --> SETUP[mode: setup]
     MAIN --> MULTI[mode: multi-agent]
     MAIN --> HARNESS[mode: wasm-harness]
-    CONFIG --> PC[app.pc]
+    CONFIG --> PC[app.toml]
 ```
 
 ## Overview
@@ -44,7 +44,7 @@ The main binary accepts a `--mode` flag:
 
 ```mermaid
 flowchart TD
-    START[Run antikythera] --> LOAD[Load app.pc config]
+    START[Run antikythera] --> LOAD[Load app.toml config]
     LOAD --> BUILD[Build McpClient]
     BUILD --> PARSE[Parse --mode]
     PARSE --> STDIO[mode = stdio]
@@ -97,14 +97,14 @@ task run-wasm
 task setup-config PROVIDER_ID=openai PROVIDER_TYPE=openai PROVIDER_ENDPOINT=https://api.openai.com PROVIDER_API_KEY=OPENAI_API_KEY MODEL_NAME=gpt-4o-mini
 ```
 
-`task run` now bootstraps `app.pc` automatically when needed and opens the interactive TUI directly. Change provider/model from inside the TUI with commands such as `/use gemini gemini-2.0-flash` or `/model gpt-4o-mini` instead of passing runtime shell arguments.
+`task run` now bootstraps `app.toml` automatically when needed and opens the interactive TUI directly. Change provider/model from inside the TUI with commands such as `/use gemini gemini-2.0-flash` or `/model gpt-4o-mini` instead of passing runtime shell arguments.
 
 ### Common flags
 
 | Flag | Description |
 |:-----|:------------|
 | `--mode <mode>` | Runtime mode (default: `stdio`) |
-| `--config <path>` | Path to `app.pc` config file |
+| `--config <path>` | Path to `app.toml` config file |
 | `--system <prompt>` | Override system prompt |
 | `--provider <id>` | Override active provider without editing config |
 | `--model <name>` | Override active model without editing config |
@@ -140,19 +140,19 @@ Agent profile JSON format:
 
 ### What it does
 
-`antikythera-config` manages the Postcard-based config file shared across all framework surfaces.
+`antikythera-config` manages the TOML-based config file shared across all framework surfaces.
 
 | Item | Value |
 |:-----|:------|
-| Default config file | `app.pc` |
+| Default config file | `app.toml` |
 | Supported provider types | `gemini`, `openai`, `ollama` |
-| Config format | Postcard on disk, JSON for import/export and display |
+| Config format | TOML on disk, JSON for import/export and display |
 
 ### Config workflow
 
 ```mermaid
 flowchart LR
-    INIT[init] --> FILE[app.pc]
+    INIT[init] --> FILE[app.toml]
     FILE --> SHOW[show]
     FILE --> GET[get]
     FILE --> SET[set]

@@ -8,7 +8,7 @@ pub use antikythera_core::config::app::{
     AgentConfig, AppConfig, DocServerConfig, ModelConfig, ModelInfo, ProviderConfig, PromptsConfig,
     RestServerConfig,
 };
-pub use antikythera_core::config::postcard_config::{config_from_postcard, config_to_postcard, CONFIG_PATH};
+pub use antikythera_core::config::toml_config::{config_from_toml, config_to_toml, CONFIG_PATH};
 
 use std::path::Path;
 
@@ -57,17 +57,17 @@ pub fn normalize_provider_type(provider_type: &str) -> String {
     }
 }
 
-/// Serialize `AppConfig` to Postcard binary.
-pub fn config_to_postcard_wrapped(config: &AppConfig) -> CliResult<Vec<u8>> {
-    antikythera_core::config::postcard_config::config_to_postcard(config).map_err(CliError::Config)
+/// Serialize `AppConfig` to TOML text.
+pub fn config_to_toml_wrapped(config: &AppConfig) -> CliResult<String> {
+    antikythera_core::config::toml_config::config_to_toml(config).map_err(CliError::Config)
 }
 
-/// Deserialize `AppConfig` from Postcard binary.
-pub fn config_from_postcard_wrapped(data: &[u8]) -> CliResult<AppConfig> {
-    antikythera_core::config::postcard_config::config_from_postcard(data).map_err(CliError::Config)
+/// Deserialize `AppConfig` from TOML text.
+pub fn config_from_toml_wrapped(data: &str) -> CliResult<AppConfig> {
+    antikythera_core::config::toml_config::config_from_toml(data).map_err(CliError::Config)
 }
 
-/// Load `AppConfig` from `path` (defaults to [`CONFIG_PATH`] = `app.pc`).
+/// Load `AppConfig` from `path` (defaults to [`CONFIG_PATH`] = `app.toml`).
 pub fn load_app_config(path: Option<&Path>) -> CliResult<AppConfig> {
     let config_path = path.unwrap_or(Path::new(CONFIG_PATH));
     if !config_path.exists() {
@@ -76,18 +76,18 @@ pub fn load_app_config(path: Option<&Path>) -> CliResult<AppConfig> {
             config_path.display()
         )));
     }
-    let data = std::fs::read(config_path)?;
-    config_from_postcard_wrapped(&data)
+    let data = std::fs::read_to_string(config_path)?;
+    config_from_toml_wrapped(&data)
 }
 
-/// Save `AppConfig` to `path` (defaults to [`CONFIG_PATH`] = `app.pc`).
+/// Save `AppConfig` to `path` (defaults to [`CONFIG_PATH`] = `app.toml`).
 pub fn save_app_config(config: &AppConfig, path: Option<&Path>) -> CliResult<()> {
     let config_path = path.unwrap_or(Path::new(CONFIG_PATH));
     if let Some(parent) = config_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let data = config_to_postcard_wrapped(config)?;
-    std::fs::write(config_path, &data)?;
+    let data = config_to_toml_wrapped(config)?;
+    std::fs::write(config_path, data.as_bytes())?;
     Ok(())
 }
 

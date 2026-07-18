@@ -44,7 +44,7 @@ pub struct DocServerConfig {
 /// Configurable prompts for agent behavior.
 ///
 /// All fields use `String` (not `Option<String>`) so the struct serializes
-/// cleanly with Postcard.  Accessor methods return the built-in default
+/// cleanly with TOML.  Accessor methods return the built-in default
 /// when a field is empty.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PromptsConfig {
@@ -152,10 +152,10 @@ impl PromptsConfig {
 }
 
 // ============================================================================
-// Provider / Model / Agent configuration (Postcard-serialized fields)
+// Provider / Model / Agent configuration (TOML-serialized fields)
 // ============================================================================
 
-/// Provider definition stored in the Postcard config blob.
+/// Provider definition stored in the TOML config file.
 ///
 /// This is a generic configuration schema — core does not interpret
 /// `provider_type` or `endpoint` semantics. Each provider adapter
@@ -221,17 +221,15 @@ impl Default for AgentConfig {
 
 /// Unified application configuration.
 ///
-/// This is the **single source of truth** for both the on-disk Postcard blob
-/// (`app.pc`) and the in-memory runtime representation used by core, CLI, and
+/// This is the **single source of truth** for both the on-disk TOML file
+/// (`app.toml`) and the in-memory runtime representation used by core, CLI, and
 /// SDK.
 ///
-/// The field **order** matches the Postcard binary layout so that
-/// `postcard::to_allocvec` / `postcard::from_bytes` work transparently.
 /// Fields that only exist at runtime (populated by server discovery or the
 /// CLI) are marked `#[serde(skip)]` and default to empty/`None`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AppConfig {
-    // ── Postcard-serialized fields (order matters!) ────────────────────────
+    // ── TOML-serialized fields ──────────────────────────────────────────────
     /// REST server bind / CORS / docs settings.
     pub server: RestServerConfig,
     /// LLM provider catalogue.
@@ -251,7 +249,7 @@ pub struct AppConfig {
     #[serde(default)]
     pub custom: HashMap<String, String>,
 
-    // ── Runtime-only fields (not persisted to Postcard) ────────────────────
+    // ── Runtime-only fields (not persisted to TOML) ────────────────────────
     /// Optional system prompt override (set by CLI flag or TUI).
     #[serde(skip)]
     pub system_prompt: Option<String>,
@@ -264,7 +262,7 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    /// Load configuration from a Postcard file (or the default path).
+    /// Load configuration from a TOML file (or the default path).
     pub fn load(path: Option<&Path>) -> Result<Self, ConfigError> {
         super::loader::load_config(path)
     }

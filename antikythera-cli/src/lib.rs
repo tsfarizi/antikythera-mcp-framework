@@ -11,7 +11,7 @@
 //! |-------|------------|-------------|
 //! | **Chat** | `domain/use_cases/chat_use_case` + `presentation/tui` | Interactive TUI chat with tool-call agent loop |
 //! | **WASM Harness** | `domain/use_cases/wasm_harness_use_case` | Diagnostic probe for the WASM/FFI SDK surface |
-//! | **Config** | `config` + `infrastructure/config` | Read/write the unified `app.pc` configuration |
+//! | **Config** | `config` + `infrastructure/config` | Read/write the unified `app.toml` configuration |
 //! | **Runtime** | `runtime` | Provider auto-detection and `McpClient` wiring |
 //!
 //! ## Shared Infrastructure

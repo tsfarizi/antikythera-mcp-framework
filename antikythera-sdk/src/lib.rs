@@ -41,14 +41,14 @@ pub use prompts::{
     mcp_update_template, mcp_update_tool_guidance,
 };
 
-/// Binary Configuration feature slice (Postcard)
+/// TOML Configuration feature slice
 #[cfg(feature = "sdk-core")]
 pub mod config;
 
 #[cfg(feature = "sdk-core")]
 pub use config::{
-    CONFIG_PATH as POSTCARD_CONFIG_PATH, config_from_postcard, config_to_postcard,
-    load_config as load_postcard_config, save_config as save_postcard_config,
+    CONFIG_PATH as TOML_CONFIG_PATH, config_from_toml, config_to_toml,
+    load_config as load_toml_config, save_config as save_toml_config,
 };
 
 /// Session Management module
