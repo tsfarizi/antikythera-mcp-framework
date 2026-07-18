@@ -14,6 +14,7 @@ use super::config::ValidationConfig;
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashSet;
+use thiserror::Error;
 
 /// Errors raised by the input validator during validation, rejection, or
 /// configuration of validation rules.
@@ -23,24 +24,15 @@ use std::collections::HashSet;
 /// * `InvalidInput` — input fails a structural check (size, JSON, message length).
 /// * `Rejected` — input is blocked by a policy rule (keyword, URL pattern, nesting).
 /// * `Configuration` — validator setup or reconfiguration fails (bad regex, etc.).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Error)]
 pub enum InputValidatorError {
+    #[error("Invalid input: {0}")]
     InvalidInput(String),
+    #[error("Input rejected: {0}")]
     Rejected(String),
+    #[error("Configuration error: {0}")]
     Configuration(String),
 }
-
-impl std::fmt::Display for InputValidatorError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidInput(msg) => write!(f, "Invalid input: {msg}"),
-            Self::Rejected(msg) => write!(f, "Input rejected: {msg}"),
-            Self::Configuration(msg) => write!(f, "Configuration error: {msg}"),
-        }
-    }
-}
-
-impl std::error::Error for InputValidatorError {}
 
 /// Input validator
 pub struct InputValidator {

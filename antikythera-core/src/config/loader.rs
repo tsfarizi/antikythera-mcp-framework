@@ -2,7 +2,7 @@
 //!
 //! All configuration is stored as a single Postcard binary file (`app.pc`).
 
-use super::app::RestServerConfig;
+use super::app::AppConfig;
 use super::error::ConfigError;
 use super::postcard_config;
 use crate::logging::ConfigLogger;
@@ -20,7 +20,7 @@ pub fn ensure_env_loaded() {
 }
 
 /// Load and validate configuration from Postcard binary
-pub fn load_config(path: Option<&Path>) -> Result<super::AppConfig, ConfigError> {
+pub fn load_config(path: Option<&Path>) -> Result<AppConfig, ConfigError> {
     ensure_env_loaded();
 
     let config_path = path.unwrap_or_else(|| Path::new(postcard_config::CONFIG_PATH));
@@ -54,7 +54,7 @@ pub fn load_config(path: Option<&Path>) -> Result<super::AppConfig, ConfigError>
             let backup_path = config_path.with_extension("pc.bak");
             let _ = std::fs::copy(config_path, &backup_path);
 
-            let fresh = postcard_config::PostcardAppConfig::default();
+            let fresh = AppConfig::default();
             if let Ok(fresh_data) = postcard_config::config_to_postcard(&fresh) {
                 let _ = std::fs::write(config_path, fresh_data);
             }
@@ -70,15 +70,14 @@ pub fn load_config(path: Option<&Path>) -> Result<super::AppConfig, ConfigError>
         config.model.default_provider, config.model.model
     ));
 
-    Ok(convert_to_app_config(&config))
+    Ok(config)
 }
 
 /// Save configuration to Postcard binary
-pub fn save_config(config: &super::AppConfig, path: Option<&Path>) -> Result<(), ConfigError> {
+pub fn save_config(config: &AppConfig, path: Option<&Path>) -> Result<(), ConfigError> {
     let config_path = path.unwrap_or_else(|| Path::new(postcard_config::CONFIG_PATH));
 
-    let pc_config = convert_to_postcard_config(config);
-    let data = postcard_config::config_to_postcard(&pc_config)
+    let data = postcard_config::config_to_postcard(config)
         .map_err(|e| ConfigError::CacheError(format!("Postcard serialize error: {}", e)))?;
 
     if let Some(parent) = config_path.parent()
@@ -103,71 +102,12 @@ pub fn save_config(config: &super::AppConfig, path: Option<&Path>) -> Result<(),
     Ok(())
 }
 
-/// Convert Postcard config to AppConfig
-fn convert_to_app_config(pc: &postcard_config::PostcardAppConfig) -> super::AppConfig {
-    super::AppConfig {
-        default_provider: pc.model.default_provider.clone(),
-        model: pc.model.model.clone(),
-        system_prompt: None,
-        tools: Vec::new(),
-        servers: Vec::new(),
-        rest_server: RestServerConfig {
-            bind: pc.server.bind.clone(),
-            cors_origins: pc.server.cors_origins.clone(),
-            docs: pc
-                .server
-                .docs
-                .iter()
-                .map(|d| crate::config::app::DocServerConfig {
-                    url: d.url.clone(),
-                    description: d.description.clone(),
-                })
-                .collect(),
-        },
-        prompts: pc.prompts.clone().into(),
-    }
-}
-
-/// Convert AppConfig to Postcard config.
-///
-/// Provider/model fields are not stored in core's `AppConfig`; the caller
-/// is responsible for persisting those via the CLI's own config functions.
-/// This conversion preserves only the core-owned fields (server, prompts).
-fn convert_to_postcard_config(config: &super::AppConfig) -> postcard_config::PostcardAppConfig {
-    postcard_config::PostcardAppConfig {
-        server: postcard_config::PostcardServerConfig {
-            bind: config.rest_server.bind.clone(),
-            cors_origins: config.rest_server.cors_origins.clone(),
-            docs: config
-                .rest_server
-                .docs
-                .iter()
-                .map(|d| postcard_config::DocServerConfig {
-                    url: d.url.clone(),
-                    description: d.description.clone(),
-                })
-                .collect(),
-        },
-        // Provider and model lists are CLI concerns — preserve existing postcard
-        // data rather than overwriting with empty defaults.
-        providers: Vec::new(),
-        model: postcard_config::ModelConfig {
-            default_provider: config.default_provider.clone(),
-            model: config.model.clone(),
-        },
-        prompts: config.prompts.clone().into(),
-        agent: postcard_config::AgentConfig::default(),
-        security: crate::security::config::SecurityConfig::default(),
-        custom: std::collections::HashMap::new(),
-    }
-}
-
 /// Initialize default configuration
-pub fn init_default_config() -> Result<super::AppConfig, ConfigError> {
+pub fn init_default_config() -> Result<AppConfig, ConfigError> {
     let logger = ConfigLogger::new("config");
     logger.info("Initializing default configuration");
 
-    let config = super::AppConfig::default();
+    let config = AppConfig::default();
     save_config(&config, None)?;
 
     logger.info("Default configuration created");

@@ -124,7 +124,7 @@ impl RateLimiter {
         let mut limits = self
             .session_limits
             .lock()
-            .expect("RateLimiter session_limits lock poisoned in check");
+            .unwrap_or_else(|e| e.into_inner());
 
         // Check concurrent session limit
         if limits.len() as u32 >= self.config.max_concurrent_sessions
@@ -185,7 +185,7 @@ impl RateLimiter {
         let limits = self
             .session_limits
             .lock()
-            .expect("RateLimiter session_limits lock poisoned in get_usage");
+            .unwrap_or_else(|e| e.into_inner());
         limits.get(session_id).map(|session| SessionUsage {
             requests_per_minute: session.minute_window.request_count(),
             requests_per_hour: session.hour_window.request_count(),
@@ -199,7 +199,7 @@ impl RateLimiter {
         let mut limits = self
             .session_limits
             .lock()
-            .expect("RateLimiter session_limits lock poisoned in reset_session");
+            .unwrap_or_else(|e| e.into_inner());
         if let Some(session) = limits.get_mut(session_id) {
             session.minute_window.reset();
             session.hour_window.reset();
@@ -212,7 +212,7 @@ impl RateLimiter {
         let mut limits = self
             .session_limits
             .lock()
-            .expect("RateLimiter session_limits lock poisoned in remove_session");
+            .unwrap_or_else(|e| e.into_inner());
         limits.remove(session_id);
     }
 
@@ -221,7 +221,7 @@ impl RateLimiter {
         let limits = self
             .session_limits
             .lock()
-            .expect("RateLimiter session_limits lock poisoned in active_session_count");
+            .unwrap_or_else(|e| e.into_inner());
         limits.len()
     }
 
@@ -230,7 +230,7 @@ impl RateLimiter {
         loop {
             std::thread::sleep(interval);
 
-            let mut limits_guard = limits.lock().expect("RateLimiter cleanup lock poisoned");
+            let mut limits_guard = limits.lock().unwrap_or_else(|e| e.into_inner());
             let now = Instant::now();
             let timeout = Duration::from_secs(300); // 5 minutes inactivity timeout
 

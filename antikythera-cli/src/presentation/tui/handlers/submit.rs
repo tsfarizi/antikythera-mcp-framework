@@ -42,18 +42,18 @@ pub(crate) fn submit_input(client: &mut Arc<McpClient<DynamicModelProvider>>, ap
     app.status = format!("Mengirim ke {}/{}...", app.provider, app.model);
     app.loading = true;
     // Scroll to show latest messages (count lines from message body lengths).
-    app.conversation_scroll = scroll_to_bottom(&app.messages, app.conversation_scroll);
+    app.scroll.conversation = scroll_to_bottom(&app.messages, app.scroll.conversation);
 
     // Capture user turn into the in-flight debug history session.
-    if app.current_history_session.is_none() {
-        app.current_history_session = Some(ChatHistorySession::new(
+    if app.history.current_session.is_none() {
+        app.history.current_session = Some(ChatHistorySession::new(
             ChatHistoryStore::new_id(),
             app.provider.clone(),
             app.model.clone(),
             app.agent_mode,
         ));
     }
-    if let Some(session) = &mut app.current_history_session {
+    if let Some(session) = &mut app.history.current_session {
         if let Some(ref id) = app.session_id {
             session.core_session_id = Some(id.clone());
         }
@@ -71,8 +71,8 @@ pub(crate) fn submit_input(client: &mut Arc<McpClient<DynamicModelProvider>>, ap
     // Install a streaming sink that forwards token chunks to the TUI render loop
     // so tokens appear live in the Conversation panel while the task runs.
     let (stream_tx, stream_rx) = mpsc::unbounded_channel::<String>();
-    app.stream_rx = Some(stream_rx);
-    app.streaming_content.clear();
+    app.streaming.stream_rx = Some(stream_rx);
+    app.streaming.content.clear();
     set_stream_event_sink(Arc::new(move |event: &StreamEvent| {
         if let StreamEvent::Chunk { content, .. } = event {
             let _ = stream_tx.send(content.clone());

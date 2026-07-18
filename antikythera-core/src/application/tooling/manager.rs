@@ -10,10 +10,9 @@ use super::error::ToolInvokeError;
 use super::interface::{ServerToolInfo, ToolServerInterface};
 #[cfg(feature = "native-transport")]
 use super::process::McpProcess;
-use super::transport::{
-    BuiltinTransport, HttpTransport, HttpTransportConfig, McpTransport, TransportMode,
-};
-use crate::config::{ServerConfig, TransportType};
+use super::transport::{BuiltinTransport, HttpTransport, McpTransport};
+use super::transport_factory::TransportFactory;
+use crate::config::ServerConfig;
 use crate::logging::TransportLogger;
 use async_trait::async_trait;
 use serde_json::Value;
@@ -21,7 +20,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 /// Unified server instance that wraps STDIO, HTTP, or Builtin transport.
-enum ServerInstance {
+pub(crate) enum ServerInstance {
     #[cfg(feature = "native-transport")]
     Stdio(Arc<McpProcess>),
     Http(Arc<HttpTransport>),
@@ -60,6 +59,7 @@ impl ServerInstance {
 pub struct ServerManager {
     configs: HashMap<String, ServerConfig>,
     instances: Mutex<HashMap<String, ServerInstance>>,
+    factory: TransportFactory,
 }
 
 impl ServerManager {
@@ -71,6 +71,7 @@ impl ServerManager {
         Self {
             configs,
             instances: Mutex::new(HashMap::new()),
+            factory: TransportFactory::new(),
         }
     }
 
@@ -129,50 +130,7 @@ impl ServerManager {
                     server: server.to_string(),
                 })?;
 
-        let instance = match config.transport {
-            TransportType::Stdio => {
-                #[cfg(feature = "native-transport")]
-                {
-                    let process = Arc::new(McpProcess::new(config));
-                    process.ensure_running().await?;
-                    ServerInstance::Stdio(process)
-                }
-                #[cfg(not(feature = "native-transport"))]
-                {
-                    return Err(ToolInvokeError::Transport {
-                        server: server.to_string(),
-                        message: "STDIO transport requires the native-transport feature"
-                            .to_string(),
-                    });
-                }
-            }
-            TransportType::Http => {
-                let url = config
-                    .url
-                    .clone()
-                    .ok_or_else(|| ToolInvokeError::NotConfigured {
-                        server: format!("{}: missing URL for HTTP transport", server),
-                    })?;
-                let transport_config = HttpTransportConfig {
-                    name: config.name.clone(),
-                    url,
-                    headers: config.headers.clone(),
-                    mode: TransportMode::Auto,
-                    required_capabilities: Vec::new(),
-                };
-                let transport = Arc::new(HttpTransport::new(transport_config));
-                transport.connect().await?;
-                ServerInstance::Http(transport)
-            }
-            TransportType::Builtin => {
-                return Err(ToolInvokeError::NotConfigured {
-                    server: format!(
-                        "{}: builtin transport must be pre-registered via register_builtin_transport()",
-                        server
-                    ),
-                });
-            }
-        };
+        let instance = self.factory.create(&config).await?;
 
         let mut instances = match self.instances.lock() {
             Ok(guard) => guard,

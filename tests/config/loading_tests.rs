@@ -4,9 +4,8 @@
 // Tests verify: file-not-found error, self-heal on corrupt data, and correct
 // field values on a valid binary.
 
-use antikythera_core::config::postcard_config::{
-    ModelConfig, PostcardAppConfig, config_to_postcard,
-};
+use antikythera_core::config::postcard_config::{PostcardAppConfig, config_to_postcard};
+use antikythera_core::config::ModelConfig;
 use antikythera_core::config::{AppConfig, ConfigError};
 use std::fs;
 use std::path::Path;

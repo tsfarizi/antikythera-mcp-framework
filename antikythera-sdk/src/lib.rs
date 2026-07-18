@@ -28,7 +28,7 @@ pub mod agents;
 
 #[cfg(feature = "multi-agent")]
 pub use agents::{
-    OrchestratorMonitorSnapshot, OrchestratorOptions, TaskResultDetail, with_hardening_runtime,
+    OrchestratorContext, OrchestratorMonitorSnapshot, OrchestratorOptions, TaskResultDetail,
 };
 
 /// Prompt Management feature slice

@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use thiserror::Error;
 
 /// Canonical MCP tool call envelope used by the runtime boundary.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,29 +25,15 @@ pub struct ToolResultEnvelope {
     pub correlation_id: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum EnvelopeError {
+    #[error("tool must be a non-empty string")]
     MissingTool,
+    #[error("arguments must be a JSON object")]
     InvalidArguments,
+    #[error("error must be present for failed results and absent for successful ones")]
     InconsistentResult,
 }
-
-impl std::fmt::Display for EnvelopeError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            EnvelopeError::MissingTool => write!(f, "tool must be a non-empty string"),
-            EnvelopeError::InvalidArguments => write!(f, "arguments must be a JSON object"),
-            EnvelopeError::InconsistentResult => {
-                write!(
-                    f,
-                    "error must be present for failed results and absent for successful ones"
-                )
-            }
-        }
-    }
-}
-
-impl std::error::Error for EnvelopeError {}
 
 impl EnvelopeError {
     /// Build a consistent transport-layer error message.

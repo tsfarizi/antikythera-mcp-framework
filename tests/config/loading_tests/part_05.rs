@@ -10,9 +10,9 @@ fn loads_actual_config_if_exists() {
 
     let config = AppConfig::load(Some(config_path)).expect("Failed to load actual config");
 
-    assert!(!config.model.is_empty(), "model should not be empty");
+    assert!(!config.model_name().is_empty(), "model should not be empty");
     assert!(
-        !config.default_provider.is_empty(),
+        !config.default_provider().is_empty(),
         "default_provider should not be empty"
     );
 }

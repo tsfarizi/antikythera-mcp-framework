@@ -31,15 +31,6 @@ pub enum ConfigError {
     #[error("missing required field 'prompt_template' in configuration")]
     MissingPromptTemplate,
 
-    #[error("no providers configured - at least one [[providers]] entry is required")]
-    NoProvidersConfigured,
-
-    #[error("default provider '{provider}' not found in configured providers")]
-    ProviderNotFound { provider: String },
-
-    #[error("provider '{provider}' is missing required field 'endpoint'")]
-    MissingEndpoint { provider: String },
-
     #[error("configuration cache error: {0}")]
     CacheError(String),
 }

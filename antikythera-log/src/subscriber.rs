@@ -28,7 +28,7 @@ impl LogSubscriber {
     pub(crate) fn new(logger: &Logger) -> Self {
         let (tx, rx) = crossbeam_channel::bounded(1000);
 
-        let mut subscribers = logger.subscribers.lock().unwrap();
+        let mut subscribers = logger.subscribers.lock().unwrap_or_else(|e| e.into_inner());
         subscribers.push(tx);
 
         Self { receiver: rx }

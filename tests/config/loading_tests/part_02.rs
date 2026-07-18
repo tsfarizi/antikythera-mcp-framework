@@ -5,9 +5,11 @@ fn self_heals_when_postcard_data_is_corrupt() {
     fs::write(&path, b"not valid postcard data").expect("write");
 
     // Corrupt data triggers self-heal — returns a fresh default rather than an error.
+    // Core is provider-agnostic: defaults are empty, requiring explicit configuration.
     let config = AppConfig::load(Some(&path)).expect("self-heal should succeed");
-    assert!(!config.model.is_empty());
-    assert!(!config.default_provider.is_empty());
+    assert!(config.default_provider().is_empty());
+    assert!(config.model_name().is_empty());
+    assert!(!config.prompts.template().is_empty(), "prompt template should have a built-in default");
 }
 
 #[test]
@@ -19,7 +21,7 @@ fn loads_routing_strings_from_postcard() {
     let path = write_postcard_config(dir.path(), &pc);
 
     let config = AppConfig::load(Some(&path)).expect("load config");
-    assert_eq!(config.default_provider, "gemini");
-    assert_eq!(config.model, "gemini-1.5-flash");
+    assert_eq!(config.default_provider(), "gemini");
+    assert_eq!(config.model_name(), "gemini-1.5-flash");
 }
 

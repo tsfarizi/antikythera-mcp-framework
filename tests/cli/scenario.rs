@@ -59,8 +59,8 @@ async fn greet_then_ask_time() {
     )
     .expect("materialize_runtime_config harus berhasil");
 
-    let selected_provider = &runtime_config.default_provider;
-    let selected_model = &runtime_config.model;
+    let selected_provider = runtime_config.default_provider();
+    let selected_model = runtime_config.model_name();
 
     eprintln!("[SCENARIO] Provider : {selected_provider}");
     eprintln!("[SCENARIO] Model    : {selected_model}");

@@ -22,11 +22,14 @@
 
 mod context;
 mod directive;
+pub mod events;
 mod errors;
 mod memory;
 mod models;
+mod response_embedder;
 mod runner;
 mod runtime;
+mod tool_result_parser;
 
 #[cfg(feature = "multi-agent")]
 pub mod multi_agent;

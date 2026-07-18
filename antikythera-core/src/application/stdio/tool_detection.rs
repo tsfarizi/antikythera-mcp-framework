@@ -49,8 +49,12 @@ pub(super) fn looks_like_tool_call(content: &str) -> bool {
                 {
                     return true;
                 }
-                if let Some(tool_calls) = map.get("tool_calls") {
-                    return matches_tool_signature(tool_calls);
+                for key in ["tool_calls", "function_call", "tool_use"] {
+                    if let Some(nested) = map.get(key)
+                        && matches_tool_signature(nested)
+                    {
+                        return true;
+                    }
                 }
                 false
             }

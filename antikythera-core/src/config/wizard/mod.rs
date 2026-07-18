@@ -133,7 +133,7 @@ async fn edit_prompt_template() -> Result<(), Box<dyn Error>> {
 
     match choice.as_str() {
         "1" => {
-            let default_template = postcard_config::PromptsConfig::default_template();
+            let default_template = crate::config::PromptsConfig::default_template();
             let mut cfg = config.clone();
             cfg.prompts.template = default_template.to_string();
             postcard_config::save_config(&cfg, None)?;

@@ -1,11 +1,3 @@
-//! Message-format adapters — CLI's own copy for LLM provider calls
-//!
-//! Converts `antikythera_core::domain::types::ChatMessage` messages into the
-//! wire formats expected by each LLM provider API.  This module is the
-//! **CLI-side** home of these adapters; having them here (rather than in
-//! `antikythera-core`) keeps the WASM component target free of API-specific
-//! serialisation logic.
-
 use antikythera_core::domain::types::{ChatMessage, MessagePart};
 use serde_json::{Value, json};
 
@@ -13,8 +5,6 @@ use serde_json::{Value, json};
 pub struct MessageAdapter;
 
 impl MessageAdapter {
-    // ── Internal helpers ────────────────────────────────────────────────────
-
     fn part_to_gemini(part: &MessagePart) -> Value {
         match part {
             MessagePart::Text { text } => json!({"text": text}),
@@ -44,8 +34,6 @@ impl MessageAdapter {
             }),
         }
     }
-
-    // ── Public converters ────────────────────────────────────────────────────
 
     /// Convert messages to OpenAI-compatible format.
     ///
@@ -113,5 +101,95 @@ impl MessageAdapter {
         };
 
         (system_instruction, contents)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use antikythera_core::domain::types::{ChatMessage, MessagePart, MessageRole};
+
+    #[test]
+    fn test_to_openai_format_text_only() {
+        let messages = vec![
+            ChatMessage::new(MessageRole::User, "hello"),
+            ChatMessage::new(MessageRole::Assistant, "hi there"),
+        ];
+        let result = MessageAdapter::to_openai_format(&messages);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0]["role"], "user");
+        assert_eq!(result[0]["content"], "hello");
+        assert_eq!(result[1]["role"], "assistant");
+        assert_eq!(result[1]["content"], "hi there");
+    }
+
+    #[test]
+    fn test_to_openai_format_with_image() {
+        let messages = vec![ChatMessage::with_parts(
+            MessageRole::User,
+            vec![
+                MessagePart::text("look at this"),
+                MessagePart::image("image/png", "base64data"),
+            ],
+        )];
+        let result = MessageAdapter::to_openai_format(&messages);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0]["role"], "user");
+        let content = &result[0]["content"];
+        assert!(content.is_array());
+        let arr = content.as_array().unwrap();
+        assert_eq!(arr.len(), 2);
+        assert_eq!(arr[0]["type"], "text");
+        assert_eq!(arr[0]["text"], "look at this");
+        assert_eq!(arr[1]["type"], "image_url");
+        assert!(arr[1]["image_url"]["url"]
+            .as_str()
+            .unwrap()
+            .starts_with("data:image/png;base64,"));
+    }
+
+    #[test]
+    fn test_to_gemini_format_text_only() {
+        let messages = vec![
+            ChatMessage::new(MessageRole::System, "You are helpful."),
+            ChatMessage::new(MessageRole::User, "hi"),
+            ChatMessage::new(MessageRole::Assistant, "hello!"),
+        ];
+        let (system, contents) = MessageAdapter::to_gemini_format(&messages);
+        assert_eq!(system.as_deref(), Some("You are helpful."));
+        assert_eq!(contents.len(), 2);
+        assert_eq!(contents[0]["role"], "user");
+        assert_eq!(contents[0]["parts"][0]["text"], "hi");
+        assert_eq!(contents[1]["role"], "model");
+        assert_eq!(contents[1]["parts"][0]["text"], "hello!");
+    }
+
+    #[test]
+    fn test_to_gemini_format_no_system() {
+        let messages = vec![ChatMessage::new(MessageRole::User, "test")];
+        let (system, contents) = MessageAdapter::to_gemini_format(&messages);
+        assert!(system.is_none());
+        assert_eq!(contents.len(), 1);
+    }
+
+    #[test]
+    fn test_to_ollama_format_text_only() {
+        let messages = vec![
+            ChatMessage::new(MessageRole::User, "question"),
+            ChatMessage::new(MessageRole::Assistant, "answer"),
+        ];
+        let result = MessageAdapter::to_ollama_format(&messages);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0]["role"], "user");
+        assert_eq!(result[0]["content"], "question");
+        assert_eq!(result[1]["role"], "assistant");
+        assert_eq!(result[1]["content"], "answer");
+    }
+
+    #[test]
+    fn test_to_ollama_format_empty() {
+        let messages: Vec<ChatMessage> = vec![];
+        let result = MessageAdapter::to_ollama_format(&messages);
+        assert!(result.is_empty());
     }
 }

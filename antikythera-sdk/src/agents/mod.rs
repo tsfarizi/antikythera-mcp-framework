@@ -6,4 +6,4 @@ pub use orchestrator::{
 };
 
 #[cfg(feature = "multi-agent")]
-pub use orchestrator::with_hardening_runtime;
+pub use orchestrator::OrchestratorContext;

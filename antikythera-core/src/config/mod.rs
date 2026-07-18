@@ -10,12 +10,12 @@
 //!
 //! ## Key Types
 //!
-//! - [`AppConfig`] - Main runtime configuration struct (MCP-protocol concerns only)
+//! - [`AppConfig`] - Unified runtime + Postcard configuration
 //! - [`PromptsConfig`] - Configurable prompts for agent behavior
 //! - [`ToolConfig`] - Tool definition synced from MCP servers
 //! - [`ServerConfig`] - MCP server connection settings
-//! - [`postcard_config::AppConfig`] - Postcard-based unified config (includes CLI
-//!   provider/model fields; consumed directly by the CLI layer)
+//! - [`ModelConfig`] - Default provider and model routing
+//! - [`ProviderConfig`] - LLM provider definition
 
 pub mod app;
 pub mod error;
@@ -26,12 +26,15 @@ pub mod tool;
 #[cfg(feature = "wizard")]
 pub mod wizard;
 
-/// Unified Postcard-based configuration
+/// Postcard binary serialization helpers
 pub mod postcard_config;
 
 pub use crate::constants::{CONFIG_PATH, ENV_PATH};
 
-pub use app::{AppConfig, DocServerConfig, PromptsConfig};
+pub use app::{
+    AgentConfig, AppConfig, DocServerConfig, ModelConfig, ModelInfo, ProviderConfig, PromptsConfig,
+    RestServerConfig,
+};
 pub use error::ConfigError;
 pub use server::{ServerConfig, TransportType};
 pub use tool::ToolConfig;

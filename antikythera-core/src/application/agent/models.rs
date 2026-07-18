@@ -1,10 +1,13 @@
 use crate::domain::types::MessagePart;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tokio::sync::mpsc;
+
+use super::events::DomainEvent;
 
 const DEFAULT_MAX_STEPS: usize = 8;
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AgentStep {
     pub tool: String,
     pub input: Value,
@@ -28,6 +31,8 @@ pub struct AgentOptions {
     #[serde(default = "default_max_steps")]
     pub max_steps: usize,
     pub attachments: Vec<MessagePart>,
+    #[serde(skip)]
+    pub event_sender: Option<mpsc::UnboundedSender<DomainEvent>>,
 }
 
 impl Default for AgentOptions {
@@ -37,6 +42,7 @@ impl Default for AgentOptions {
             session_id: None,
             max_steps: default_max_steps(),
             attachments: Vec::new(),
+            event_sender: None,
         }
     }
 }

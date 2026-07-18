@@ -6,15 +6,10 @@ use antikythera_core::AppConfig;
 use serial_test::serial;
 
 fn sample_config() -> AppConfig {
-    AppConfig {
-        default_provider: "ollama".to_string(),
-        model: "llama3.2".to_string(),
-        system_prompt: None,
-        tools: Vec::new(),
-        servers: Vec::new(),
-        rest_server: Default::default(),
-        prompts: Default::default(),
-    }
+    let mut config = AppConfig::default();
+    config.set_default_provider("ollama");
+    config.set_model("llama3.2");
+    config
 }
 
 fn sample_providers() -> Vec<ModelProviderConfig> {
@@ -33,8 +28,8 @@ fn materialize_runtime_config_can_auto_add_gemini_template() {
         None,
     )
     .expect("runtime config");
-    assert_eq!(runtime.default_provider, "gemini");
-    assert_eq!(runtime.model, "gemini-2.0-flash");
+    assert_eq!(runtime.default_provider(), "gemini");
+    assert_eq!(runtime.model_name(), "gemini-2.0-flash");
     assert!(providers.iter().any(|p| p.id == "gemini"));
 }
 

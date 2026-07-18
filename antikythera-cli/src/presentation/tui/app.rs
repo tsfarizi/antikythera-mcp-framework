@@ -14,6 +14,24 @@ use super::types::{
     HistoryBrowser, PendingResponse, SettingsPanel, UiMessage, UiTone, slash_command_suggestions,
 };
 
+// ── Sub-structs extracting logical field groups ──────────────────────────────
+
+pub(super) struct StreamingState {
+    pub content: String,
+    pub stream_rx: Option<mpsc::UnboundedReceiver<String>>,
+}
+
+pub(super) struct HistoryState {
+    pub store: ChatHistoryStore,
+    pub current_session: Option<ChatHistorySession>,
+    pub browser: HistoryBrowser,
+}
+
+pub(super) struct ScrollState {
+    pub conversation: u16,
+    pub log: u16,
+}
+
 pub(crate) struct ChatApp {
     pub(super) runtime_config: AppConfig,
     pub(super) provider: String,
@@ -35,25 +53,14 @@ pub(crate) struct ChatApp {
     /// cleared when the result arrives or the channel is closed.
     pub(super) pending_rx: Option<oneshot::Receiver<PendingResponse>>,
     // ── Debug history ────────────────────────────────────────────────────────
-    /// Persistent store for debug chat history JSON files.
-    pub(super) history_store: ChatHistoryStore,
-    /// The history session that is currently being built (in-flight).
-    pub(super) current_history_session: Option<ChatHistorySession>,
-    /// Overlay for browsing and managing saved debug sessions.
-    pub(super) history: HistoryBrowser,
+    pub(super) history: HistoryState,
     // ── Live streaming ───────────────────────────────────────────────────────
-    /// Tokens received so far from the in-flight streaming request.
-    pub(super) streaming_content: String,
-    /// Channel receiver for streaming token chunks from the background task.
-    pub(super) stream_rx: Option<mpsc::UnboundedReceiver<String>>,
+    pub(super) streaming: StreamingState,
     // ── Provider health ──────────────────────────────────────────────────────
     /// Aggregated health metrics for the active LLM provider.
     pub(super) health: Arc<Mutex<HealthTracker>>,
     // ── Scroll state ─────────────────────────────────────────────────────────
-    /// Scroll offset for the conversation panel (in lines).
-    pub(super) conversation_scroll: u16,
-    /// Scroll offset for the LOG panel (in lines).
-    pub(super) log_scroll: u16,
+    pub(super) scroll: ScrollState,
     // ── Builtin transports ────────────────────────────────────────────────────
     /// Pre-built in-process tool transports (e.g. builtin_time).
     /// Persisted so `reconfigure_runtime` can re-register them on the new client.
@@ -69,8 +76,8 @@ impl ChatApp {
         builtin_transports: HashMap<String, Arc<BuiltinTransport>>,
     ) -> Self {
         let mut app = Self {
-            provider: runtime_config.default_provider.clone(),
-            model: runtime_config.model.clone(),
+            provider: runtime_config.default_provider().to_string(),
+            model: runtime_config.model_name().to_string(),
             session_id: None,
             input: String::new(),
             settings: SettingsPanel::new(),
@@ -85,14 +92,20 @@ impl ChatApp {
             loading: false,
             should_quit: false,
             pending_rx: None,
-            history_store: ChatHistoryStore::new(),
-            current_history_session: None,
-            history: HistoryBrowser::new(),
-            streaming_content: String::new(),
-            stream_rx: None,
+            history: HistoryState {
+                store: ChatHistoryStore::new(),
+                current_session: None,
+                browser: HistoryBrowser::new(),
+            },
+            streaming: StreamingState {
+                content: String::new(),
+                stream_rx: None,
+            },
             health: Arc::new(Mutex::new(HealthTracker::new())),
-            conversation_scroll: 0,
-            log_scroll: 0,
+            scroll: ScrollState {
+                conversation: 0,
+                log: 0,
+            },
             builtin_transports,
         };
         app.messages.push(UiMessage::new(
@@ -119,7 +132,7 @@ impl ChatApp {
         self.session_id = None;
         // Finalise the in-flight history session — it was already saved on the
         // last assistant turn, so we just drop the in-memory reference.
-        self.current_history_session = None;
+        self.history.current_session = None;
         self.status =
             "Sesi direset. Riwayat host baru akan dimulai pada pesan berikutnya.".to_string();
         self.push_message(UiMessage::new(

@@ -1,25 +1,14 @@
 //! CLI Configuration
 //!
-//! Delegates entirely to `antikythera_core::config::postcard_config` so that the
-//! CLI binary and the core runtime share a **single** config file (`app.pc`) and
-//! schema.  Previously the CLI maintained its own Postcard blob at `cli-config.pc`
-//! with a divergent struct layout; that duplication has been removed.
-//!
-//! ## Migration note
-//!
-//! Existing `cli-config.pc` files are not automatically migrated.  Re-run
-//! `antikythera-config init` (or the setup wizard via `antikythera --mode setup`)
-//! to generate a fresh `app.pc`.
+//! Re-exports the unified `AppConfig` from `antikythera_core::config` and
+//! provides thin helper functions for the CLI binary.
 
-// Re-export the unified config types from core so the rest of the CLI crate and
-// the `antikythera-config` binary can import them from a single place.
 use crate::error::{CliError, CliResult};
-pub use antikythera_core::config::postcard_config::{
-    AgentConfig, AppConfig, CONFIG_PATH, DocServerConfig, ModelConfig, ModelInfo, PromptsConfig,
-    ProviderConfig, ServerConfig,
+pub use antikythera_core::config::app::{
+    AgentConfig, AppConfig, DocServerConfig, ModelConfig, ModelInfo, ProviderConfig, PromptsConfig,
+    RestServerConfig,
 };
-
-// ── Thin serialization wrappers ────────────────────────────────────────────────
+pub use antikythera_core::config::postcard_config::{config_from_postcard, config_to_postcard, CONFIG_PATH};
 
 use std::path::Path;
 
@@ -69,12 +58,12 @@ pub fn normalize_provider_type(provider_type: &str) -> String {
 }
 
 /// Serialize `AppConfig` to Postcard binary.
-pub fn config_to_postcard(config: &AppConfig) -> CliResult<Vec<u8>> {
+pub fn config_to_postcard_wrapped(config: &AppConfig) -> CliResult<Vec<u8>> {
     antikythera_core::config::postcard_config::config_to_postcard(config).map_err(CliError::Config)
 }
 
 /// Deserialize `AppConfig` from Postcard binary.
-pub fn config_from_postcard(data: &[u8]) -> CliResult<AppConfig> {
+pub fn config_from_postcard_wrapped(data: &[u8]) -> CliResult<AppConfig> {
     antikythera_core::config::postcard_config::config_from_postcard(data).map_err(CliError::Config)
 }
 
@@ -88,7 +77,7 @@ pub fn load_app_config(path: Option<&Path>) -> CliResult<AppConfig> {
         )));
     }
     let data = std::fs::read(config_path)?;
-    config_from_postcard(&data)
+    config_from_postcard_wrapped(&data)
 }
 
 /// Deprecated compatibility alias.
@@ -106,7 +95,7 @@ pub fn save_app_config(config: &AppConfig, path: Option<&Path>) -> CliResult<()>
     if let Some(parent) = config_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let data = config_to_postcard(config)?;
+    let data = config_to_postcard_wrapped(config)?;
     std::fs::write(config_path, &data)?;
     Ok(())
 }

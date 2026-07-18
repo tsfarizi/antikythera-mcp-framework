@@ -5,7 +5,7 @@
 //! `antikythera-core` so that the core crate compiles cleanly as a WASM
 //! component without any HTTP dependencies.
 
-use antikythera_core::constants::DEFAULT_GEMINI_API_PATH;
+const DEFAULT_GEMINI_API_PATH: &str = "v1beta/models";
 
 use super::super::types::ModelProviderConfig;
 use antikythera_core::ProviderLogger;

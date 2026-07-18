@@ -9,6 +9,7 @@ mod process;
 #[cfg(feature = "native-transport")]
 mod tool_catalogue;
 pub mod transport;
+mod transport_factory;
 
 pub use envelope::{
     EnvelopeError, ToolCallEnvelope, ToolResultEnvelope, validate_tool_call_envelope,
@@ -25,3 +26,4 @@ pub use tool_catalogue::spawn_and_list_tools;
 pub use transport::{
     BuiltinTransport, HttpTransport, HttpTransportConfig, McpTransport, TransportMode,
 };
+pub use transport_factory::TransportFactory;

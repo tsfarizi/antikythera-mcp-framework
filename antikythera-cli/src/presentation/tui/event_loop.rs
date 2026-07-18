@@ -54,8 +54,8 @@ pub async fn run_chat_app(
 
     ConfigLogger::new(&antikythera_core::get_active_session()).info(format!(
         "Building runtime client | provider={} model={} providers_count={}",
-        config.default_provider,
-        config.model,
+        config.default_provider(),
+        config.model_name(),
         providers.len(),
     ));
 
@@ -81,9 +81,9 @@ async fn run_loop(
 ) -> CliResult<()> {
     loop {
         // Drain live-streaming token chunks into the preview buffer.
-        if let Some(rx) = &mut app.stream_rx {
+        if let Some(rx) = &mut app.streaming.stream_rx {
             while let Ok(chunk) = rx.try_recv() {
-                app.streaming_content.push_str(&chunk);
+                app.streaming.content.push_str(&chunk);
             }
         }
 
@@ -93,30 +93,30 @@ async fn run_loop(
             match rx.try_recv() {
                 Ok(PendingResponse::Chat(Ok(result))) => {
                     app.loading = false;
-                    app.streaming_content.clear();
-                    app.stream_rx = None;
+                    app.streaming.content.clear();
+                    app.streaming.stream_rx = None;
                     clear_stream_event_sink();
                     apply_chat_result(&mut app, result);
                 }
                 Ok(PendingResponse::Chat(Err(msg))) => {
                     app.loading = false;
-                    app.streaming_content.clear();
-                    app.stream_rx = None;
+                    app.streaming.content.clear();
+                    app.streaming.stream_rx = None;
                     clear_stream_event_sink();
                     app.status = "Model gagal menjawab.".to_string();
                     app.push_message(UiMessage::new("Model Error", msg, UiTone::Error));
                 }
                 Ok(PendingResponse::Agent(Ok(outcome))) => {
                     app.loading = false;
-                    app.streaming_content.clear();
-                    app.stream_rx = None;
+                    app.streaming.content.clear();
+                    app.streaming.stream_rx = None;
                     clear_stream_event_sink();
                     apply_agent_outcome(&mut app, outcome);
                 }
                 Ok(PendingResponse::Agent(Err(msg))) => {
                     app.loading = false;
-                    app.streaming_content.clear();
-                    app.stream_rx = None;
+                    app.streaming.content.clear();
+                    app.streaming.stream_rx = None;
                     clear_stream_event_sink();
                     app.status = "Agent gagal menyelesaikan permintaan.".to_string();
                     app.push_message(UiMessage::new("Agent Error", msg, UiTone::Error));
@@ -127,8 +127,8 @@ async fn run_loop(
                 }
                 Err(TryRecvError::Closed) => {
                     app.loading = false;
-                    app.streaming_content.clear();
-                    app.stream_rx = None;
+                    app.streaming.content.clear();
+                    app.streaming.stream_rx = None;
                     clear_stream_event_sink();
                     app.status =
                         "Kesalahan internal: proses respons berhenti tidak terduga.".to_string();

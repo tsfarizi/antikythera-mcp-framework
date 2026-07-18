@@ -124,15 +124,14 @@ impl ClientConfig {
 
     /// Convert to AppConfig for compatibility.
     pub fn to_app_config(&self) -> AppConfig {
-        AppConfig {
-            default_provider: self.default_provider.clone(),
-            model: self.default_model.clone(),
-            system_prompt: self.default_system_prompt.clone(),
-            tools: self.tools.clone(),
-            servers: self.servers.clone(),
-            rest_server: Default::default(),
-            prompts: self.prompts.clone(),
-        }
+        let mut config = AppConfig::default();
+        config.set_default_provider(&self.default_provider);
+        config.set_model(&self.default_model);
+        config.system_prompt = self.default_system_prompt.clone();
+        config.tools = self.tools.clone();
+        config.servers = self.servers.clone();
+        config.prompts = self.prompts.clone();
+        config
     }
 }
 
@@ -292,8 +291,8 @@ impl<P: ModelProvider> McpClient<P> {
         let prompt_template = app_config.prompt_template().to_string();
         let raw = app_config.to_raw_toml();
         ClientConfigSnapshot {
-            model: app_config.model.clone(),
-            default_provider: app_config.default_provider.clone(),
+            model: app_config.model_name().to_string(),
+            default_provider: app_config.default_provider().to_string(),
             system_prompt: app_config.system_prompt.clone(),
             prompt_template,
             tools: app_config.tools.clone(),

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+pub use crate::domain::types::MessageRole;
 
 /// Chat message in conversation.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -9,41 +10,17 @@ pub struct Message {
 
 impl Message {
     pub fn user(content: impl Into<String>) -> Self {
-        Self {
-            role: MessageRole::User,
-            content: content.into(),
-        }
+        Self { role: MessageRole::User, content: content.into() }
     }
-
     pub fn assistant(content: impl Into<String>) -> Self {
-        Self {
-            role: MessageRole::Assistant,
-            content: content.into(),
-        }
+        Self { role: MessageRole::Assistant, content: content.into() }
     }
-
     pub fn system(content: impl Into<String>) -> Self {
-        Self {
-            role: MessageRole::System,
-            content: content.into(),
-        }
+        Self { role: MessageRole::System, content: content.into() }
     }
-
     pub fn tool(content: impl Into<String>) -> Self {
-        Self {
-            role: MessageRole::Tool,
-            content: content.into(),
-        }
+        Self { role: MessageRole::ToolResult, content: content.into() }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MessageRole {
-    User,
-    Assistant,
-    System,
-    Tool,
 }
 
 /// Tool call from LLM.

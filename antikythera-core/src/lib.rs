@@ -16,6 +16,7 @@ pub mod logging;
 
 // Re-export commonly used types
 pub use application::agent::{Agent, AgentOptions, AgentOutcome, ToolDescriptor};
+pub use application::agent::events::DomainEvent;
 
 // Re-export resilience module at crate root
 pub use application::client::{ChatRequest, ChatResult, ClientConfig, McpClient, PreparedChatTurn};

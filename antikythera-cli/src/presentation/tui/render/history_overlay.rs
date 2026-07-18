@@ -62,7 +62,7 @@ pub(super) fn draw_history_overlay(frame: &mut ratatui::Frame<'_>, app: &ChatApp
     let inner = outer_block.inner(area);
     frame.render_widget(outer_block, area);
 
-    if app.history.sessions.is_empty() {
+    if app.history.browser.sessions.is_empty() {
         frame.render_widget(
             Paragraph::new(
                 "Belum ada riwayat sesi tersimpan.\n\
@@ -84,11 +84,12 @@ pub(super) fn draw_history_overlay(frame: &mut ratatui::Frame<'_>, app: &ChatApp
     // ── Left: session list ─────────────────────────────────────────────────
     let list_items: Vec<ListItem> = app
         .history
+        .browser
         .sessions
         .iter()
         .enumerate()
         .map(|(i, s)| {
-            let cursor = i == app.history.cursor;
+            let cursor = i == app.history.browser.cursor;
             let arrow = if cursor { "▶" } else { " " };
             let date = s.updated_at.get(..10).unwrap_or(s.updated_at.as_str());
             let title = if s.title.is_empty() {
@@ -119,7 +120,7 @@ pub(super) fn draw_history_overlay(frame: &mut ratatui::Frame<'_>, app: &ChatApp
                 .borders(Borders::ALL)
                 .title(format!(
                     "Sesi ({})  [Enter=lihat  d=hapus  r=ganti judul]",
-                    app.history.sessions.len()
+                    app.history.browser.sessions.len()
                 ))
                 .border_style(Style::default().fg(Color::Yellow)),
         ),
@@ -127,14 +128,14 @@ pub(super) fn draw_history_overlay(frame: &mut ratatui::Frame<'_>, app: &ChatApp
     );
 
     // ── Right: detail or summary ───────────────────────────────────────────
-    if let Some(detail) = &app.history.detail {
+    if let Some(detail) = &app.history.browser.detail {
         let detail_title = if detail.title.is_empty() {
             "<tanpa judul>".to_string()
         } else {
             detail.title.clone()
         };
         frame.render_widget(
-            Paragraph::new(render_history_detail(detail, app.history.detail_scroll))
+            Paragraph::new(render_history_detail(detail, app.history.browser.detail_scroll))
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
@@ -147,7 +148,7 @@ pub(super) fn draw_history_overlay(frame: &mut ratatui::Frame<'_>, app: &ChatApp
                 .wrap(Wrap { trim: false }),
             split[1],
         );
-    } else if let Some(s) = app.history.sessions.get(app.history.cursor) {
+    } else if let Some(s) = app.history.browser.sessions.get(app.history.browser.cursor) {
         let summary = format!(
             "Provider  : {}\nModel     : {}\nMode      : {}\nGiliran   : {}\nDibuat    : {}\nDiperbarui: {}\nCore ID   : {}\n\nEnter = lihat percakapan\nd     = hapus sesi\nr     = ganti judul",
             s.provider,
@@ -176,7 +177,7 @@ pub(super) fn draw_history_overlay(frame: &mut ratatui::Frame<'_>, app: &ChatApp
     }
 
     // ── Rename input bar overlay at the bottom ─────────────────────────────
-    if app.history.rename_mode {
+    if app.history.browser.rename_mode {
         let bottom = Rect {
             x: area.x + 1,
             y: area.y + area.height.saturating_sub(4),
@@ -185,7 +186,7 @@ pub(super) fn draw_history_overlay(frame: &mut ratatui::Frame<'_>, app: &ChatApp
         };
         frame.render_widget(Clear, bottom);
         frame.render_widget(
-            Paragraph::new(format!("Judul baru: {}\u{2588}", app.history.rename_buffer))
+            Paragraph::new(format!("Judul baru: {}\u{2588}", app.history.browser.rename_buffer))
                 .block(
                     Block::default()
                         .borders(Borders::ALL)

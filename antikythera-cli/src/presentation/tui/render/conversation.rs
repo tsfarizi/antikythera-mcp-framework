@@ -10,7 +10,7 @@ use super::super::types::{UiMessage, UiTone};
 
 pub(super) fn draw_conversation(frame: &mut ratatui::Frame<'_>, app: &ChatApp, area: Rect) {
     let conv_title = if app.loading {
-        if app.streaming_content.is_empty() {
+        if app.streaming.content.is_empty() {
             "Conversation  [mengirim...]"
         } else {
             "Conversation  [menerima...]"
@@ -19,13 +19,13 @@ pub(super) fn draw_conversation(frame: &mut ratatui::Frame<'_>, app: &ChatApp, a
         "Conversation  [↑↓/PgUp/PgDn/Home/End = scroll]"
     };
     let mut conv_text = render_messages(app.messages.iter());
-    if app.loading && !app.streaming_content.is_empty() {
-        conv_text.extend(render_streaming_preview(&app.streaming_content));
+    if app.loading && !app.streaming.content.is_empty() {
+        conv_text.extend(render_streaming_preview(&app.streaming.content));
     }
     let conversation = Paragraph::new(conv_text)
         .block(Block::default().borders(Borders::ALL).title(conv_title))
         .wrap(Wrap { trim: false })
-        .scroll((app.conversation_scroll, 0));
+        .scroll((app.scroll.conversation, 0));
     frame.render_widget(conversation, area);
 }
 

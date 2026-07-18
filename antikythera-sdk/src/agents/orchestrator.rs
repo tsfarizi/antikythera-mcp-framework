@@ -5,8 +5,6 @@ use crate::sdk_logging::get_sdk_logger;
 #[cfg(feature = "multi-agent")]
 use antikythera_log::LogLevel;
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "multi-agent")]
-use std::sync::{LazyLock, Mutex};
 
 /// SDK-level orchestrator configuration options.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -158,11 +156,11 @@ pub struct TaskResultDetail {
     pub guardrail_stage: Option<String>,
 }
 
-/// Global runtime state for the orchestrator hardening layer, holding
+/// Runtime context for the orchestrator hardening layer, holding
 /// current options, cancellation flag, and the latest budget snapshot.
 #[cfg(feature = "multi-agent")]
 #[derive(Debug, Clone, Default)]
-pub struct HardeningRuntimeState {
+pub struct OrchestratorContext {
     pub options: OrchestratorOptions,
     pub cancelled: bool,
     pub last_budget_snapshot:
@@ -170,21 +168,26 @@ pub struct HardeningRuntimeState {
 }
 
 #[cfg(feature = "multi-agent")]
-pub static HARDENING_RUNTIME: LazyLock<Mutex<HardeningRuntimeState>> =
-    LazyLock::new(|| Mutex::new(HardeningRuntimeState::default()));
+impl OrchestratorContext {
+    pub fn new(options: OrchestratorOptions) -> Self {
+        Self {
+            options,
+            cancelled: false,
+            last_budget_snapshot: None,
+        }
+    }
 
-#[cfg(feature = "multi-agent")]
-pub fn with_hardening_runtime<T>(
-    f: impl FnOnce(&mut HardeningRuntimeState) -> Result<T, String>,
-) -> Result<T, String> {
-    let mut guard = HARDENING_RUNTIME.lock().map_err(|_| {
-        get_sdk_logger("tui").log_with_source(LogLevel::Error, "orchestrator", "Lock poisoned");
-        "hardening runtime lock poisoned".to_string()
-    })?;
-    get_sdk_logger("tui").log_with_source(
-        LogLevel::Debug,
-        "orchestrator",
-        "Orchestrator operation",
-    );
-    f(&mut guard)
+    /// Execute a closure with mutable access to this context, logging the
+    /// operation.
+    pub fn with<T>(
+        &mut self,
+        f: impl FnOnce(&mut Self) -> Result<T, String>,
+    ) -> Result<T, String> {
+        get_sdk_logger("tui").log_with_source(
+            LogLevel::Debug,
+            "orchestrator",
+            "Orchestrator operation",
+        );
+        f(self)
+    }
 }

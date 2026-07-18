@@ -30,7 +30,7 @@ pub(super) fn apply_chat_result(app: &mut ChatApp, result: ChatResult) {
     ));
 
     // Append assistant turn and persist the debug history session.
-    if let Some(session) = &mut app.current_history_session {
+    if let Some(session) = &mut app.history.current_session {
         session.core_session_id = Some(result.session_id.clone());
         session.updated_at = Utc::now().to_rfc3339();
         if session.title.is_empty()
@@ -44,7 +44,7 @@ pub(super) fn apply_chat_result(app: &mut ChatApp, result: ChatResult) {
             content: result.content.clone(),
             tool_steps: 0,
         });
-        let _ = app.history_store.save_session(session);
+        let _ = app.history.store.save_session(session);
     }
 }
 
@@ -65,7 +65,7 @@ pub(super) fn apply_agent_outcome(app: &mut ChatApp, outcome: AgentOutcome) {
         UiTone::Assistant,
     ));
     // Scroll conversation to show the response.
-    app.conversation_scroll = scroll_to_bottom(&app.messages, app.conversation_scroll);
+    app.scroll.conversation = scroll_to_bottom(&app.messages, app.scroll.conversation);
 
     if !outcome.steps.is_empty() {
         app.push_message(UiMessage::new(
@@ -77,7 +77,7 @@ pub(super) fn apply_agent_outcome(app: &mut ChatApp, outcome: AgentOutcome) {
 
     // Append assistant turn and persist the debug history session.
     let tool_step_count = outcome.steps.len();
-    if let Some(session) = &mut app.current_history_session {
+    if let Some(session) = &mut app.history.current_session {
         session.core_session_id = Some(outcome.session_id.clone());
         session.updated_at = Utc::now().to_rfc3339();
         if session.title.is_empty()
@@ -91,7 +91,7 @@ pub(super) fn apply_agent_outcome(app: &mut ChatApp, outcome: AgentOutcome) {
             content: response_text,
             tool_steps: tool_step_count,
         });
-        let _ = app.history_store.save_session(session);
+        let _ = app.history.store.save_session(session);
     }
 }
 

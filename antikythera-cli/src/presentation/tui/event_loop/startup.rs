@@ -130,7 +130,7 @@ pub(super) async fn bootstrap_servers_and_transports(
     };
 
     // ── Prompt template customisation ─────────────────────────────────────────
-    config.prompts.template = Some(
+    config.prompts.template =
         concat!(
             "You are a helpful AI assistant.\n\n",
             // --- Format rules first so the model sees them immediately ---
@@ -161,8 +161,7 @@ pub(super) async fn bootstrap_servers_and_transports(
             "{{custom_instruction}}\n\n",
             "{{language_guidance}}\n\n",
             "{{tool_guidance}}",
-        ).to_string(),
-    );
+        ).to_string();
 
     (discovery_msg, builtin_transports)
 }

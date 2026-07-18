@@ -75,7 +75,7 @@ pub(super) fn draw(frame: &mut ratatui::Frame<'_>, app: &ChatApp) {
                 ),
         )
         .wrap(Wrap { trim: true })
-        .scroll((app.log_scroll, 0));
+        .scroll((app.scroll.log, 0));
     frame.render_widget(log_panel, log_panel_area);
 
     // Prompt bar
@@ -94,7 +94,7 @@ pub(super) fn draw(frame: &mut ratatui::Frame<'_>, app: &ChatApp) {
     }
 
     // History overlay (drawn on top of everything else)
-    if app.history.open {
+    if app.history.browser.open {
         history_overlay::draw_history_overlay(frame, app);
     }
 }

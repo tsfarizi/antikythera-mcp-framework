@@ -1,10 +1,14 @@
 use super::directive::AgentDirective;
 use super::errors::AgentError;
+use super::events::DomainEvent;
 use super::models::{AgentOptions, AgentOutcome, AgentStep};
+use super::response_embedder::ResponseEmbedder;
 use super::runtime::ToolRuntime;
+use super::tool_result_parser::ToolResultParser;
 use crate::application::client::{ChatRequest, McpClient};
 use crate::application::model_provider::ModelProvider;
 use crate::logging::AgentLogger;
+use crate::security::rate_limit::RateLimiter;
 use serde_json::{Value, json};
 use std::sync::Arc;
 #[cfg(feature = "native-transport")]
@@ -13,6 +17,7 @@ use sysinfo::System;
 pub struct Agent<P: ModelProvider> {
     client: Arc<McpClient<P>>,
     runtime: ToolRuntime,
+    rate_limiter: Option<Arc<RateLimiter>>,
 }
 
 impl<P: ModelProvider> Agent<P> {
@@ -28,7 +33,15 @@ impl<P: ModelProvider> Agent<P> {
         Self {
             client,
             runtime: ToolRuntime::new(tools, bridge).with_fallback_keys(fallback_keys),
+            rate_limiter: None,
         }
+    }
+
+    /// Attach a rate limiter to this agent. When set, every LLM call
+    /// will be checked against the rate limit before execution.
+    pub fn with_rate_limiter(mut self, limiter: Arc<RateLimiter>) -> Self {
+        self.rate_limiter = Some(limiter);
+        self
     }
 
     pub async fn run(
@@ -43,9 +56,21 @@ impl<P: ModelProvider> Agent<P> {
                 .unwrap_or(&crate::logging::get_active_session()),
         );
         log.info("Agent run started");
+        // Rate limit check before making LLM calls
+        if let Some(ref limiter) = self.rate_limiter {
+            let sid = options.session_id.as_deref().unwrap_or("default");
+            limiter.check(sid).map_err(|_| AgentError::RateLimited)?;
+        }
         let mut session_id = options.session_id.clone();
         let mut steps = Vec::new();
         let mut logs = Vec::new();
+
+        if let Some(ref sender) = options.event_sender {
+            let _ = sender.send(DomainEvent::AgentRunStarted {
+                session_id: session_id.clone(),
+                prompt: prompt.clone(),
+            });
+        }
 
         let context = self.runtime.build_context(Some(&prompt)).await;
         let instructions = self
@@ -125,10 +150,22 @@ impl<P: ModelProvider> Agent<P> {
                 force_json: true,
             };
 
+            // Rate limit check before each LLM call
+            if let Some(ref limiter) = self.rate_limiter {
+                let sid = session_id.as_deref().unwrap_or("default");
+                limiter.check(sid).map_err(|_| AgentError::RateLimited)?;
+            }
             let result = self.client.chat(request).await?;
             logs.extend(result.logs.clone());
             session_id = Some(result.session_id.clone());
             first_call = false;
+
+            if let Some(ref sender) = options.event_sender {
+                let _ = sender.send(DomainEvent::SessionUpdated {
+                    session_id: result.session_id.clone(),
+                    message_count: steps.len(),
+                });
+            }
 
             // Log the LLM response for IO trace
             let response_preview = McpClient::<P>::summarise(&result.content);
@@ -150,6 +187,14 @@ impl<P: ModelProvider> Agent<P> {
                         "Agent returned final response | session_id={}",
                         result.session_id.as_str()
                     ));
+                    if let Some(ref sender) = options.event_sender {
+                        let _ = sender.send(DomainEvent::AgentRunCompleted {
+                            session_id: result.session_id.clone(),
+                            response: serde_json::to_string(&response)
+                                .unwrap_or_default(),
+                            total_steps: steps.len(),
+                        });
+                    }
                     return Ok(AgentOutcome {
                         logs,
                         session_id: result.session_id,
@@ -186,20 +231,35 @@ impl<P: ModelProvider> Agent<P> {
                         message: execution.message.clone(),
                     });
 
+                    if let Some(ref sender) = options.event_sender {
+                        let _ = sender.send(DomainEvent::ToolInvoked {
+                            tool: execution.tool.clone(),
+                            input: execution.input.clone(),
+                            success: execution.success,
+                        });
+                        let _ = sender.send(DomainEvent::AgentStepCompleted {
+                            step: AgentStep {
+                                tool: execution.tool.clone(),
+                                input: execution.input.clone(),
+                                success: execution.success,
+                                output: execution.output.clone(),
+                                message: execution.message.clone(),
+                            },
+                            remaining_steps,
+                        });
+                    }
+
                     // Use configurable tool result instruction
                     // Use configurable tool result instruction
                     let tool_result_instruction = self.client.prompts().tool_result_instruction();
-                    next_prompt = json!({
-                        "tool_result": {
-                            "tool": execution.tool,
-                            "input": execution.input,
-                            "success": execution.success,
-                            "output": execution.output,
-                            "message": execution.message,
-                        },
-                        "instruction": tool_result_instruction,
-                    })
-                    .to_string();
+                    next_prompt = ToolResultParser::format_single(
+                        execution.tool,
+                        execution.input,
+                        execution.success,
+                        execution.output,
+                        execution.message,
+                        tool_result_instruction,
+                    );
                 }
                 AgentDirective::CallTools(tools) => {
                     if remaining_steps == 0 {
@@ -239,13 +299,31 @@ impl<P: ModelProvider> Agent<P> {
                                     message: execution.message.clone(),
                                 });
 
-                                aggregated_results.push(json!({
-                                    "tool": execution.tool,
-                                    "input": execution.input,
-                                    "success": execution.success,
-                                    "output": execution.output,
-                                    "message": execution.message,
-                                }));
+                                if let Some(ref sender) = options.event_sender {
+                                    let _ = sender.send(DomainEvent::ToolInvoked {
+                                        tool: execution.tool.clone(),
+                                        input: execution.input.clone(),
+                                        success: execution.success,
+                                    });
+                                    let _ = sender.send(DomainEvent::AgentStepCompleted {
+                                        step: AgentStep {
+                                            tool: execution.tool.clone(),
+                                            input: execution.input.clone(),
+                                            success: execution.success,
+                                            output: execution.output.clone(),
+                                            message: execution.message.clone(),
+                                        },
+                                        remaining_steps,
+                                    });
+                                }
+
+                                aggregated_results.push(ToolResultParser::single_result_value(
+                                    execution.tool,
+                                    execution.input,
+                                    execution.success,
+                                    execution.output,
+                                    execution.message,
+                                ));
                             }
                             Err(e) => {
                                 log.warn(format!("One of the parallel tools failed: {}", e));
@@ -255,11 +333,10 @@ impl<P: ModelProvider> Agent<P> {
                     }
 
                     let tool_result_instruction = self.client.prompts().tool_result_instruction();
-                    next_prompt = json!({
-                        "tool_results": aggregated_results,
-                        "instruction": tool_result_instruction,
-                    })
-                    .to_string();
+                    next_prompt = ToolResultParser::format_parallel(
+                        aggregated_results,
+                        tool_result_instruction,
+                    );
                 }
             }
         }
@@ -276,7 +353,7 @@ impl<P: ModelProvider> Agent<P> {
 
         // 2. Process the response to embed tool results by replacing IDs with actual data
         let processed_response =
-            self.embed_tool_results_sync(outcome.response.clone(), &outcome.steps);
+            ResponseEmbedder::embed_tool_results_sync(outcome.response.clone(), &outcome.steps);
 
         // 3. If the processed response is a string (meaning the LLM didn't follow JSON format),
         // wrap it in a proper structure with content field
@@ -291,139 +368,4 @@ impl<P: ModelProvider> Agent<P> {
         Ok((outcome, final_response))
     }
 
-    /// Embed tool results into the response by replacing IDs with actual data from tool steps.
-    fn embed_tool_results_sync(&self, response: Value, steps: &[AgentStep]) -> Value {
-        match response {
-            Value::Object(obj) => {
-                let mut new_obj = serde_json::Map::new();
-                for (key, value) in obj {
-                    let processed_value = self.embed_tool_results_sync(value, steps);
-                    new_obj.insert(key, processed_value);
-                }
-                Value::Object(new_obj)
-            }
-            Value::Array(arr) => {
-                // Process top-level arrays
-                let new_arr: Vec<Value> = arr
-                    .into_iter()
-                    .map(|item| self.embed_tool_results_sync(item, steps))
-                    .collect();
-                Value::Array(new_arr)
-            }
-            Value::String(s) => {
-                // 1. Check if the entire string is just a step reference (e.g., "step_0")
-                // In this case, we replace the whole string with the actual data object/array
-                if (s.starts_with("step_") || s.starts_with("result_"))
-                    && !s.contains(' ')
-                    && let Some(step_idx) = s
-                        .strip_prefix("step_")
-                        .or_else(|| s.strip_prefix("result_"))
-                    && let Ok(idx) = step_idx.parse::<usize>()
-                {
-                    // Try 0-based index first, then 1-based index (if idx > 0)
-                    if let Some(step) = steps.get(idx) {
-                        return self.extract_result_data(&step.output);
-                    } else if idx > 0
-                        && let Some(step) = steps.get(idx - 1)
-                    {
-                        return self.extract_result_data(&step.output);
-                    }
-                }
-
-                // 2. Check for step references embedded within a larger string
-                // We'll use a simple approach here: look for "step_N" or "result_N" patterns
-                // and replace them with stringified JSON if they exist.
-                let mut result_str = s.clone();
-                let mut modified = false;
-
-                // Iterate in reverse to avoid partial matches (e.g., "step_1" matching "step_10")
-                // We check both 0-based and 1-based logic by iterating up to steps.len() + 1
-                for i in (0..=steps.len()).rev() {
-                    let step_pattern = format!("step_{}", i);
-                    let result_pattern = format!("result_{}", i);
-
-                    if result_str.contains(&step_pattern) || result_str.contains(&result_pattern) {
-                        // Resolve the index: if i is out of bounds, try i-1
-                        let step_to_use = if i < steps.len() {
-                            Some(&steps[i])
-                        } else if i > 0 && (i - 1) < steps.len() {
-                            Some(&steps[i - 1])
-                        } else {
-                            None
-                        };
-
-                        if let Some(step) = step_to_use {
-                            let data = self.extract_result_data(&step.output);
-                            let replacement = match &data {
-                                Value::String(inner_s) => inner_s.clone(),
-                                _ => serde_json::to_string(&data)
-                                    .unwrap_or_else(|_| "null".to_string()),
-                            };
-
-                            result_str = result_str.replace(&step_pattern, &replacement);
-                            result_str = result_str.replace(&result_pattern, &replacement);
-                            modified = true;
-                        }
-                    }
-                }
-
-                if modified {
-                    Value::String(result_str)
-                } else {
-                    Value::String(s)
-                }
-            }
-            _ => response, // Other values (numbers, booleans, null) remain unchanged
-        }
-    }
-
-    /// Extract just the result data from a tool output, filtering out JSON-RPC wrapper if present.
-    fn extract_result_data(&self, output: &Value) -> Value {
-        // If the output looks like a JSON-RPC response with a "result" field, extract just that
-        if let Some(obj) = output.as_object() {
-            if let Some(result) = obj.get("result") {
-                return result.clone();
-            }
-            // If it has other JSON-RPC fields like "jsonrpc", "id", "error", extract just the meaningful data
-            if obj.contains_key("jsonrpc") || obj.contains_key("id") {
-                // Return the result field if present, otherwise return the whole object minus JSON-RPC fields
-                if let Some(result) = obj.get("result") {
-                    return result.clone();
-                } else {
-                    // If there's no result field but it's a JSON-RPC object, return null
-                    // Or return the original if it has other meaningful data
-                    let filtered_obj: serde_json::Map<String, Value> = obj
-                        .iter()
-                        .filter(|(k, _)| !["jsonrpc", "id", "error"].contains(&k.as_str()))
-                        .map(|(k, v)| (k.clone(), v.clone()))
-                        .collect();
-
-                    if filtered_obj.is_empty() {
-                        // If no non-RPC fields remain, return the original
-                        return output.clone();
-                    } else {
-                        return Value::Object(filtered_obj);
-                    }
-                }
-            }
-
-            // Handle MCP content format: {"content": [{"type": "text", "text": "..."}]}
-            if let Some(content_arr) = obj.get("content").and_then(|c| c.as_array())
-                && content_arr.len() == 1
-                && let Some(block) = content_arr[0].as_object()
-                && block.get("type").and_then(|t| t.as_str()) == Some("text")
-                && let Some(text) = block.get("text").and_then(|t| t.as_str())
-            {
-                // Try to parse the text as JSON
-                if let Ok(parsed) = serde_json::from_str::<Value>(text) {
-                    return parsed;
-                }
-                // If not JSON, return the text as a string
-                return Value::String(text.to_string());
-            }
-        }
-
-        // Otherwise, return the output as-is
-        output.clone()
-    }
 }

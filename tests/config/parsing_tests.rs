@@ -7,9 +7,8 @@
 use antikythera_cli::config::{ModelInfo as PostcardModelInfo, ProviderConfig};
 use antikythera_cli::infrastructure::llm::{ModelProviderConfig, providers_from_postcard};
 use antikythera_core::config::AppConfig;
-use antikythera_core::config::postcard_config::{
-    ModelConfig, PostcardAppConfig, config_to_postcard,
-};
+use antikythera_core::config::postcard_config::{PostcardAppConfig, config_to_postcard};
+use antikythera_core::config::ModelConfig;
 use std::fs;
 use std::path::Path;
 use tempfile::tempdir;

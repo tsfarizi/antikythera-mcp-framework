@@ -185,6 +185,7 @@ pub(super) async fn execute_task<P: ModelProvider>(
             session_id: task.session_id.clone(),
             max_steps: budgeted_max_steps,
             attachments: Vec::new(),
+            event_sender: None,
         };
 
         log.info(format!(

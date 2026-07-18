@@ -50,7 +50,7 @@ pub fn mcp_reset_template() -> *mut c_char {
         Err(e) => return to_c_string(&format!(r#"{{"error": "{}"}}"#, e)),
     };
 
-    config.prompts.template = postcard_config::PromptsConfig::default_template().to_string();
+    config.prompts.template = antikythera_core::config::PromptsConfig::default_template().to_string();
 
     match save_config(&config) {
         Ok(()) => to_c_string(r#"{"success": true}"#),

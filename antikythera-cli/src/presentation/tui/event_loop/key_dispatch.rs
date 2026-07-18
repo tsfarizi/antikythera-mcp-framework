@@ -23,7 +23,7 @@ pub(super) fn handle_key_event(key: KeyEvent, app: &mut ChatApp) -> KeyAction {
     }
 
     // Route all input to history browser when it's open.
-    if app.history.open {
+    if app.history.browser.open {
         return handle_history_key(key, app);
     }
 
@@ -43,8 +43,8 @@ pub(super) fn handle_key_event(key: KeyEvent, app: &mut ChatApp) -> KeyAction {
 
     // F3 opens the history browser.
     if key.code == KeyCode::F(3) {
-        let sessions = app.history_store.list_sessions();
-        app.history.open_and_refresh_with(sessions);
+        let sessions = app.history.store.list_sessions();
+        app.history.browser.open_and_refresh_with(sessions);
         app.status =
             "Riwayat Chat. ↑↓=navigasi | Enter=lihat | d=hapus | r=ganti judul | Esc=tutup"
                 .to_string();
@@ -67,53 +67,53 @@ pub(super) fn handle_key_event(key: KeyEvent, app: &mut ChatApp) -> KeyAction {
         // ── LOG scroll (Ctrl + arrows) ───────────────────────────────────
         // Guarded arms must come BEFORE the unguarded arrow-key arms.
         KeyCode::Up if key.modifiers.contains(KeyModifiers::CONTROL) => {
-            app.log_scroll = app.log_scroll.saturating_sub(3);
+            app.scroll.log = app.scroll.log.saturating_sub(3);
             KeyAction::None
         }
         KeyCode::Down if key.modifiers.contains(KeyModifiers::CONTROL) => {
-            app.log_scroll = app.log_scroll.saturating_add(3);
+            app.scroll.log = app.scroll.log.saturating_add(3);
             KeyAction::None
         }
         KeyCode::PageUp if key.modifiers.contains(KeyModifiers::CONTROL) => {
-            app.log_scroll = app.log_scroll.saturating_sub(20);
+            app.scroll.log = app.scroll.log.saturating_sub(20);
             KeyAction::None
         }
         KeyCode::PageDown if key.modifiers.contains(KeyModifiers::CONTROL) => {
-            app.log_scroll = app.log_scroll.saturating_add(20);
+            app.scroll.log = app.scroll.log.saturating_add(20);
             KeyAction::None
         }
         KeyCode::Home if key.modifiers.contains(KeyModifiers::CONTROL) => {
-            app.log_scroll = 0;
+            app.scroll.log = 0;
             KeyAction::None
         }
         KeyCode::End if key.modifiers.contains(KeyModifiers::CONTROL) => {
             let total = app.log_lines.len().saturating_sub(12);
-            app.log_scroll = total as u16;
+            app.scroll.log = total as u16;
             KeyAction::None
         }
         // ── Conversation scroll ──────────────────────────────────────────
         KeyCode::Up => {
-            app.conversation_scroll = app.conversation_scroll.saturating_sub(3);
+            app.scroll.conversation = app.scroll.conversation.saturating_sub(3);
             KeyAction::None
         }
         KeyCode::Down => {
-            app.conversation_scroll = app.conversation_scroll.saturating_add(3);
+            app.scroll.conversation = app.scroll.conversation.saturating_add(3);
             KeyAction::None
         }
         KeyCode::PageUp => {
-            app.conversation_scroll = app.conversation_scroll.saturating_sub(20);
+            app.scroll.conversation = app.scroll.conversation.saturating_sub(20);
             KeyAction::None
         }
         KeyCode::PageDown => {
-            app.conversation_scroll = app.conversation_scroll.saturating_add(20);
+            app.scroll.conversation = app.scroll.conversation.saturating_add(20);
             KeyAction::None
         }
         KeyCode::Home => {
-            app.conversation_scroll = 0;
+            app.scroll.conversation = 0;
             KeyAction::None
         }
         KeyCode::End => {
-            app.conversation_scroll = scroll_to_bottom(&app.messages, app.conversation_scroll);
+            app.scroll.conversation = scroll_to_bottom(&app.messages, app.scroll.conversation);
             KeyAction::None
         }
         KeyCode::Char(character) => {

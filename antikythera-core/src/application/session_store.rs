@@ -2,11 +2,8 @@ use std::collections::VecDeque;
 
 use crate::domain::types::ChatMessage;
 use crate::domain::types::MessagePart;
-use crate::domain::types::MessageRole;
 use crate::logging::SessionLogger;
-use antikythera_session::{
-    Message, MessagePart as SessionMessagePart, MessageRole as SessionMessageRole, SessionManager,
-};
+use antikythera_session::{Message, SessionManager};
 
 /// Default maximum number of concurrent sessions kept in memory.
 ///
@@ -104,69 +101,15 @@ impl SessionStore {
     }
 }
 
-fn session_role_to_core(role: SessionMessageRole) -> MessageRole {
-    match role {
-        SessionMessageRole::System => MessageRole::System,
-        SessionMessageRole::User => MessageRole::User,
-        SessionMessageRole::Assistant => MessageRole::Assistant,
-        SessionMessageRole::ToolResult => MessageRole::Assistant,
-    }
-}
-
-fn core_role_to_session(role: MessageRole) -> SessionMessageRole {
-    match role {
-        MessageRole::System => SessionMessageRole::System,
-        MessageRole::User => SessionMessageRole::User,
-        MessageRole::Assistant => SessionMessageRole::Assistant,
-        SessionMessageRole::ToolResult => SessionMessageRole::ToolResult,
-    }
-}
-
-fn session_part_to_core(part: SessionMessagePart) -> MessagePart {
-    match part {
-        SessionMessagePart::Text { text } => MessagePart::text(text),
-        SessionMessagePart::Image { mime_type, data } => MessagePart::image(mime_type, data),
-        SessionMessagePart::File {
-            name,
-            mime_type,
-            data,
-        } => MessagePart::file(name, mime_type, data),
-    }
-}
-
-fn core_part_to_session(part: MessagePart) -> SessionMessagePart {
-    match part {
-        MessagePart::Text { text } => SessionMessagePart::text(text),
-        MessagePart::Image { mime_type, data } => SessionMessagePart::image(mime_type, data),
-        MessagePart::File {
-            name,
-            mime_type,
-            data,
-        } => SessionMessagePart::file(name, mime_type, data),
-    }
-}
-
 fn session_message_to_chat(message: Message) -> ChatMessage {
     let parts = if message.parts.is_empty() {
         vec![MessagePart::text(message.content)]
     } else {
-        message
-            .parts
-            .into_iter()
-            .map(session_part_to_core)
-            .collect()
+        message.parts
     };
-
-    ChatMessage::with_parts(session_role_to_core(message.role), parts)
+    ChatMessage::with_parts(message.role, parts)
 }
 
 fn chat_to_session_message(message: ChatMessage) -> Message {
-    Message::with_parts(
-        core_role_to_session(message.role),
-        message
-            .parts
-            .into_iter()
-            .map(core_part_to_session)
-            .collect(),
-    )
+    Message::with_parts(message.role, message.parts)
 }

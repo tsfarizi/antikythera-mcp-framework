@@ -10,6 +10,3 @@ pub const ENV_PATH: &str = ".env";
 
 /// Example environment file path (project root)
 pub const ENV_EXAMPLE_PATH: &str = ".env.example";
-
-/// Default Gemini API path (fallback when not specified in config)
-pub const DEFAULT_GEMINI_API_PATH: &str = "v1beta/models";

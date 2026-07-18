@@ -17,6 +17,8 @@ pub enum AgentError {
     Timeout,
     #[error("memory error: {0}")]
     MemoryError(#[from] MemoryError),
+    #[error("rate limit exceeded for session")]
+    RateLimited,
 }
 
 impl AgentError {
@@ -36,6 +38,9 @@ impl AgentError {
             AgentError::Timeout => "Operasi timeout. Silakan coba lagi.".to_string(),
             AgentError::MemoryError(err) => {
                 format!("Error penyimpanan state: {}", err)
+            }
+            AgentError::RateLimited => {
+                "Batas rate terlampaui. Silakan tunggu sebanyak sebelum mencoba lagi.".to_string()
             }
         }
     }

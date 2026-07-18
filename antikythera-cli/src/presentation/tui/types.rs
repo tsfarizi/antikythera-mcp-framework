@@ -106,17 +106,16 @@ impl PromptField {
     }
 
     pub(super) fn set_into(self, p: &mut PromptsConfig, value: String) {
-        let v = if value.is_empty() { None } else { Some(value) };
         match self {
-            Self::Template => p.template = v,
-            Self::ToolGuidance => p.tool_guidance = v,
-            Self::FallbackGuidance => p.fallback_guidance = v,
-            Self::JsonRetryMessage => p.json_retry_message = v,
-            Self::ToolResultInstr => p.tool_result_instruction = v,
-            Self::AgentInstructions => p.agent_instructions = v,
-            Self::LanguageInstructions => p.language_instructions = v,
-            Self::AgentMaxStepsError => p.agent_max_steps_error = v,
-            Self::NoToolsGuidance => p.no_tools_guidance = v,
+            Self::Template => p.template = value,
+            Self::ToolGuidance => p.tool_guidance = value,
+            Self::FallbackGuidance => p.fallback_guidance = value,
+            Self::JsonRetryMessage => p.json_retry_message = value,
+            Self::ToolResultInstr => p.tool_result_instruction = value,
+            Self::AgentInstructions => p.agent_instructions = value,
+            Self::LanguageInstructions => p.language_instructions = value,
+            Self::AgentMaxStepsError => p.agent_max_steps_error = value,
+            Self::NoToolsGuidance => p.no_tools_guidance = value,
         }
     }
 }

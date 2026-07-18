@@ -194,8 +194,8 @@ async fn handle_command<P: ModelProvider>(
             match AppConfig::load(Some(Path::new(crate::config::CONFIG_PATH))) {
                 Ok(config) => {
                     write_line(stdout, "Konfigurasi berhasil dimuat dari file.").await?;
-                    write_line(stdout, &format!("- Provider: {}", config.default_provider)).await?;
-                    write_line(stdout, &format!("- Model: {}", config.model)).await?;
+                    write_line(stdout, &format!("- Provider: {}", config.default_provider())).await?;
+                    write_line(stdout, &format!("- Model: {}", config.model_name())).await?;
                     write_line(
                         stdout,
                         &format!(

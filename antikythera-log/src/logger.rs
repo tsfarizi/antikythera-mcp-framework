@@ -35,12 +35,12 @@ impl LogBuffer {
 
     /// Add a log entry
     pub fn push(&self, entry: LogEntry) {
-        let mut seq = self.sequence.lock().unwrap();
+        let mut seq = self.sequence.lock().unwrap_or_else(|e| e.into_inner());
         *seq += 1;
         let mut entry = entry;
         entry.sequence = *seq;
 
-        let mut entries = self.entries.lock().unwrap();
+        let mut entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
         entries.push(entry);
 
         // Trim if exceeds capacity
@@ -52,7 +52,7 @@ impl LogBuffer {
 
     /// Get all logs matching filter
     pub fn get_logs(&self, filter: &LogFilter) -> LogBatch {
-        let entries = self.entries.lock().unwrap();
+        let entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
 
         // Apply filter
         let filtered: Vec<_> = entries
@@ -77,7 +77,7 @@ impl LogBuffer {
 
     /// Get latest N logs
     pub fn get_latest(&self, count: usize) -> Vec<LogEntry> {
-        let entries = self.entries.lock().unwrap();
+        let entries = self.entries.lock().unwrap_or_else(|e| e.into_inner());
         let len = entries.len();
         if len <= count {
             entries.clone()
@@ -88,17 +88,17 @@ impl LogBuffer {
 
     /// Clear all logs
     pub fn clear(&self) {
-        self.entries.lock().unwrap().clear();
+        self.entries.lock().unwrap_or_else(|e| e.into_inner()).clear();
     }
 
     /// Get total log count
     pub fn len(&self) -> usize {
-        self.entries.lock().unwrap().len()
+        self.entries.lock().unwrap_or_else(|e| e.into_inner()).len()
     }
 
     /// Check if empty
     pub fn is_empty(&self) -> bool {
-        self.entries.lock().unwrap().is_empty()
+        self.entries.lock().unwrap_or_else(|e| e.into_inner()).is_empty()
     }
 }
 
@@ -245,7 +245,7 @@ impl Logger {
 
     #[cfg(feature = "subscriber")]
     fn notify_subscribers(&self, entry: LogEntry) {
-        let subscribers = self.subscribers.lock().unwrap();
+        let subscribers = self.subscribers.lock().unwrap_or_else(|e| e.into_inner());
         let mut to_remove = Vec::new();
 
         for (i, tx) in subscribers.iter().enumerate() {
@@ -256,7 +256,7 @@ impl Logger {
 
         // Remove dead subscribers
         drop(subscribers);
-        let mut subscribers = self.subscribers.lock().unwrap();
+        let mut subscribers = self.subscribers.lock().unwrap_or_else(|e| e.into_inner());
         for i in to_remove.into_iter().rev() {
             subscribers.remove(i);
         }

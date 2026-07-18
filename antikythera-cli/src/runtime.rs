@@ -6,8 +6,10 @@ use crate::CliResult;
 use crate::infrastructure::llm::ModelProviderConfig;
 use crate::infrastructure::llm::build_provider_from_configs;
 use antikythera_core::application::tooling::BuiltinTransport;
+use antikythera_core::config::AppConfig;
 use antikythera_core::infrastructure::model::DynamicModelProvider;
-use antikythera_core::{AppConfig, ClientConfig, McpClient};
+use antikythera_core::ClientConfig;
+use antikythera_core::McpClient;
 
 pub fn build_runtime_client(
     config: &AppConfig,
@@ -18,7 +20,7 @@ pub fn build_runtime_client(
         .map_err(|error| CliError::Validation(error.user_message()))?;
 
     let mut client_config =
-        ClientConfig::new(config.default_provider.clone(), config.model.clone())
+        ClientConfig::new(config.default_provider(), config.model_name())
             .with_tools(config.tools.clone())
             .with_servers(config.servers.clone())
             .with_prompts(config.prompts.clone());
@@ -57,10 +59,7 @@ pub fn materialize_runtime_config(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(ToOwned::to_owned)
-        .or_else(|| match config.default_provider.as_str() {
-            // Empty, placeholder, or the generic fallback "ollama" all mean
-            // "not explicitly configured" — let env detection choose the best
-            // provider based on available API keys.
+        .or_else(|| match config.default_provider() {
             "" | "local" | "ollama" => None,
             other => Some(other.to_string()),
         })
@@ -70,7 +69,7 @@ pub fn materialize_runtime_config(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(ToOwned::to_owned)
-        .or_else(|| match config.model.as_str() {
+        .or_else(|| match config.model_name() {
             "" | "default" => None,
             other => Some(other.to_string()),
         })
@@ -137,8 +136,8 @@ pub fn materialize_runtime_config(
     default_provider = selected_provider.id.clone();
     model = model.trim().to_string();
 
-    config.default_provider = default_provider;
-    config.model = model;
+    config.set_default_provider(&default_provider);
+    config.set_model(&model);
 
     Ok((config, providers))
 }

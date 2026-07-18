@@ -1,6 +1,5 @@
 //! Slash-command processor and runtime reconfiguration.
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use antikythera_core::ConfigLogger;
@@ -160,8 +159,8 @@ pub(crate) fn process_command(
         }
         "reset" | "clear" => app.reset_session(),
         "history" => {
-            let sessions = app.history_store.list_sessions();
-            app.history.open_and_refresh_with(sessions);
+            let sessions = app.history.store.list_sessions();
+            app.history.browser.open_and_refresh_with(sessions);
             app.status =
                 "Riwayat Chat. ↑↓=navigasi | Enter=lihat | d=hapus | r=ganti judul | Esc=tutup"
                     .to_string();
@@ -276,12 +275,12 @@ pub(crate) fn apply_runtime_selection(
 
     app.runtime_config = updated_config;
     app.providers = updated_providers;
-    app.provider = app.runtime_config.default_provider.clone();
-    app.model = app.runtime_config.model.clone();
+    app.provider = app.runtime_config.default_provider().to_string();
+    app.model = app.runtime_config.model_name().to_string();
     app.session_id = None;
     antikythera_core::set_active_session("tui");
     // Provider/model changed — start a fresh history session next turn.
-    app.current_history_session = None;
+    app.history.current_session = None;
 
     Ok(format!(
         "Provider/model aktif sekarang {}/{}. Sesi percakapan direset agar riwayat tidak tercampur antar backend.",
@@ -340,19 +339,18 @@ pub(crate) fn reconfigure_runtime(
     ));
 
     // Build a PostcardAppConfig to persist — merge core routing fields with CLI providers.
-    let postcard_prompts = app.runtime_config.prompts.clone().into();
-    // Persist system_prompt in the extensible custom map (PostcardAppConfig has no dedicated field).
-    let mut custom = HashMap::new();
+    // Persist system_prompt in the extensible custom map.
+    let mut custom = app.runtime_config.custom.clone();
     if let Some(sp) = &app.runtime_config.system_prompt {
         custom.insert("system_prompt".to_string(), sp.clone());
     }
     let pc = PostcardAppConfig {
         model: PostcardModelConfig {
-            default_provider: app.runtime_config.default_provider.clone(),
-            model: app.runtime_config.model.clone(),
+            default_provider: app.runtime_config.default_provider().to_string(),
+            model: app.runtime_config.model_name().to_string(),
         },
         providers: providers_to_postcard(app.providers.clone()),
-        prompts: postcard_prompts,
+        prompts: app.runtime_config.prompts.clone(),
         custom,
         ..Default::default()
     };

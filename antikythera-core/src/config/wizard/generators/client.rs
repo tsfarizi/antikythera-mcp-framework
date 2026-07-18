@@ -11,7 +11,11 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-/// Generate the client configuration file
+/// Generate the client configuration file with a generic provider entry.
+///
+/// The `provider_type` is an opaque discriminator — core does not interpret it.
+/// Each provider adapter (OpenAI, Gemini, Ollama, etc.) is responsible for
+/// mapping its own configuration fields.
 pub fn generate(
     provider_id: &str,
     provider_type: &str,
