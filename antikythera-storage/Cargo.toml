@@ -27,7 +27,7 @@ uuid = { workspace = true }
 toml = { workspace = true }
 
 # Optional: MongoDB
-mongodb = { version = "2.8", optional = true }
+mongodb = { version = "3.2", optional = true, default-features = false, features = ["rustls-tls", "dns-resolver", "compat-3-0-0"] }
 tokio-util = { version = "0.7", optional = true }
 futures = { workspace = true, optional = true }
 

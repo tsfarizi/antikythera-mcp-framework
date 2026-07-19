@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use chrono::Utc;
 use futures::stream::StreamExt;
 use mongodb::bson::{doc, spec::BinarySubtype, Binary, Document};
-use mongodb::options::{ClientOptions, FindOptions, IndexOptions};
+use mongodb::options::{ClientOptions, IndexOptions};
 use mongodb::{Client, Collection, IndexModel};
 
 use crate::config::MongodbConfig;
@@ -50,7 +50,7 @@ impl MongoBackend {
                 .keys(doc! { "created_at": 1 })
                 .options(IndexOptions::builder().build())
                 .build();
-            coll.create_index(index, None)
+            coll.create_index(index)
                 .await
                 .map_err(|e| StorageError::Schema(format!("failed to create index: {e}")))?;
 
@@ -72,7 +72,6 @@ impl MongoBackend {
                     "collMod": &collection_name,
                     "validator": validator
                 },
-                None,
             )
             .await
             .ok();
@@ -115,7 +114,7 @@ impl StorageBackend for MongoBackend {
         };
 
         self.coll()
-            .insert_one(doc, None)
+            .insert_one(doc)
             .await
             .map_err(|e| StorageError::Backend(format!("MongoDB insert failed: {e}")))?;
 
@@ -127,7 +126,7 @@ impl StorageBackend for MongoBackend {
 
         let result = self
             .coll()
-            .find_one(filter, None)
+            .find_one(filter)
             .await
             .map_err(|e| StorageError::Backend(format!("MongoDB find failed: {e}")))?;
 
@@ -146,7 +145,7 @@ impl StorageBackend for MongoBackend {
         let filter = doc! { "_id": session_id };
 
         self.coll()
-            .delete_one(filter, None)
+            .delete_one(filter)
             .await
             .map_err(|e| StorageError::Backend(format!("MongoDB delete failed: {e}")))?;
 
@@ -154,11 +153,9 @@ impl StorageBackend for MongoBackend {
     }
 
     async fn list(&self) -> Result<Vec<String>, StorageError> {
-        let find_options = FindOptions::builder().projection(doc! { "_id": 1 }).build();
-
         let mut cursor = self
             .coll()
-            .find(doc! {}, find_options)
+            .find(doc! {})
             .await
             .map_err(|e| StorageError::Backend(format!("MongoDB find failed: {e}")))?;
 
@@ -183,7 +180,7 @@ impl StorageBackend for MongoBackend {
 
         let count = self
             .coll()
-            .count_documents(filter, None)
+            .count_documents(filter)
             .await
             .map_err(|e| StorageError::Backend(format!("MongoDB count failed: {e}")))?;
 
@@ -228,13 +225,8 @@ impl StorageBackend for MongoBackend {
         };
 
         self.coll()
-            .update_one(
-                filter,
-                update,
-                mongodb::options::UpdateOptions::builder()
-                    .upsert(true)
-                    .build(),
-            )
+            .update_one(filter, update)
+            .upsert(true)
             .await
             .map_err(|e| StorageError::Backend(format!("MongoDB upsert failed: {e}")))?;
 
