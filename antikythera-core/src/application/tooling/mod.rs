@@ -1,7 +1,7 @@
 mod envelope;
-pub(crate) mod error;
-pub(crate) mod interface;
-pub(crate) mod manager;
+pub mod error;
+pub mod interface;
+pub mod manager;
 
 pub mod transport;
 
@@ -15,12 +15,6 @@ pub use interface::{
     ToolServerInterface,
 };
 pub use manager::ServerManager;
+pub use manager::ServerInstance;
+pub use manager::TransportFactory;
 pub use transport::McpTransport;
-
-// Re-export infrastructure types for backward compatibility.
-pub use crate::infrastructure::transport::{
-    BuiltinTransport, HttpTransport, HttpTransportConfig, TransportMode,
-};
-pub use crate::infrastructure::transport::TransportFactory;
-#[cfg(feature = "native-transport")]
-pub use crate::infrastructure::transport::spawn_and_list_tools;

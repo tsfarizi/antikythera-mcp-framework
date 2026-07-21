@@ -75,6 +75,10 @@ pub use sdk_logging::subscribe_sdk_logs;
 /// Shared FFI helper utilities
 pub mod ffi_helpers;
 
+/// WASM Runtime — Wasmtime-based WASM agent runner (host-side).
+#[cfg(feature = "wasm-sandbox")]
+pub mod wasm_runtime;
+
 /// WASM Agent Module (processes LLM responses from host)
 #[cfg(feature = "component")]
 pub mod wasm_agent;

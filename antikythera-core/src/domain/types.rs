@@ -1,9 +1,7 @@
-// NOTE: This re-export couples the domain to `antikythera_session`.
-// Full decoupling would require defining MessagePart and MessageRole
-// in domain and providing adapters at the infrastructure boundary.
-// Keeping as-is for now because MessagePart/MessageRole are genuinely
-// domain types (conversation concepts), just defined in an external crate.
-pub use antikythera_session::{MessagePart, MessageRole};
+//! Domain message types — the canonical definitions live in `message_types`.
+//! This module re-exports them for backward compatibility.
+
+pub use super::message_types::{Message, MessagePart, MessageRole};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

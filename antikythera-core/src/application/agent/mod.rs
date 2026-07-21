@@ -21,6 +21,7 @@
 //! 4. If final response, return to user
 
 mod context;
+pub mod client;
 mod directive;
 pub mod events;
 mod errors;

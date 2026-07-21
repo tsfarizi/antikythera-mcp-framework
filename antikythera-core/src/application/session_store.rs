@@ -3,22 +3,23 @@ use std::collections::VecDeque;
 use crate::domain::types::ChatMessage;
 use crate::domain::types::MessagePart;
 use crate::logging::SessionLogger;
-use antikythera_session::{Message, SessionManager};
+use crate::domain::message_types::Message;
+use crate::domain::session_manager::SessionManager;
 
 /// Default maximum number of concurrent sessions kept in memory.
 ///
 /// When this limit is reached the least-recently-used session is evicted
 /// before a new one is created. This prevents unbounded memory growth in
 /// long-running deployments with many ephemeral sessions.
-pub(super) const DEFAULT_MAX_SESSIONS: usize = 256;
+pub(crate) const DEFAULT_MAX_SESSIONS: usize = 256;
 
 /// In-memory session store with LRU eviction.
-pub(super) struct SessionStore {
+pub(crate) struct SessionStore {
     manager: SessionManager,
     /// Access order: front = least recently used, back = most recently used.
-    pub(super) order: VecDeque<String>,
+    pub(crate) order: VecDeque<String>,
     /// Maximum number of sessions to retain simultaneously.
-    pub(super) max_sessions: usize,
+    pub(crate) max_sessions: usize,
 }
 
 impl SessionStore {

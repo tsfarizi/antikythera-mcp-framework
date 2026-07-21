@@ -1,7 +1,7 @@
 //! Input validation tests
 
 use antikythera_core::security::config::ValidationConfig;
-use antikythera_core::security::validation::{InputValidator, ValidationResult};
+use antikythera_cli::security::validation::{InputValidator, ValidationResult};
 
 #[test]
 fn test_validator_creation() {

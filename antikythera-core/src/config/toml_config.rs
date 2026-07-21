@@ -1,10 +1,10 @@
-//! TOML serialization helpers for [`super::AppConfig`].
+//! TOML serialization helpers for [`super::schema::AppConfig`].
 //!
-//! The canonical struct definition lives in [`super::app`].  This module
+//! The canonical struct definitions live in [`super::schema`].  This module
 //! provides the thin serialize/deserialize/load/save functions that operate
 //! on the TOML text file (`app.toml`).
 
-pub use super::app::AppConfig;
+pub use super::schema::AppConfig;
 use std::path::Path;
 
 /// Configuration file path (project root)

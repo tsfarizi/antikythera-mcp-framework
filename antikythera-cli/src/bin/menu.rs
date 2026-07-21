@@ -39,7 +39,8 @@ use antikythera_cli::presentation::tui;
 use antikythera_cli::runtime::{build_runtime_client, materialize_runtime_config};
 use antikythera_core::application::agent::multi_agent::task::AgentTask;
 use antikythera_core::infrastructure::model::DynamicModelProvider;
-use antikythera_core::{AppConfig, McpClient};
+use antikythera_core::AppConfig;
+use antikythera_core::application::client::McpClient;
 use antikythera_log::{cli_eprint, cli_print};
 use clap::Parser;
 

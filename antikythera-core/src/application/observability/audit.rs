@@ -1,4 +1,5 @@
 use crate::logging::ObservabilityLogger;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -96,5 +97,32 @@ impl AuditTrail {
                     .warn(format!("AuditTrail records lock poisoned in clear: {}", e));
             }
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Port trait implementation
+// ---------------------------------------------------------------------------
+
+#[async_trait]
+impl crate::application::ports::observability::AuditSink for AuditTrail {
+    async fn record_event(
+        &self,
+        category: &str,
+        action: &str,
+        allowed: bool,
+        details: Vec<(String, String)>,
+    ) {
+        let audit_category = match category {
+            "policy_decision" => AuditCategory::PolicyDecision,
+            "tool_execution" => AuditCategory::ToolExecution,
+            "model_request" => AuditCategory::ModelRequest,
+            _ => AuditCategory::PolicyDecision,
+        };
+        let mut record = AuditRecord::new(audit_category, action, allowed, None);
+        for (k, v) in details {
+            record = record.with_detail(k, v);
+        }
+        self.append(record);
     }
 }

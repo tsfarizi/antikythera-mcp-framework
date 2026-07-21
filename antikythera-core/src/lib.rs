@@ -1,6 +1,22 @@
 //! # Antikythera Core
 //!
-//! Core MCP protocol implementation, transport layers, and agent runtime.
+//! Pure agent management system — provider-agnostic, transport-agnostic,
+//! format-agnostic.
+//!
+//! ## Architecture
+//!
+//! This crate defines the **domain model**, **application logic**, and **port
+//! traits** for an autonomous AI agent system. Concrete implementations of
+//! transport, model providers, and security live in peripheral crates
+//! (`antikythera-cli`, `antikythera-sdk`).
+//!
+//! ### Layer Structure
+//! - `domain/` — Canonical entity definitions (Message, ToolCall, AgentTask, etc.)
+//! - `application/` — Agent runner, orchestration, hooks, streaming, resilience
+//! - `config/` — Format-agnostic configuration schema
+//! - `infrastructure/` — Model provider traits (host-delegated only)
+//! - `security/` — Security port traits and implementations
+//! - `logging/` — Structured logging system
 
 pub mod application;
 pub mod config;
@@ -18,8 +34,11 @@ pub mod logging;
 pub use application::agent::{Agent, AgentOptions, AgentOutcome, ToolDescriptor};
 pub use application::agent::events::DomainEvent;
 
-// Re-export resilience module at crate root
-pub use application::client::{ChatRequest, ChatResult, ClientConfig, McpClient, PreparedChatTurn};
+// Re-export agent client types for backward compatibility
+pub use application::agent::client::{
+    ChatRequest, ChatResult, ClientConfig, ClientConfigSnapshot, McpError, PreparedChatTurn,
+};
+
 pub use config::AppConfig;
 
 /// Crate version

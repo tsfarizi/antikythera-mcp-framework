@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 
-use antikythera_core::application::tooling::{
-    HttpTransport, HttpTransportConfig, McpTransport, ServerToolInfo, TransportMode,
-};
+use antikythera_core::application::tooling::{McpTransport, ServerToolInfo};
+use antikythera_cli::infrastructure::transport::{HttpTransport, HttpTransportConfig, TransportMode};
 
 #[tokio::test]
 async fn test_http_transport_list_tools() {

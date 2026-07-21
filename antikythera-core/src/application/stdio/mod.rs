@@ -1,3 +1,12 @@
+//! # STDIO Module
+//!
+//! Terminal-based user interface for interactive agent sessions.
+//!
+//! # Architecture Note
+//!
+//! This module is **periphery-bound**: terminal rendering is a presentation
+//! concern that belongs in `antikythera-cli`.
+
 mod stdio_render;
 mod tool_detection;
 

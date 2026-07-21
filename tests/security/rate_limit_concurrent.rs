@@ -1,7 +1,7 @@
 //! Concurrent rate limiter test to verify thread safety.
 
 use antikythera_core::security::config::RateLimitConfig;
-use antikythera_core::security::rate_limit::RateLimiter;
+use antikythera_cli::security::rate_limit::RateLimiter;
 use std::sync::Arc;
 use std::thread;
 

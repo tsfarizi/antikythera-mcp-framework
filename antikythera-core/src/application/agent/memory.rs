@@ -48,7 +48,7 @@ pub struct AgentStateSnapshot {
     /// Serialized FSM state
     pub fsm_state: String,
     /// Conversation history
-    pub history: Vec<antikythera_session::Message>,
+    pub history: Vec<crate::domain::message_types::Message>,
     /// Tool execution cache
     pub tool_cache: HashMap<String, serde_json::Value>,
     /// Context variables

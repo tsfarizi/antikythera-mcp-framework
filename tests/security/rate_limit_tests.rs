@@ -1,7 +1,7 @@
 //! Rate limiting tests
 
 use antikythera_core::security::config::RateLimitConfig;
-use antikythera_core::security::rate_limit::{RateLimitError, RateLimiter};
+use antikythera_cli::security::rate_limit::{RateLimitError, RateLimiter};
 
 #[test]
 fn test_rate_limiter_creation() {

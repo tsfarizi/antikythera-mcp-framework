@@ -7,8 +7,8 @@ use super::runtime::ToolRuntime;
 use super::tool_result_parser::ToolResultParser;
 use crate::application::client::{ChatRequest, McpClient};
 use crate::application::model_provider::ModelProvider;
+use crate::application::ports::security::RateLimiter as RateLimiterTrait;
 use crate::logging::AgentLogger;
-use crate::security::rate_limit::RateLimiter;
 use serde_json::{Value, json};
 use std::sync::Arc;
 #[cfg(feature = "native-transport")]
@@ -17,7 +17,7 @@ use sysinfo::System;
 pub struct Agent<P: ModelProvider> {
     client: Arc<McpClient<P>>,
     runtime: ToolRuntime,
-    rate_limiter: Option<Arc<RateLimiter>>,
+    rate_limiter: Option<Arc<dyn RateLimiterTrait>>,
 }
 
 impl<P: ModelProvider> Agent<P> {
@@ -39,7 +39,7 @@ impl<P: ModelProvider> Agent<P> {
 
     /// Attach a rate limiter to this agent. When set, every LLM call
     /// will be checked against the rate limit before execution.
-    pub fn with_rate_limiter(mut self, limiter: Arc<RateLimiter>) -> Self {
+    pub fn with_rate_limiter(mut self, limiter: Arc<dyn RateLimiterTrait>) -> Self {
         self.rate_limiter = Some(limiter);
         self
     }
@@ -59,7 +59,7 @@ impl<P: ModelProvider> Agent<P> {
         // Rate limit check before making LLM calls
         if let Some(ref limiter) = self.rate_limiter {
             let sid = options.session_id.as_deref().unwrap_or("default");
-            limiter.check(sid).map_err(|_| AgentError::RateLimited)?;
+            limiter.check_rate_limit(sid).await.map_err(|_| AgentError::RateLimited)?;
         }
         let mut session_id = options.session_id.clone();
         let mut steps = Vec::new();
@@ -160,7 +160,7 @@ impl<P: ModelProvider> Agent<P> {
             // Rate limit check before each LLM call
             if let Some(ref limiter) = self.rate_limiter {
                 let sid = session_id.as_deref().unwrap_or("default");
-                limiter.check(sid).map_err(|_| AgentError::RateLimited)?;
+                limiter.check_rate_limit(sid).await.map_err(|_| AgentError::RateLimited)?;
             }
             let result = self.client.chat(request).await?;
             logs.extend(result.logs.clone());

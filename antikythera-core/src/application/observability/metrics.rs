@@ -1,4 +1,5 @@
 use crate::logging::ObservabilityLogger;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -202,4 +203,32 @@ pub fn percentile(sorted_samples: &[f64], q: f64) -> f64 {
     let q = q.clamp(0.0, 1.0);
     let index = ((sorted_samples.len() - 1) as f64 * q).round() as usize;
     sorted_samples[index]
+}
+
+// ---------------------------------------------------------------------------
+// Port trait implementation
+// ---------------------------------------------------------------------------
+
+#[async_trait]
+impl crate::application::ports::observability::MetricsExporter for InMemoryMetricsExporter {
+    async fn record_metric(
+        &self,
+        name: &str,
+        kind: &str,
+        value: f64,
+        attributes: Vec<(String, String)>,
+    ) {
+        let metric_kind = match kind {
+            "counter" => MetricKind::Counter,
+            "gauge" => MetricKind::Gauge,
+            "histogram" => MetricKind::Histogram,
+            _ => MetricKind::Gauge,
+        };
+        let attrs: HashMap<String, String> = attributes.into_iter().collect();
+        self.export_metric(MetricRecord::new(name, metric_kind, value, attrs));
+    }
+
+    async fn flush(&self) -> Result<(), String> {
+        Ok(())
+    }
 }

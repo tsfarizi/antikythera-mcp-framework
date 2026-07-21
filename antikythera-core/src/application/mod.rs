@@ -8,7 +8,6 @@
 //! - [`agent`] - Autonomous agent that can use tools and execute multi-step tasks
 //! - [`discovery`] - Auto-discovery and loading of MCP servers from a folder
 //! - [`hooks`] - Host authentication, correlation, policy, and telemetry middleware
-//! - [`stdio`] - Standard input/output interface for command-line interaction
 //! - [`streaming`] - Token/event streaming primitives and host adapters
 //! - [`tooling`] - Tool server management and MCP server integration
 //! - [`resilience`] - Retry, timeout, context management, and health tracking
@@ -17,7 +16,6 @@
 pub mod agent;
 pub mod client;
 pub mod config;
-pub mod discovery;
 pub mod hooks;
 pub mod model_provider;
 pub mod observability;
@@ -25,8 +23,6 @@ pub mod ports;
 pub mod prompt_composer;
 pub mod resilience;
 pub(super) mod session_store;
-#[cfg(feature = "native-transport")]
-pub mod stdio;
 pub mod streaming;
 pub mod tooling;
 

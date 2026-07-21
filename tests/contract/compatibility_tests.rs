@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use antikythera_core::domain::validation::validate_tool_name;
-use antikythera_core::infrastructure::mcp::contract::{
+use antikythera_cli::infrastructure::mcp::contract::{
     ContractValidator, ResultOutcome, ToolCallEnvelope, ToolExecutionError, ToolResultEnvelope,
 };
 use antikythera_sdk::wasm_agent::runner::{

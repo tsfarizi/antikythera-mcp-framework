@@ -82,6 +82,11 @@
 //! ├── mcp-weather.exe     # Weather tools
 //! └── ...
 //! ```
+//!
+//! # Architecture Note
+//!
+//! This module is **periphery-bound**: MCP server auto-discovery is a deployment
+//! concern that belongs in the CLI or a dedicated discovery plugin.
 
 #[cfg(feature = "native-transport")]
 pub mod loader;

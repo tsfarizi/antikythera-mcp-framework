@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -145,4 +146,32 @@ pub struct NoOpObservabilityHook;
 
 impl ObservabilityHook for NoOpObservabilityHook {
     fn record_event(&self, _event: TelemetryEvent) {}
+}
+
+// ---------------------------------------------------------------------------
+// Port trait implementation
+// ---------------------------------------------------------------------------
+
+#[async_trait]
+impl crate::application::ports::observability::TracingHook for InMemoryTracingHook {
+    async fn start_span(&self, name: &str, attributes: Vec<(String, String)>) -> String {
+        let span_id = uuid::Uuid::new_v4().to_string();
+        let trace_id = uuid::Uuid::new_v4().to_string();
+        let mut span = TraceSpanContext::new(trace_id, span_id.clone(), name);
+        for (k, v) in attributes {
+            span = span.with_attribute(k, v);
+        }
+        self.on_span_start(span);
+        span_id
+    }
+
+    async fn end_span(&self, span_id: &str, status: &str) {
+        let trace_id = uuid::Uuid::new_v4().to_string();
+        let span = TraceSpanContext::new(trace_id, span_id.to_string(), "");
+        let trace_status = match status {
+            "ok" => TraceStatus::Ok,
+            _ => TraceStatus::Error,
+        };
+        self.on_span_end(span, trace_status);
+    }
 }

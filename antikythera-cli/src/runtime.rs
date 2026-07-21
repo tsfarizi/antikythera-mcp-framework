@@ -5,16 +5,14 @@ use crate::CliError;
 use crate::CliResult;
 use crate::infrastructure::llm::ModelProviderConfig;
 use crate::infrastructure::llm::build_provider_from_configs;
-use antikythera_core::application::tooling::BuiltinTransport;
 use antikythera_core::config::AppConfig;
 use antikythera_core::infrastructure::model::DynamicModelProvider;
-use antikythera_core::ClientConfig;
-use antikythera_core::McpClient;
+use antikythera_core::application::client::{ClientConfig, McpClient};
 
 pub fn build_runtime_client(
     config: &AppConfig,
     providers: &[ModelProviderConfig],
-    builtin_transports: HashMap<String, Arc<BuiltinTransport>>,
+    builtin_transports: HashMap<String, Arc<crate::infrastructure::transport::BuiltinTransport>>,
 ) -> CliResult<Arc<McpClient<DynamicModelProvider>>> {
     let provider = build_provider_from_configs(providers)
         .map_err(|error| CliError::Validation(error.user_message()))?;
@@ -33,7 +31,8 @@ pub fn build_runtime_client(
         client_config = client_config.with_builtin_transport(name, transport);
     }
 
-    Ok(Arc::new(McpClient::new(provider, client_config)))
+    let factory = Box::new(crate::infrastructure::transport::CliTransportFactory::new());
+    Ok(Arc::new(McpClient::new(provider, client_config, Some(factory))))
 }
 
 pub fn materialize_runtime_config(

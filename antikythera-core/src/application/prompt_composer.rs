@@ -1,6 +1,11 @@
 //! System prompt composition logic.
 //!
 //! Extracted from McpClient for single-responsibility.
+//!
+//! # Architecture Note
+//!
+//! This module is **periphery-bound**: prompt template composition is an
+//! application-level concern that should migrate to the CLI reference implementation.
 
 use crate::application::config::{PromptsConfig, ToolConfig};
 

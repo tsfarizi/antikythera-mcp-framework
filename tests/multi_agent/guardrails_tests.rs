@@ -59,6 +59,7 @@ fn build_orchestrator(call_count: Arc<AtomicUsize>) -> MultiAgentOrchestrator<Co
     let client = Arc::new(McpClient::new(
         CountingProvider { call_count },
         ClientConfig::new("mock", "mock-model"),
+        None,
     ));
 
     MultiAgentOrchestrator::new(client, ExecutionMode::Sequential).register_agent(AgentProfile {

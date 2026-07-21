@@ -38,6 +38,7 @@ pub use metrics::{
     InMemoryMetricsExporter, LatencySummary, LatencyTracker, MetricKind, MetricRecord,
     MetricsExporter,
 };
+pub use super::ports::AuditSink;
 pub use telemetry::{CallerContext, TelemetryEvent};
 pub use tracing::{
     InMemoryTracingHook, NoOpObservabilityHook, ObservabilityHook, TraceSpanContext, TraceStatus,

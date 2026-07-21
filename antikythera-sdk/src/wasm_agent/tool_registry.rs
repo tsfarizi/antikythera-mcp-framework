@@ -1,3 +1,18 @@
+//! WASM-side tool registry and tool call/result types.
+//!
+//! These types intentionally mirror `antikythera_core::domain::entities` tool
+//! types and `antikythera_core::application::tooling::interface` metadata types
+//! but are defined separately because:
+//! 1. WASM components cannot share Rust types across the FFI boundary
+//! 2. The WASM `ToolCall` and `ToolResult` include a `step_id` field needed for
+//!    the streaming protocol that native agents don't require
+//! 3. The WASM tool metadata types use `#[serde(default)]` for JSON round-trip
+//!    stability, while core types use `#[serde(skip_serializing_if)]` for
+//!    compact wire format
+//!
+//! Conversion between core and WASM types is provided via `From` implementations
+//! when the `sdk-core` feature is enabled.
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -288,5 +303,139 @@ impl ToolRegistry {
         let mut tools: Vec<&ToolDefinition> = self.tools.values().collect();
         tools.sort_by_key(|t| t.name.as_str());
         serde_json::to_string(&tools).map_err(|e| format!("Serialize error: {e}"))
+    }
+}
+
+// ============================================================================
+// Conversions from core domain types
+// ============================================================================
+
+#[cfg(all(feature = "component", feature = "sdk-core"))]
+impl From<antikythera_core::domain::entities::ToolCall> for ToolCall {
+    fn from(core_call: antikythera_core::domain::entities::ToolCall) -> Self {
+        let arguments = serde_json::to_value(&core_call.arguments)
+            .unwrap_or(serde_json::Value::Null);
+        Self {
+            name: core_call.name,
+            arguments,
+            step_id: 0,
+        }
+    }
+}
+
+#[cfg(all(feature = "component", feature = "sdk-core"))]
+impl From<antikythera_core::domain::entities::ToolResult> for ToolResult {
+    fn from(core_result: antikythera_core::domain::entities::ToolResult) -> Self {
+        let output = serde_json::to_value(&core_result.output)
+            .unwrap_or(serde_json::Value::Null);
+        Self {
+            name: core_result.name,
+            success: core_result.success,
+            output,
+            error: core_result.error,
+            step_id: 0,
+        }
+    }
+}
+
+#[cfg(all(feature = "component", feature = "sdk-core"))]
+impl From<antikythera_core::application::tooling::ToolIcon> for ToolIcon {
+    fn from(core_icon: antikythera_core::application::tooling::ToolIcon) -> Self {
+        Self {
+            src: core_icon.src,
+            mime_type: core_icon.mime_type,
+            sizes: core_icon.sizes,
+        }
+    }
+}
+
+#[cfg(all(feature = "component", feature = "sdk-core"))]
+impl From<ToolIcon> for antikythera_core::application::tooling::ToolIcon {
+    fn from(sdk_icon: ToolIcon) -> Self {
+        Self {
+            src: sdk_icon.src,
+            mime_type: sdk_icon.mime_type,
+            sizes: sdk_icon.sizes,
+        }
+    }
+}
+
+#[cfg(all(feature = "component", feature = "sdk-core"))]
+impl From<antikythera_core::application::tooling::ToolAnnotations> for ToolAnnotations {
+    fn from(
+        core_ann: antikythera_core::application::tooling::ToolAnnotations,
+    ) -> Self {
+        Self {
+            audience: core_ann.audience,
+            priority: core_ann.priority,
+            last_modified: core_ann.last_modified,
+        }
+    }
+}
+
+#[cfg(all(feature = "component", feature = "sdk-core"))]
+impl From<ToolAnnotations> for antikythera_core::application::tooling::ToolAnnotations {
+    fn from(sdk_ann: ToolAnnotations) -> Self {
+        Self {
+            audience: sdk_ann.audience,
+            priority: sdk_ann.priority,
+            last_modified: sdk_ann.last_modified,
+        }
+    }
+}
+
+#[cfg(all(feature = "component", feature = "sdk-core"))]
+impl From<antikythera_core::application::tooling::TaskSupport> for TaskSupport {
+    fn from(core_ts: antikythera_core::application::tooling::TaskSupport) -> Self {
+        match core_ts {
+            antikythera_core::application::tooling::TaskSupport::Forbidden => {
+                TaskSupport::Forbidden
+            }
+            antikythera_core::application::tooling::TaskSupport::Optional => {
+                TaskSupport::Optional
+            }
+            antikythera_core::application::tooling::TaskSupport::Required => {
+                TaskSupport::Required
+            }
+        }
+    }
+}
+
+#[cfg(all(feature = "component", feature = "sdk-core"))]
+impl From<TaskSupport> for antikythera_core::application::tooling::TaskSupport {
+    fn from(sdk_ts: TaskSupport) -> Self {
+        match sdk_ts {
+            TaskSupport::Forbidden => {
+                antikythera_core::application::tooling::TaskSupport::Forbidden
+            }
+            TaskSupport::Optional => {
+                antikythera_core::application::tooling::TaskSupport::Optional
+            }
+            TaskSupport::Required => {
+                antikythera_core::application::tooling::TaskSupport::Required
+            }
+        }
+    }
+}
+
+#[cfg(all(feature = "component", feature = "sdk-core"))]
+impl From<antikythera_core::application::tooling::ToolExecution> for ToolExecution {
+    fn from(
+        core_exec: antikythera_core::application::tooling::ToolExecution,
+    ) -> Self {
+        Self {
+            task_support: core_exec.task_support.map(TaskSupport::from),
+        }
+    }
+}
+
+#[cfg(all(feature = "component", feature = "sdk-core"))]
+impl From<ToolExecution> for antikythera_core::application::tooling::ToolExecution {
+    fn from(sdk_exec: ToolExecution) -> Self {
+        Self {
+            task_support: sdk_exec
+                .task_support
+                .map(antikythera_core::application::tooling::TaskSupport::from),
+        }
     }
 }

@@ -31,6 +31,7 @@ async fn prepare_and_complete_chat_preserve_session_history() {
             response: "siap".to_string(),
         },
         ClientConfig::new("host", "gpt-host"),
+        None,
     );
 
     let first = client
@@ -87,6 +88,7 @@ async fn chat_preserves_attachments_through_session() {
             response: "berhasil".to_string(),
         },
         ClientConfig::new("host", "gpt-host"),
+        None,
     );
 
     let result = client

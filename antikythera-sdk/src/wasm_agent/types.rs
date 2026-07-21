@@ -1,7 +1,16 @@
-//! WASM Agent Types
+//! WASM boundary types for the agent runtime.
 //!
-//! Types for WASM agent that processes LLM responses.
-//! WASM does NOT call LLM APIs - host does that.
+//! These types intentionally mirror `antikythera_core::domain::entities` but are
+//! defined separately because:
+//! 1. WASM components cannot share Rust enum discriminants across the FFI boundary
+//! 2. The WASM types include additional fields (e.g., `step_id`, `session_id`,
+//!    `context_policy`) needed for the streaming protocol that native agents don't
+//!    require
+//! 3. Binary compatibility (Postcard serialization) requires stable layouts
+//!    that the core domain types may evolve independently of
+//!
+//! Conversion between core and WASM types is provided via `From` implementations
+//! when the `sdk-core` feature is enabled.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -179,6 +188,48 @@ impl Default for AgentConfig {
                 summary_max_chars: 1200,
                 truncation_strategy: TruncationStrategy::KeepNewest,
             },
+        }
+    }
+}
+
+// ============================================================================
+// Conversions from core domain types
+// ============================================================================
+
+#[cfg(all(feature = "component", feature = "sdk-core"))]
+impl From<antikythera_core::domain::entities::AgentAction> for AgentAction {
+    fn from(core_action: antikythera_core::domain::entities::AgentAction) -> Self {
+        match core_action {
+            antikythera_core::domain::entities::AgentAction::CallTool(tool_call) => {
+                let input = serde_json::to_value(&tool_call.arguments)
+                    .unwrap_or(serde_json::Value::Null);
+                AgentAction::CallTool {
+                    tool: tool_call.name,
+                    input,
+                }
+            }
+            antikythera_core::domain::entities::AgentAction::FinalResponse(response) => {
+                AgentAction::Final {
+                    response: serde_json::Value::String(response),
+                }
+            }
+            antikythera_core::domain::entities::AgentAction::Error(_) => AgentAction::Retry {
+                error: "Agent error".to_string(),
+            },
+        }
+    }
+}
+
+#[cfg(all(feature = "component", feature = "sdk-core"))]
+impl From<&antikythera_core::config::schema::AgentConfig> for AgentConfig {
+    fn from(core_config: &antikythera_core::config::schema::AgentConfig) -> Self {
+        Self {
+            max_steps: core_config.max_steps,
+            verbose: core_config.verbose,
+            auto_execute_tools: core_config.auto_execute_tools,
+            session_timeout_secs: core_config.session_timeout_secs,
+            session_id: format!("session-{}", chrono::Utc::now().timestamp_millis()),
+            context_policy: ContextPolicy::default(),
         }
     }
 }

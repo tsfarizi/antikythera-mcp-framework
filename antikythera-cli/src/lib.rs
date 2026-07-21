@@ -26,6 +26,9 @@ pub mod domain;
 // Infrastructure layer: LLM adapters and config loader implementations
 pub mod infrastructure;
 
+// Application-level orchestration modules (McpClient, discovery, etc.)
+pub mod application;
+
 // Shared error contract for all feature slices.
 pub mod error;
 
@@ -40,6 +43,9 @@ pub mod runtime;
 
 // Storage slice — session storage initialization and management.
 pub mod storage;
+
+// Security implementations (owned by CLI crate, not core).
+pub mod security;
 
 // CLI argument parsing (owned by CLI crate, not core).
 pub mod cli;

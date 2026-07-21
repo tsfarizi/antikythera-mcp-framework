@@ -1,7 +1,7 @@
 //! Secrets management tests
 
 use antikythera_core::security::config::SecretsConfig;
-use antikythera_core::security::secrets::{SecretManager, SecretManagerError};
+use antikythera_cli::security::secrets::{SecretManager, SecretManagerError};
 
 #[test]
 fn test_secret_manager_creation() {

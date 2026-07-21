@@ -7,11 +7,11 @@ pub(super) async fn bootstrap_servers_and_transports(
     config: &mut AppConfig,
 ) -> (
     Option<String>,
-    HashMap<String, Arc<antikythera_core::application::tooling::BuiltinTransport>>,
+    HashMap<String, Arc<crate::infrastructure::transport::BuiltinTransport>>,
 ) {
     // ── Server auto-discovery ─────────────────────────────────────────────────
     let discovery_msg = {
-        use antikythera_core::application::discovery::startup::run_startup_discovery;
+        use crate::application::discovery::startup::run_startup_discovery;
         use antikythera_core::config::server::{ServerConfig as CoreServerConfig, TransportType};
 
         let result = run_startup_discovery(None).await;
@@ -46,8 +46,9 @@ pub(super) async fn bootstrap_servers_and_transports(
 
     // ── Builtin MCP transport registration ────────────────────────────────────
     let builtin_transports = {
+        use crate::infrastructure::transport::BuiltinTransport;
         use antikythera_core::application::tooling::{
-            BuiltinTransport, ServerToolInfo, TaskSupport, ToolAnnotations, ToolExecution,
+            ServerToolInfo, TaskSupport, ToolAnnotations, ToolExecution,
         };
         use antikythera_core::config::server::{ServerConfig as CoreServerConfig, TransportType};
         use antikythera_core::config::tool::ToolConfig;

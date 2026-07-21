@@ -5,5 +5,7 @@
 
 pub mod history;
 pub mod llm;
+pub mod mcp;
+pub mod transport;
 
 pub use llm::*;

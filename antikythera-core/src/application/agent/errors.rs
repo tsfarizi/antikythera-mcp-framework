@@ -1,5 +1,5 @@
 use super::memory::MemoryError;
-use crate::application::client::McpError;
+use super::client::McpError;
 use crate::application::tooling::ToolInvokeError;
 use thiserror::Error;
 
@@ -7,6 +7,8 @@ use thiserror::Error;
 pub enum AgentError {
     #[error(transparent)]
     Client(#[from] McpError),
+    #[error(transparent)]
+    LegacyClient(#[from] crate::application::client::McpError),
     #[error(transparent)]
     Tool(#[from] ToolError),
     #[error("invalid agent response: {0}")]
@@ -25,6 +27,7 @@ impl AgentError {
     pub fn user_message(&self) -> String {
         match self {
             AgentError::Client(err) => err.user_message(),
+            AgentError::LegacyClient(err) => err.user_message(),
             AgentError::Tool(err) => err.user_message(),
             AgentError::InvalidResponse(msg) => {
                 format!(

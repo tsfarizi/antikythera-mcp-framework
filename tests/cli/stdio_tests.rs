@@ -1,4 +1,4 @@
-use antikythera_core::application::stdio::suggest_commands;
+use antikythera_cli::application::stdio::suggest_commands;
 
 #[test]
 fn suggest_commands_returns_defaults_for_empty_prefix() {

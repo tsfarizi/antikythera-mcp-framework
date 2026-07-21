@@ -3,9 +3,9 @@
 // Tests that verify configuration references are valid.
 // These tests gracefully skip if config files don't exist.
 
-use antikythera_core::application::discovery::loader::create_server_config;
-use antikythera_core::application::discovery::scanner::{extract_server_name, is_executable};
-use antikythera_core::application::discovery::{
+use antikythera_cli::application::discovery::loader::create_server_config;
+use antikythera_cli::application::discovery::scanner::{extract_server_name, is_executable};
+use antikythera_cli::application::discovery::{
     DEFAULT_SERVERS_FOLDER, DiscoveredServer, DiscoveryError, DiscoverySummary, LoadStatus,
     StartupDiscoveryResult, load_server, scan_folder,
 };

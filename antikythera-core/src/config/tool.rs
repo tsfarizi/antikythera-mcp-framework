@@ -12,22 +12,9 @@
 //! server = "time"
 //! ```
 
-use serde::{Deserialize, Serialize};
+pub use super::schema::ToolConfig;
 
-/// Configuration for an available tool.
-///
-/// Tools are synced from MCP servers and define what capabilities
-/// are available to the AI agent.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub struct ToolConfig {
-    /// Unique name of the tool (e.g., "get_current_time")
-    pub name: String,
-    /// Human-readable description of what the tool does
-    pub description: Option<String>,
-    /// Name of the MCP server that provides this tool
-    #[serde(default)]
-    pub server: Option<String>,
-}
+use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]

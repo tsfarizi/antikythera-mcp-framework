@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use antikythera_core::application::client::ClientConfigSnapshot;
 use antikythera_core::application::resilience::HealthTracker;
-use antikythera_core::application::tooling::BuiltinTransport;
+use crate::infrastructure::transport::BuiltinTransport;
 use antikythera_core::config::AppConfig;
 use tokio::sync::{mpsc, oneshot};
 

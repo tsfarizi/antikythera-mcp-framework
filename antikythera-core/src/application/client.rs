@@ -20,23 +20,37 @@
 //!     // Client setup would go here
 //! }
 //! ```
+//!
+//! # Architecture Note
+//!
+//! This module is **periphery-bound**: it will eventually migrate to `antikythera-cli`
+//! as a reference implementation. The core agent runner should depend on port traits
+//! from `ports::` instead of this concrete client.
 
-use super::prompt_composer::PromptComposer;
+mod client_chat;
+mod client_lifecycle;
+mod client_tools;
+
+#[allow(unused_imports)]
+pub use client_chat::*;
+#[allow(unused_imports)]
+pub use client_lifecycle::*;
+#[allow(unused_imports)]
+pub use client_tools::*;
+
 use super::session_store::{DEFAULT_MAX_SESSIONS, SessionStore};
-use super::tooling::{BuiltinTransport, ServerManager, ToolServerInterface};
-use crate::application::config::{AppConfig, PromptsConfig, ServerConfig, ToolConfig};
-use crate::domain::types::MessagePart;
-use crate::domain::types::{ChatMessage, MessageRole};
-use crate::infrastructure::model::{
-    ModelError, ModelParams, ModelProvider, ModelRequest, ModelResponse,
+use super::tooling::{
+    ServerManager, ToolServerInterface, TransportFactory,
+    transport::McpTransport,
 };
-use crate::logging::ChatLogger;
+use crate::application::config::{AppConfig, PromptsConfig, ServerConfig, ToolConfig};
+use crate::domain::types::{ChatMessage, MessagePart};
+use crate::infrastructure::model::{ModelError, ModelProvider, ModelRequest};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::Mutex;
-use uuid::Uuid;
 
 /// Client configuration for the MCP client.
 ///
@@ -51,7 +65,7 @@ use uuid::Uuid;
 /// let config = ClientConfig::new("gemini", "gemini-2.0-flash")
 ///     .with_system_prompt("You are a helpful assistant.");
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ClientConfig {
     /// Default provider ID to use
     pub default_provider: String,
@@ -66,7 +80,21 @@ pub struct ClientConfig {
     /// Configurable prompts for agent behavior
     pub prompts: PromptsConfig,
     /// Pre-built builtin transports keyed by server name (registered after ServerManager init)
-    pub builtin_transports: HashMap<String, Arc<BuiltinTransport>>,
+    pub builtin_transports: HashMap<String, Arc<dyn McpTransport>>,
+}
+
+impl std::fmt::Debug for ClientConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ClientConfig")
+            .field("default_provider", &self.default_provider)
+            .field("default_model", &self.default_model)
+            .field("default_system_prompt", &self.default_system_prompt)
+            .field("tools", &self.tools)
+            .field("servers", &self.servers)
+            .field("prompts", &self.prompts)
+            .field("builtin_transports_count", &self.builtin_transports.len())
+            .finish()
+    }
 }
 
 impl ClientConfig {
@@ -111,7 +139,7 @@ impl ClientConfig {
     pub fn with_builtin_transport(
         mut self,
         server_name: impl Into<String>,
-        transport: Arc<BuiltinTransport>,
+        transport: Arc<dyn McpTransport>,
     ) -> Self {
         self.builtin_transports
             .insert(server_name.into(), transport);
@@ -243,10 +271,10 @@ pub struct ClientConfigSnapshot {
 /// Use [`McpClient::prune_session`] to trim old messages before a request
 /// when the conversation grows long.
 pub struct McpClient<P: ModelProvider> {
-    provider: P,
-    config: ClientConfig,
-    sessions: Mutex<SessionStore>,
-    server_bridge: Arc<dyn ToolServerInterface>,
+    pub(crate) provider: P,
+    pub(crate) config: ClientConfig,
+    pub(crate) sessions: Mutex<SessionStore>,
+    pub(crate) server_bridge: Arc<dyn ToolServerInterface>,
 }
 
 impl<P: ModelProvider> McpClient<P> {
@@ -255,8 +283,15 @@ impl<P: ModelProvider> McpClient<P> {
     /// A [`ServerManager`] is created from `config.servers` and stored as the
     /// active [`ToolServerInterface`].  Session history starts empty with a
     /// default LRU capacity of [`DEFAULT_MAX_SESSIONS`].
-    pub fn new(provider: P, config: ClientConfig) -> Self {
-        let server_manager = Arc::new(ServerManager::new(config.servers.clone()));
+    pub fn new(
+        provider: P,
+        config: ClientConfig,
+        factory: Option<Box<dyn TransportFactory>>,
+    ) -> Self {
+        let factory = factory.unwrap_or_else(|| {
+            Box::new(NoOpTransportFactory)
+        });
+        let server_manager = Arc::new(ServerManager::new(config.servers.clone(), factory));
         for (name, transport) in &config.builtin_transports {
             server_manager.register_builtin_transport(name, transport.clone());
         }
@@ -268,337 +303,21 @@ impl<P: ModelProvider> McpClient<P> {
             server_bridge: bridge,
         }
     }
-
-    /// Return the list of registered tool configurations.
-    pub fn tools(&self) -> &[ToolConfig] {
-        &self.config.tools
-    }
-
-    /// Return the default provider identifier (e.g., `"gemini"`, `"openai"`).
-    pub fn default_provider(&self) -> &str {
-        &self.config.default_provider
-    }
-
-    /// Return the default model name used when no per-request override is set.
-    pub fn default_model(&self) -> &str {
-        &self.config.default_model
-    }
-
-    /// Build a [`ClientConfigSnapshot`] from the current config for display layers.
-    ///
-    /// The snapshot includes the raw TOML representation used by the Settings overlay.
-    pub fn config_snapshot(&self) -> ClientConfigSnapshot {
-        let app_config = self.config.to_app_config();
-        let prompt_template = app_config.prompt_template().to_string();
-        let raw = app_config.to_raw_toml();
-        ClientConfigSnapshot {
-            model: app_config.model_name().to_string(),
-            default_provider: app_config.default_provider().to_string(),
-            system_prompt: app_config.system_prompt.clone(),
-            prompt_template,
-            tools: app_config.tools.clone(),
-            servers: app_config.servers.clone(),
-            raw,
-        }
-    }
-
-    /// Return the prompts configuration section (system prompt templates, overrides).
-    pub fn prompts(&self) -> &PromptsConfig {
-        &self.config.prompts
-    }
-
-    /// Return a clone of the active [`ToolServerInterface`] arc (the `ServerManager`).
-    pub fn server_bridge(&self) -> Arc<dyn ToolServerInterface> {
-        self.server_bridge.clone()
-    }
-
-    /// Assemble a [`PreparedChatTurn`] without calling the model.
-    ///
-    /// Loads session history, optionally applies `bypass_template` or
-    /// `raw_mode`, builds the system prompt from the template, and
-    /// constructs the outgoing [`ModelRequest`].  The result can be
-    /// inspected or handed to [`complete_chat_from_host`] when the host
-    /// owns the LLM API call.
-    pub async fn prepare_chat(&self, request: ChatRequest) -> PreparedChatTurn {
-        let provider = self.config.default_provider.clone();
-        let model = self.config.default_model.clone();
-        let session_id = request.session_id.clone().unwrap_or_else(new_session_id);
-        let raw_mode = request.raw_mode;
-
-        let mut logs = Vec::new();
-        logs.push(format!("Provider '{provider}' with model '{model}'"));
-
-        let mut messages = Vec::new();
-
-        if raw_mode {
-            // Raw mode: bypass system prompt, session history, and template composition.
-            // The user message is sent to the model exactly as received, with no context injection.
-            logs.push("Raw mode: sending request directly to model".to_string());
-        } else {
-            // Normal mode: load session history, compose the system prompt from the
-            // configured template, and prepend both before the outgoing user message.
-            let history = {
-                let start_wait = std::time::Instant::now();
-                let sessions = self.sessions.lock().await;
-                let elapsed = start_wait.elapsed();
-                ChatLogger::new(&session_id).debug(format!(
-                    "Acquired session lock for reading history | lock_wait_us={:?}",
-                    elapsed.as_micros()
-                ));
-                sessions.get(session_id.as_str()).unwrap_or_default()
-            };
-            ChatLogger::new(&session_id).debug(format!(
-                "Preparing chat request with prior history | session_id={} history_count={}",
-                session_id.as_str(),
-                history.len()
-            ));
-
-            if !history.is_empty() {
-                logs.push(format!(
-                    "Previous conversation history: {} messages",
-                    history.len()
-                ));
-            }
-
-            // Select system-prompt composition strategy.
-            // - bypass_template=true: the agent runner has already assembled a complete
-            //   system prompt; use it verbatim to avoid double-wrapping.
-            // - bypass_template=false: compose from the configured prompt template,
-            //   substituting any per-request override into {{custom_instruction}}.
-            let system_prompt = if request.bypass_template {
-                request.system_prompt.unwrap_or_default()
-            } else {
-                let system = request
-                    .system_prompt
-                    .or_else(|| self.config.default_system_prompt.clone());
-                let composer = PromptComposer::new(&self.config.prompts, &self.config.tools);
-                composer.compose(system)
-            };
-
-            if !system_prompt.is_empty() {
-                logs.push(format!(
-                    "System prompt active: {}",
-                    Self::summarise(&system_prompt)
-                ));
-                messages.push(ChatMessage::new(MessageRole::System, system_prompt));
-            }
-            messages.extend(history.iter().cloned());
-        }
-
-        let mut user_parts = vec![MessagePart::text(request.prompt.clone())];
-        user_parts.extend(request.attachments.clone());
-        let user_message = ChatMessage::with_parts(MessageRole::User, user_parts);
-        let prompt_preview = Self::summarise(&request.prompt);
-        messages.push(user_message.clone());
-
-        if !request.attachments.is_empty() {
-            logs.push(format!(
-                "User: {} (with {} attachment(s))",
-                prompt_preview,
-                request.attachments.len()
-            ));
-        } else {
-            logs.push(format!("User: {prompt_preview}"));
-        }
-
-        let mut params = ModelParams::new();
-        if request.force_json {
-            params.insert(
-                "output_format".to_string(),
-                serde_json::Value::String("json".to_string()),
-            );
-            ChatLogger::new(&session_id)
-                .debug("force_json=true → ModelRequest.params set with output_format=json");
-        }
-
-        PreparedChatTurn {
-            session_id: session_id.clone(),
-            provider: provider.clone(),
-            model: model.clone(),
-            model_request: ModelRequest {
-                provider: provider.clone(),
-                model: model.clone(),
-                messages,
-                session_id: Some(session_id.clone()),
-                params,
-            },
-            user_message: user_message.clone(),
-            logs,
-        }
-    }
-
-    /// Commit a [`ModelResponse`] to session history and return a [`ChatResult`].
-    ///
-    /// Both the user message and the model's assistant message are appended to
-    /// the in-memory session store under `prepared.session_id` via
-    /// [`persist_exchange`].
-    pub async fn complete_chat(
-        &self,
-        prepared: PreparedChatTurn,
-        response: ModelResponse,
-    ) -> Result<ChatResult, McpError> {
-        let final_session = response
-            .session_id
-            .clone()
-            .unwrap_or_else(|| prepared.session_id.clone());
-        let assistant_message = response.message.clone();
-        let response_preview = Self::summarise(&assistant_message.content());
-
-        let mut logs = prepared.logs;
-        logs.push(format!("Model: {response_preview}"));
-
-        let log = ChatLogger::new(&final_session);
-        log.info(format!(
-            "Response received from model provider | session_id={} provider={} model={}",
-            final_session.as_str(),
-            prepared.provider.as_str(),
-            prepared.model.as_str()
-        ));
-        for entry in &logs {
-            log.info(format!(
-                "Interaction log | session_id={} entry={}",
-                final_session.as_str(),
-                entry
-            ));
-        }
-
-        self.persist_exchange(&final_session, prepared.user_message, assistant_message)
-            .await;
-
-        // Sync usage stats to session manager
-        if response.tokens > 0 {
-            let sessions = self.sessions.lock().await;
-            let _ = sessions
-                .manager()
-                .record_tokens(&final_session, response.tokens);
-        }
-
-        Ok(ChatResult {
-            content: response.message.content(),
-            session_id: final_session,
-            provider: prepared.provider,
-            model: prepared.model,
-            logs,
-        })
-    }
-
-    /// Single-method convenience: [`prepare_chat`] → provider dispatch → [`complete_chat`].
-    pub async fn chat(&self, request: ChatRequest) -> Result<ChatResult, McpError> {
-        let prepared = self.prepare_chat(request).await;
-
-        ChatLogger::new(&prepared.session_id).info(format!(
-            "Dispatching prepared request to model host | session_id={} provider={} model={}",
-            prepared.session_id.as_str(),
-            prepared.provider.as_str(),
-            prepared.model.as_str()
-        ));
-
-        let response = self.provider.chat(prepared.model_request.clone()).await?;
-        self.complete_chat(prepared, response).await
-    }
-
-    /// Append `user_message` and `assistant` to the in-memory session history.
-    ///
-    /// If `session_id` has no existing history an entry is created.  The lock
-    /// acquisition latency is traced at `DEBUG` level to surface contention
-    /// under concurrent multi-agent usage.
-    async fn persist_exchange(
-        &self,
-        session_id: &str,
-        user_message: ChatMessage,
-        assistant: ChatMessage,
-    ) {
-        let start_wait = std::time::Instant::now();
-        let mut sessions = self.sessions.lock().await;
-        let elapsed = start_wait.elapsed();
-        ChatLogger::new(session_id).debug(format!(
-            "Acquired session lock to persist exchange | lock_wait_us={:?}",
-            elapsed.as_micros()
-        ));
-
-        sessions.push_messages(session_id, [user_message, assistant]);
-        let total_messages = sessions
-            .get(session_id)
-            .map(|history| history.len())
-            .unwrap_or(0);
-        ChatLogger::new(session_id).debug(format!(
-            "Persisted chat exchange to session history | session_id={} total_messages={}",
-            session_id, total_messages
-        ));
-    }
-
-    /// Prune old non-system messages from `session_id` to fit within `policy`.
-    ///
-    /// Returns the number of messages removed, or `0` when the session does
-    /// not exist or is already within budget.
-    pub async fn prune_session(
-        &self,
-        session_id: &str,
-        policy: &crate::application::resilience::ContextWindowPolicy,
-    ) -> usize {
-        use crate::application::resilience::prune_messages;
-        let sessions = self.sessions.lock().await;
-        if let Some(history) = sessions.get(session_id) {
-            let before = history.len();
-            let pruned = prune_messages(&history, policy);
-            let removed = before - pruned.len();
-            if removed > 0 {
-                // We need mut access to update history, so we drop the read lock and re-acquire
-                drop(sessions);
-                let mut sessions_mut = self.sessions.lock().await;
-                sessions_mut.replace_history(session_id, pruned.clone());
-            }
-            if removed > 0 {
-                ChatLogger::new(session_id).info(format!(
-                    "Context window pruned | session_id={} removed={} remaining={}",
-                    session_id,
-                    removed,
-                    pruned.len()
-                ));
-            }
-            removed
-        } else {
-            0
-        }
-    }
-
-    pub(crate) fn summarise(text: &str) -> String {
-        const SNIPPET_LIMIT: usize = 160;
-        let trimmed = text.trim();
-        if trimmed.is_empty() {
-            return "(empty)".to_string();
-        }
-        let single_line = trimmed.split_whitespace().collect::<Vec<_>>().join(" ");
-        let mut result = String::new();
-        let mut chars = single_line.chars();
-        for _ in 0..SNIPPET_LIMIT {
-            if let Some(ch) = chars.next() {
-                result.push(ch);
-            } else {
-                return result;
-            }
-        }
-        if chars.next().is_some() {
-            result.push('…');
-        }
-        result
-    }
-
-    /// Update session stats based on agent execution outcome.
-    pub async fn record_agent_outcome(
-        &self,
-        session_id: &str,
-        steps: &[crate::application::agent::AgentStep],
-    ) {
-        let sessions = self.sessions.lock().await;
-        let manager = sessions.manager();
-
-        for (i, step) in steps.iter().enumerate() {
-            let _ = manager.record_tool(session_id, &step.tool, (i + 1) as u32);
-        }
-    }
 }
 
-fn new_session_id() -> String {
-    Uuid::new_v4().to_string()
+/// A no-op transport factory that fails at runtime if transport creation is needed.
+/// Used as a placeholder when no factory is provided.
+struct NoOpTransportFactory;
+
+#[async_trait::async_trait]
+impl TransportFactory for NoOpTransportFactory {
+    async fn create(
+        &self,
+        config: &ServerConfig,
+    ) -> Result<crate::application::tooling::ServerInstance, super::tooling::error::ToolInvokeError>
+    {
+        Err(super::tooling::error::ToolInvokeError::NotConfigured {
+            server: format!("{}: no transport factory configured", config.name),
+        })
+    }
 }

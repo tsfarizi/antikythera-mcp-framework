@@ -20,75 +20,12 @@
 //! url = "https://mcp-server.example.com"
 //! ```
 
-use serde::{Deserialize, Serialize};
+pub use super::schema::{ServerConfig, TransportType};
+
+use serde::Deserialize;
 use shellexpand;
 use std::collections::HashMap;
 use std::path::PathBuf;
-
-/// Transport type for MCP server connection.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum TransportType {
-    /// STDIO transport - spawns subprocess
-    Stdio,
-    /// HTTP transport - connects via HTTP/SSE
-    Http,
-    /// Builtin transport - runs in-process tool implementations
-    Builtin,
-}
-
-/// Configuration for an MCP server connection.
-///
-/// MCP servers can be connected via STDIO (subprocess) or HTTP.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ServerConfig {
-    /// Unique name for this server
-    pub name: String,
-    /// Transport type
-    pub transport: TransportType,
-    /// Path to the executable (for STDIO)
-    pub command: Option<PathBuf>,
-    /// Command line arguments (for STDIO)
-    pub args: Vec<String>,
-    /// Environment variables (for STDIO)
-    pub env: HashMap<String, String>,
-    /// Working directory (for STDIO)
-    pub workdir: Option<PathBuf>,
-    /// URL for HTTP transport
-    pub url: Option<String>,
-    /// HTTP headers (for HTTP transport)
-    pub headers: HashMap<String, String>,
-    /// Default timezone for time-related operations
-    pub default_timezone: Option<String>,
-    /// Default city for location-based operations
-    pub default_city: Option<String>,
-}
-
-impl ServerConfig {
-    /// Check if this is a STDIO transport server.
-    pub fn is_stdio(&self) -> bool {
-        matches!(self.transport, TransportType::Stdio)
-    }
-
-    /// Check if this is an HTTP transport server.
-    pub fn is_http(&self) -> bool {
-        matches!(self.transport, TransportType::Http)
-    }
-
-    /// Check if this is a builtin transport server.
-    pub fn is_builtin(&self) -> bool {
-        matches!(self.transport, TransportType::Builtin)
-    }
-
-    /// Get command path (for STDIO).
-    pub fn command(&self) -> Option<&PathBuf> {
-        self.command.as_ref()
-    }
-
-    /// Get URL (for HTTP).
-    pub fn url(&self) -> Option<&str> {
-        self.url.as_deref()
-    }
-}
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RawServer {

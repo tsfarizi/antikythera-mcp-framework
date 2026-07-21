@@ -1,7 +1,7 @@
 use antikythera_core::application::tooling::{
     McpTransport, ServerToolInfo, TaskSupport, ToolAnnotations, ToolExecution,
 };
-use antikythera_core::infrastructure::transport::{BuiltinToolFn, BuiltinTransport, validate_arguments};
+use antikythera_cli::infrastructure::transport::{BuiltinToolFn, BuiltinTransport, validate_arguments};
 use serde_json::{Value, json};
 
 // -- validation tests ---------------------------------------------------

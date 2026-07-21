@@ -9,9 +9,6 @@ use super::envelope::{
 use super::error::ToolInvokeError;
 use super::interface::{ServerToolInfo, ToolServerInterface};
 use super::transport::McpTransport;
-use crate::infrastructure::transport::{BuiltinTransport, HttpTransport, TransportFactory};
-#[cfg(feature = "native-transport")]
-use crate::infrastructure::transport::stdio::McpProcess;
 use crate::application::config::ServerConfig;
 use crate::logging::TransportLogger;
 use async_trait::async_trait;
@@ -19,51 +16,47 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-/// Unified server instance that wraps STDIO, HTTP, or Builtin transport.
-pub(crate) enum ServerInstance {
-    #[cfg(feature = "native-transport")]
-    Stdio(Arc<McpProcess>),
-    Http(Arc<HttpTransport>),
-    Builtin(Arc<BuiltinTransport>),
+/// Unified server instance that wraps any MCP transport.
+pub struct ServerInstance {
+    transport: Arc<dyn McpTransport>,
 }
 
 impl ServerInstance {
+    /// Create a new ServerInstance wrapping a transport.
+    pub fn new(transport: Arc<dyn McpTransport>) -> Self {
+        Self { transport }
+    }
+
     async fn call_tool(&self, tool: &str, arguments: Value) -> Result<Value, ToolInvokeError> {
-        match self {
-            #[cfg(feature = "native-transport")]
-            ServerInstance::Stdio(process) => process.call_tool(tool, arguments).await,
-            ServerInstance::Http(transport) => transport.call_tool(tool, arguments).await,
-            ServerInstance::Builtin(transport) => transport.call_tool(tool, arguments).await,
-        }
+        self.transport.call_tool(tool, arguments).await
     }
 
     async fn instructions(&self) -> Option<String> {
-        match self {
-            #[cfg(feature = "native-transport")]
-            ServerInstance::Stdio(process) => process.instructions().await,
-            ServerInstance::Http(transport) => transport.instructions().await,
-            ServerInstance::Builtin(transport) => transport.instructions().await,
-        }
+        self.transport.instructions().await
     }
 
     async fn tool_metadata(&self, tool: &str) -> Option<ServerToolInfo> {
-        match self {
-            #[cfg(feature = "native-transport")]
-            ServerInstance::Stdio(process) => process.tool_metadata(tool).await,
-            ServerInstance::Http(transport) => transport.tool_metadata(tool).await,
-            ServerInstance::Builtin(transport) => transport.tool_metadata(tool).await,
-        }
+        self.transport.tool_metadata(tool).await
     }
+}
+
+/// Trait for creating transport instances from server configs.
+///
+/// Implementations live in the CLI crate and handle the actual transport creation.
+#[async_trait]
+pub trait TransportFactory: Send + Sync {
+    /// Create a `ServerInstance` from a `ServerConfig`.
+    async fn create(&self, config: &ServerConfig) -> Result<ServerInstance, ToolInvokeError>;
 }
 
 pub struct ServerManager {
     configs: HashMap<String, ServerConfig>,
     instances: Mutex<HashMap<String, ServerInstance>>,
-    factory: TransportFactory,
+    factory: Box<dyn TransportFactory>,
 }
 
 impl ServerManager {
-    pub fn new(configs: Vec<ServerConfig>) -> Self {
+    pub fn new(configs: Vec<ServerConfig>, factory: Box<dyn TransportFactory>) -> Self {
         let configs = configs
             .into_iter()
             .map(|cfg| (cfg.name.clone(), cfg))
@@ -71,7 +64,7 @@ impl ServerManager {
         Self {
             configs,
             instances: Mutex::new(HashMap::new()),
-            factory: TransportFactory::new(),
+            factory,
         }
     }
 
@@ -80,7 +73,7 @@ impl ServerManager {
     /// Builtin transports are created externally (e.g. by the CLI or host)
     /// with tool definitions and handlers, then injected into the manager.
     /// This avoids `ensure_instance` constructing an empty transport.
-    pub fn register_builtin_transport(&self, name: &str, transport: Arc<BuiltinTransport>) {
+    pub fn register_builtin_transport(&self, name: &str, transport: Arc<dyn McpTransport>) {
         let mut instances = match self.instances.lock() {
             Ok(guard) => guard,
             Err(e) => {
@@ -91,7 +84,7 @@ impl ServerManager {
                 return;
             }
         };
-        instances.insert(name.to_string(), ServerInstance::Builtin(transport));
+        instances.insert(name.to_string(), ServerInstance::new(transport));
     }
 
     async fn ensure_instance(&self, server: &str) -> Result<(), ToolInvokeError> {
@@ -160,13 +153,7 @@ impl ServerManager {
                 return None;
             }
         };
-        match instances.get(server) {
-            #[cfg(feature = "native-transport")]
-            Some(ServerInstance::Stdio(p)) => Some(ServerInstance::Stdio(p.clone())),
-            Some(ServerInstance::Http(t)) => Some(ServerInstance::Http(t.clone())),
-            Some(ServerInstance::Builtin(t)) => Some(ServerInstance::Builtin(t.clone())),
-            None => None,
-        }
+        instances.get(server).map(|i| ServerInstance::new(Arc::clone(&i.transport)))
     }
 }
 

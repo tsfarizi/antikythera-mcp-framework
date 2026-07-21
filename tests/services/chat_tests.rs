@@ -28,7 +28,7 @@ async fn test_chat_service_raw_mode_no_debug() {
         response_content: "Hello world".to_string(),
     };
     let config = ClientConfig::new("test-provider", "test-model");
-    let client = Arc::new(McpClient::new(provider, config));
+    let client = Arc::new(McpClient::new(provider, config, None));
 
     let result = client
         .chat(ChatRequest {
@@ -53,7 +53,7 @@ async fn test_chat_service_raw_mode_with_debug() {
         response_content: "Hello world".to_string(),
     };
     let config = ClientConfig::new("test-provider", "test-model");
-    let client = Arc::new(McpClient::new(provider, config));
+    let client = Arc::new(McpClient::new(provider, config, None));
 
     let result = client
         .chat(ChatRequest {
