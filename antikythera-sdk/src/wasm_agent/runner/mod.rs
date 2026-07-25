@@ -7,7 +7,7 @@ use super::processor::{
     build_llm_messages, process_llm_response, process_tool_result, validate_tool_call,
 };
 use super::types::{
-    AgentAction, AgentConfig, AgentMessage, AgentState, ContextPolicy, StreamEvent,
+    AgentAction, AgentConfig, AgentFsmState, AgentMessage, AgentState, ContextPolicy, StreamEvent,
     StreamEventKind, TelemetryCounters, TelemetrySnapshot, ToolCall, ToolRegistry, ToolResult,
 };
 
@@ -93,6 +93,7 @@ impl SessionRuntime {
                 counters: TelemetryCounters::default(),
                 total_prepare_latency_ms: 0,
                 total_commit_latency_ms: 0,
+                fsm_state: String::new(),
             },
         }
     }
@@ -170,6 +171,12 @@ impl AgentRunnerRuntime {
 
         let archived_at_ms = now_unix_ms();
         let state_json = runtime.state.to_json()?;
+
+        wasm_log(
+            session_id,
+            LogLevel::Info,
+            &format!("Archiving session in FSM state: {}", runtime.state.fsm_state),
+        );
 
         self.archived_sessions.insert(
             session_id.to_string(),
@@ -416,6 +423,61 @@ impl AgentRunnerRuntime {
         let runtime = self.ensure_session(&session_id);
         runtime.touch(now_ms);
 
+        // Validate FSM state for session restore consistency.
+        // Restored sessions may carry mid-operation states (e.g., LlmStreaming,
+        // ToolRequested) which are invalid for a fresh user turn. Reset to Idle.
+        let current_fsm = runtime.state.fsm_state;
+        if current_fsm != AgentFsmState::Idle && current_fsm != AgentFsmState::Final {
+            wasm_log(
+                &session_id,
+                LogLevel::Warn,
+                &format!(
+                    "Session restored in non-terminal FSM state '{}', resetting to idle",
+                    current_fsm
+                ),
+            );
+            runtime.state.fsm_state = AgentFsmState::Idle;
+            runtime.emit_event(
+                StreamEventKind::FsmStateChanged,
+                input.correlation_id.clone(),
+                serde_json::json!({
+                    "previous_state": current_fsm,
+                    "new_state": AgentFsmState::Idle,
+                    "reason": "session_restore_reset",
+                }),
+            );
+        }
+
+        // FSM: Idle -> UserTurnPrepared -> LlmStreaming
+        let fsm_before = runtime.state.fsm_state;
+        if let Err(e) = runtime.state.fsm_state.transition_to(AgentFsmState::UserTurnPrepared) {
+            wasm_log(&session_id, LogLevel::Warn, &format!("FSM transition failed: {e}"));
+        } else {
+            wasm_log(&session_id, LogLevel::Debug, &format!("FSM transition: {} -> {}", fsm_before, runtime.state.fsm_state));
+            runtime.emit_event(
+                StreamEventKind::FsmStateChanged,
+                input.correlation_id.clone(),
+                serde_json::json!({
+                    "from": fsm_before.to_string(),
+                    "to": runtime.state.fsm_state.to_string(),
+                }),
+            );
+        }
+        let fsm_before = runtime.state.fsm_state;
+        if let Err(e) = runtime.state.fsm_state.transition_to(AgentFsmState::LlmStreaming) {
+            wasm_log(&session_id, LogLevel::Warn, &format!("FSM transition failed: {e}"));
+        } else {
+            wasm_log(&session_id, LogLevel::Debug, &format!("FSM transition: {} -> {}", fsm_before, runtime.state.fsm_state));
+            runtime.emit_event(
+                StreamEventKind::FsmStateChanged,
+                input.correlation_id.clone(),
+                serde_json::json!({
+                    "from": fsm_before.to_string(),
+                    "to": runtime.state.fsm_state.to_string(),
+                }),
+            );
+        }
+
         let summary = Self::maybe_update_summary(&mut runtime.state, &policy);
         if let Some(summary) = &summary {
             runtime.telemetry.counters.context_summaries += 1;
@@ -490,6 +552,25 @@ impl AgentRunnerRuntime {
         let _ = self.sweep_idle_sessions(now_unix_ms())?;
         let runtime = self.ensure_session(session_id);
         runtime.touch(now_unix_ms());
+
+        // FSM: UserTurnPrepared -> LlmStreaming (first chunk signals streaming start)
+        if runtime.state.fsm_state == AgentFsmState::UserTurnPrepared {
+            let fsm_before = runtime.state.fsm_state;
+            if let Err(e) = runtime.state.fsm_state.transition_to(AgentFsmState::LlmStreaming) {
+                wasm_log(session_id, LogLevel::Warn, &format!("FSM transition failed: {e}"));
+            } else {
+                wasm_log(session_id, LogLevel::Debug, &format!("FSM transition: {} -> {}", fsm_before, runtime.state.fsm_state));
+                runtime.emit_event(
+                    StreamEventKind::FsmStateChanged,
+                    correlation_id.clone(),
+                    serde_json::json!({
+                        "from": fsm_before.to_string(),
+                        "to": runtime.state.fsm_state.to_string(),
+                    }),
+                );
+            }
+        }
+
         runtime.pending_llm_chunks.push(chunk.to_string());
         runtime.telemetry.counters.llm_chunks += 1;
         runtime.emit_event(
@@ -529,6 +610,25 @@ impl AgentRunnerRuntime {
             tool_result: None,
         });
 
+        // FSM guard: ensure we're in LlmStreaming state before processing LLM response
+        if runtime.state.fsm_state != AgentFsmState::LlmStreaming {
+            let fsm_before = runtime.state.fsm_state;
+            wasm_log(
+                &prepared.session_id,
+                LogLevel::Warn,
+                &format!(
+                    "FSM guard: state is '{}' expected 'llm_streaming', forcing transition",
+                    fsm_before
+                ),
+            );
+            let _ = runtime.state.fsm_state.transition_to(AgentFsmState::LlmStreaming);
+            wasm_log(
+                &prepared.session_id,
+                LogLevel::Debug,
+                &format!("FSM transition (forced): {} -> {}", fsm_before, runtime.state.fsm_state),
+            );
+        }
+
         let action = process_llm_response(&mut runtime.state, llm_response_json)?;
         runtime.telemetry.counters.llm_commits += 1;
         let commit_latency_ms = started.elapsed().as_millis() as u64;
@@ -540,6 +640,8 @@ impl AgentRunnerRuntime {
             serde_json::json!({"length": llm_response_json.len()}),
         );
 
+        // FSM transitions are handled inside process_llm_response (processor).
+        // Runner only ensures the correct pre-condition (LlmStreaming) via the guard above.
         let result = match action {
             AgentAction::Final { response } => {
                 let content = if let Some(text) = response.as_str() {
@@ -569,6 +671,7 @@ impl AgentRunnerRuntime {
                     content: Some(content),
                     tool_name: None,
                     tool_input: None,
+                    fsm_state: runtime.state.fsm_state.to_string(),
                 }
             }
             AgentAction::CallTool { tool, input } => {
@@ -607,6 +710,7 @@ impl AgentRunnerRuntime {
                     content: None,
                     tool_name: Some(tool),
                     tool_input: Some(input),
+                    fsm_state: runtime.state.fsm_state.to_string(),
                 }
             }
             AgentAction::Retry { error } => {
@@ -618,6 +722,7 @@ impl AgentRunnerRuntime {
                     content: Some(error),
                     tool_name: None,
                     tool_input: None,
+                    fsm_state: runtime.state.fsm_state.to_string(),
                 }
             }
         };
@@ -651,6 +756,26 @@ impl AgentRunnerRuntime {
         let runtime = self.ensure_session(session_id);
         runtime.touch(now_unix_ms());
         wasm_log(session_id, LogLevel::Debug, "Processing LLM response");
+
+        // FSM guard: ensure we're in LlmStreaming state before processing
+        if runtime.state.fsm_state != AgentFsmState::LlmStreaming {
+            let fsm_before = runtime.state.fsm_state;
+            wasm_log(
+                session_id,
+                LogLevel::Warn,
+                &format!(
+                    "FSM guard: state is '{}' expected 'llm_streaming', forcing transition",
+                    fsm_before
+                ),
+            );
+            let _ = runtime.state.fsm_state.transition_to(AgentFsmState::LlmStreaming);
+            wasm_log(
+                session_id,
+                LogLevel::Debug,
+                &format!("FSM transition (forced): {} -> {}", fsm_before, runtime.state.fsm_state),
+            );
+        }
+
         let action = process_llm_response(&mut runtime.state, llm_response_json)?;
         serde_json::to_string(&action)
             .map_err(|e| AgentRunnerError::Internal(format!("Failed to encode action: {e}")))
@@ -676,6 +801,28 @@ impl AgentRunnerRuntime {
 
         let runtime = self.ensure_session(session_id);
         runtime.touch(now_unix_ms());
+
+        // FSM guard: ensure we're in ToolRequested state before processing tool result
+        if runtime.state.fsm_state != AgentFsmState::ToolRequested {
+            let fsm_before = runtime.state.fsm_state;
+            wasm_log(
+                session_id,
+                LogLevel::Warn,
+                &format!(
+                    "FSM guard: state is '{}' expected 'tool_requested', forcing transition",
+                    fsm_before
+                ),
+            );
+            let _ = runtime.state.fsm_state.transition_to(AgentFsmState::ToolRequested);
+            wasm_log(
+                session_id,
+                LogLevel::Debug,
+                &format!("FSM transition (forced): {} -> {}", fsm_before, runtime.state.fsm_state),
+            );
+        }
+
+        // FSM transitions are handled inside process_tool_result (processor).
+        // Runner only ensures the correct pre-condition (ToolRequested) via the guard above.
         let next_message = process_tool_result(
             &mut runtime.state,
             &input.tool_name,

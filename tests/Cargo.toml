@@ -73,6 +73,14 @@ path = "config/comprehensive_config_security_tests.rs"
 # ============================================================================
 
 [[test]]
+name = "wasm_agent_fsm_tests"
+path = "sdk/wasm_agent/fsm_tests.rs"
+
+[[test]]
+name = "wasm_agent_fsm_parity_tests"
+path = "sdk/wasm_agent/fsm_parity_tests.rs"
+
+[[test]]
 name = "wasm_agent_processor_tests"
 path = "sdk/wasm_agent/processor_tests.rs"
 
@@ -220,7 +228,7 @@ path = "core/transport_tests.rs"
 antikythera-log = { path = "../antikythera-log", features = ["subscriber"] }
 antikythera-session = { path = "../antikythera-session" }
 antikythera-core = { path = "../antikythera-core", features = ["full"] }
-antikythera-cli = { path = "../antikythera-cli" }
+antikythera-cli = { path = "../example/antikythera-cli" }
 antikythera-sdk = { path = "../antikythera-sdk", features = ["component", "multi-agent"] }
 antikythera-storage = { path = "../antikythera-storage", features = ["filesystem"] }
 serde_json.workspace = true

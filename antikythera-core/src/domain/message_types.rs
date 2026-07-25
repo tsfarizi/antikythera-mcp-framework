@@ -351,16 +351,18 @@ impl Message {
     /// Serialize to JSON
     pub fn to_json(&self) -> Result<String, String> {
         serde_json::to_string(self).map_err(|e| {
-            SessionLogger::new("message").error(format!("Serialize error: {}", e));
-            format!("Serialize error: {}", e)
+            let msg = format!("Serialize error: {}", e);
+            SessionLogger::new("message").error(&msg);
+            msg
         })
     }
 
     /// Deserialize from JSON
     pub fn from_json(json: &str) -> Result<Self, String> {
         serde_json::from_str(json).map_err(|e| {
-            SessionLogger::new("message").error(format!("Deserialize error: {}", e));
-            format!("Deserialize error: {}", e)
+            let msg = format!("Deserialize error: {}", e);
+            SessionLogger::new("message").error(&msg);
+            msg
         })
     }
 }

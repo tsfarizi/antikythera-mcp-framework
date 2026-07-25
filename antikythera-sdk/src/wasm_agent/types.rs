@@ -46,6 +46,90 @@ pub enum AgentAction {
 }
 
 // ============================================================================
+// Agent FSM States (WASM mirror of core::domain::fsm::AgentFsmState)
+// ============================================================================
+//
+// DESIGN NOTE: This enum is intentionally duplicated from core::domain::fsm
+// because WASM components cannot share Rust enum discriminants across the FFI
+// boundary. The transition matrix MUST be kept in sync with the core copy.
+// See: tests/sdk/wasm_agent/fsm_parity_tests.rs for parity verification.
+
+/// Typed FSM states for the agent loop (WASM mirror of core::domain::fsm::AgentFsmState).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AgentFsmState {
+    #[default]
+    Idle,
+    UserTurnPrepared,
+    LlmStreaming,
+    LlmCommitted,
+    ToolRequested,
+    ToolResultProcessed,
+    Final,
+}
+
+impl AgentFsmState {
+    pub fn initial() -> Self {
+        Self::Idle
+    }
+
+    pub fn transition_to(&mut self, next: AgentFsmState) -> Result<(), FsmTransitionError> {
+        if self.can_transition_to(&next) {
+            *self = next;
+            Ok(())
+        } else {
+            Err(FsmTransitionError { from: *self, to: next })
+        }
+    }
+
+    pub fn can_transition_to(&self, next: &AgentFsmState) -> bool {
+        (self == &Self::Idle && next == &Self::UserTurnPrepared)
+            || (self == &Self::UserTurnPrepared && next == &Self::LlmStreaming)
+            || (self == &Self::LlmStreaming && next == &Self::LlmCommitted)
+            || (self == &Self::LlmCommitted && next == &Self::ToolRequested)
+            || (self == &Self::LlmCommitted && next == &Self::Final)
+            || (self == &Self::LlmCommitted && next == &Self::Idle)
+            || (self == &Self::ToolRequested && next == &Self::ToolResultProcessed)
+            || (self == &Self::ToolResultProcessed && next == &Self::LlmStreaming)
+            || (self == &Self::ToolResultProcessed && next == &Self::Final)
+            || (self == &Self::ToolResultProcessed && next == &Self::Idle)
+            || (self == &Self::Final && next == &Self::Idle)
+    }
+}
+
+impl std::fmt::Display for AgentFsmState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Idle => f.write_str("idle"),
+            Self::UserTurnPrepared => f.write_str("user_turn_prepared"),
+            Self::LlmStreaming => f.write_str("llm_streaming"),
+            Self::LlmCommitted => f.write_str("llm_committed"),
+            Self::ToolRequested => f.write_str("tool_requested"),
+            Self::ToolResultProcessed => f.write_str("tool_result_processed"),
+            Self::Final => f.write_str("final"),
+        }
+    }
+}
+
+/// Error returned when an invalid FSM transition is attempted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FsmTransitionError {
+    pub from: AgentFsmState,
+    pub to: AgentFsmState,
+}
+
+impl std::fmt::Display for FsmTransitionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("invalid FSM transition: ")?;
+        std::fmt::Display::fmt(&self.from, f)?;
+        f.write_str(" → ")?;
+        std::fmt::Display::fmt(&self.to, f)
+    }
+}
+
+impl std::error::Error for FsmTransitionError {}
+
+// ============================================================================
 // Advanced Context Management
 // ============================================================================
 
@@ -93,6 +177,9 @@ pub struct AgentState {
     /// Rolling summary for long context
     #[serde(default)]
     pub rolling_summary: Option<ContextSummary>,
+    /// Current FSM state
+    #[serde(default)]
+    pub fsm_state: AgentFsmState,
 }
 
 impl AgentState {
@@ -105,6 +192,7 @@ impl AgentState {
             tool_results: HashMap::new(),
             config,
             rolling_summary: None,
+            fsm_state: AgentFsmState::initial(),
         }
     }
 

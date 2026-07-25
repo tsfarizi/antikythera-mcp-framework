@@ -6,7 +6,28 @@
 //! commit_llm_response.
 
 use super::types::*;
+use crate::sdk_logging::get_sdk_logger;
+use antikythera_log::LogLevel;
 use std::collections::HashMap;
+
+/// Transition FSM state and log the change.
+fn transition_and_log(
+    state: &mut AgentState,
+    from: AgentFsmState,
+    to: AgentFsmState,
+) -> Result<(), String> {
+    state
+        .fsm_state
+        .transition_to(to)
+        .map(|_| {
+            get_sdk_logger(&state.session_id).log_with_source(
+                LogLevel::Debug,
+                "processor",
+                &format!("FSM transition: {} -> {} | step={}", from, to, state.current_step),
+            );
+        })
+        .map_err(|e| e.to_string())
+}
 
 // ============================================================================
 // LLM Response Processing
@@ -28,9 +49,13 @@ pub fn process_llm_response(
         ));
     }
 
+    // FSM: LlmStreaming -> LlmCommitted (runner set LlmStreaming before calling)
+    transition_and_log(state, AgentFsmState::LlmStreaming, AgentFsmState::LlmCommitted)?;
+
     let parsed: serde_json::Value = match serde_json::from_str(llm_response_content) {
         Ok(value) => value,
         Err(_) => {
+            transition_and_log(state, AgentFsmState::LlmCommitted, AgentFsmState::Final)?;
             return Ok(AgentAction::Final {
                 response: serde_json::Value::String(llm_response_content.to_string()),
             });
@@ -38,11 +63,23 @@ pub fn process_llm_response(
     };
 
     if let Some(tool_action) = parse_generic_tool_action(&parsed)? {
-        state.current_step += 1;
+        match &tool_action {
+            AgentAction::CallTool { .. } => {
+                state.current_step += 1;
+                transition_and_log(state, AgentFsmState::LlmCommitted, AgentFsmState::ToolRequested)?;
+            }
+            AgentAction::Final { .. } => {
+                transition_and_log(state, AgentFsmState::LlmCommitted, AgentFsmState::Final)?;
+            }
+            AgentAction::Retry { .. } => {
+                transition_and_log(state, AgentFsmState::LlmCommitted, AgentFsmState::Idle)?;
+            }
+        }
         return Ok(tool_action);
     }
 
     if let Some(final_response) = parse_final_response(&parsed) {
+        transition_and_log(state, AgentFsmState::LlmCommitted, AgentFsmState::Final)?;
         return Ok(AgentAction::Final {
             response: final_response,
         });
@@ -143,6 +180,9 @@ pub fn process_tool_result(
             step_id: state.current_step,
         }),
     });
+
+    // FSM: ToolRequested -> ToolResultProcessed
+    transition_and_log(state, AgentFsmState::ToolRequested, AgentFsmState::ToolResultProcessed)?;
 
     Ok(message)
 }

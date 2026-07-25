@@ -45,8 +45,8 @@ pub struct AgentStateSnapshot {
     pub context_id: ContextId,
     /// Agent profile ID
     pub agent_id: String,
-    /// Serialized FSM state
-    pub fsm_state: String,
+    /// Typed FSM state
+    pub fsm_state: crate::domain::fsm::AgentFsmState,
     /// Conversation history
     pub history: Vec<crate::domain::message_types::Message>,
     /// Tool execution cache
@@ -79,7 +79,7 @@ impl AgentStateSnapshot {
             schema_version: STATE_SCHEMA_VERSION,
             context_id,
             agent_id,
-            fsm_state: "Idle".to_string(),
+            fsm_state: crate::domain::fsm::AgentFsmState::initial(),
             history: Vec::new(),
             tool_cache: HashMap::new(),
             context_vars: HashMap::new(),
@@ -113,6 +113,22 @@ impl AgentStateSnapshot {
             state.agent_id, state.context_id
         ));
         Ok(state)
+    }
+
+    /// Transition FSM state, returning error if transition is invalid.
+    /// Logs the transition at debug level on success, warn level on failure.
+    pub fn transition_fsm(
+        &mut self,
+        next: crate::domain::fsm::AgentFsmState,
+    ) -> Result<(), crate::domain::fsm::FsmTransitionError> {
+        let from = self.fsm_state;
+        self.fsm_state.transition_to(next).map(|_| {
+            let log = AgentLogger::new(&crate::logging::get_active_session());
+            log.debug(format!(
+                "FSM transition: {} -> {} | agent_id={} context_id={}",
+                from, next, self.agent_id, self.context_id
+            ));
+        })
     }
 }
 

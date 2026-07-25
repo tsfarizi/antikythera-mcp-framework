@@ -1,6 +1,7 @@
 pub mod content;
 pub mod dynamic_value;
 pub mod entities;
+pub mod fsm;
 pub mod message_types;
 pub mod sanitize;
 pub mod session;

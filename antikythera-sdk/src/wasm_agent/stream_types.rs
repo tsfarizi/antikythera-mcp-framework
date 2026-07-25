@@ -19,6 +19,7 @@ pub enum StreamEventKind {
     SessionRestoreProgress,
     SessionRestored,
     Telemetry,
+    FsmStateChanged,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,6 +52,7 @@ pub struct TelemetrySnapshot {
     pub counters: TelemetryCounters,
     pub total_prepare_latency_ms: u64,
     pub total_commit_latency_ms: u64,
+    pub fsm_state: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

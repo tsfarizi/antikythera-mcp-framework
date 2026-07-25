@@ -8,5 +8,6 @@
 .code-review-graph/
 .cargo/
 debug/
+graphify-out/
 .*
 app.toml

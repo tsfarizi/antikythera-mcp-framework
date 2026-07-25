@@ -23,11 +23,11 @@ name = "antikythera-config"
 path = "src/bin/config.rs"
 
 [dependencies]
-antikythera-core = { path = "../antikythera-core", version = "1.0.0", features = ["full"] }
-antikythera-sdk = { path = "../antikythera-sdk", version = "1.0.0", features = ["component"] }
-antikythera-log = { path = "../antikythera-log", version = "1.0.0" }
-antikythera-session = { path = "../antikythera-session", version = "1.0.0" }
-antikythera-storage = { path = "../antikythera-storage", version = "1.1.0", features = ["filesystem"] }
+antikythera-core = { path = "../../antikythera-core", version = "1.0.0", features = ["full"] }
+antikythera-sdk = { path = "../../antikythera-sdk", version = "1.0.0", features = ["component"] }
+antikythera-log = { path = "../../antikythera-log", version = "1.0.0" }
+antikythera-session = { path = "../../antikythera-session", version = "1.0.0" }
+antikythera-storage = { path = "../../antikythera-storage", version = "1.1.0", features = ["filesystem"] }
 
 # Core async runtime
 tokio.workspace = true
@@ -68,4 +68,4 @@ regex = "1.10"
 tempfile = "3.10"
 tokio = { version = "1.39", features = ["test-util"] }
 serial_test = "3.0"
-antikythera-sdk = { path = "../antikythera-sdk", version = "1.0.0", features = ["component"] }
+antikythera-sdk = { path = "../../antikythera-sdk", version = "1.0.0", features = ["component"] }

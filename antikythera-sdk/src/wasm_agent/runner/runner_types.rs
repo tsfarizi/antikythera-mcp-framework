@@ -45,6 +45,7 @@ pub(super) struct CommitResult {
     pub content: Option<String>,
     pub tool_name: Option<String>,
     pub tool_input: Option<serde_json::Value>,
+    pub fsm_state: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
