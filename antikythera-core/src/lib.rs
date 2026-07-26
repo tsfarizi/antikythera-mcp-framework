@@ -31,8 +31,8 @@ pub mod security;
 pub mod logging;
 
 // Re-export commonly used types
-pub use application::agent::{Agent, AgentOptions, AgentOutcome, ToolDescriptor};
 pub use application::agent::events::DomainEvent;
+pub use application::agent::{Agent, AgentOptions, AgentOutcome, ToolDescriptor};
 
 // Re-export agent client types for backward compatibility
 pub use application::agent::client::{

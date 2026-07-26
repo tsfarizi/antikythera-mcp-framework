@@ -6,7 +6,10 @@ fn test_config_defaults() {
 
     assert_eq!(config.backend, "filesystem");
     assert_eq!(config.data_dir, std::path::PathBuf::from("./data/sessions"));
-    assert_eq!(config.backup_dir, std::path::PathBuf::from("./data/backups"));
+    assert_eq!(
+        config.backup_dir,
+        std::path::PathBuf::from("./data/backups")
+    );
     assert_eq!(config.mode, "embedded");
 
     // Cache defaults
@@ -68,7 +71,10 @@ collection = "mycol"
     assert_eq!(config.backend, "mongodb");
     assert_eq!(config.mode, "standalone");
     assert_eq!(config.data_dir, std::path::PathBuf::from("/custom/data"));
-    assert_eq!(config.backup_dir, std::path::PathBuf::from("/custom/backups"));
+    assert_eq!(
+        config.backup_dir,
+        std::path::PathBuf::from("/custom/backups")
+    );
 
     assert!(!config.cache.enabled);
     assert_eq!(config.cache.max_sessions, 256);

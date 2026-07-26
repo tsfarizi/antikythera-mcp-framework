@@ -17,6 +17,7 @@ wasm = []
 
 [dependencies]
 # Workspace dependencies
+antikythera-domain = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 async-trait = { workspace = true }

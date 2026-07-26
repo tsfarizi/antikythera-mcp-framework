@@ -115,10 +115,7 @@ fn generate_wit() {
             fs::create_dir_all(&wit_dir).expect("Failed to create wit directory");
             fs::write(&wit_file, &wit_content).expect("Failed to write WIT file");
 
-            println!(
-                "{GREEN}✓ WIT generated: {}{RESET}",
-                wit_file.display()
-            );
+            println!("{GREEN}✓ WIT generated: {}{RESET}", wit_file.display());
             println!(
                 "\n{BLUE}Generated WIT preview:{RESET}\n{}",
                 &wit_content[..wit_content.len().min(500)]

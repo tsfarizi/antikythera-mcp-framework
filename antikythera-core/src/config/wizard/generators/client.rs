@@ -5,8 +5,8 @@
 //! - `[[servers]]` - MCP server definitions
 //! - `[server]` - REST settings (CORS, docs)
 
-use crate::config::toml_config;
 use crate::config::AppConfig;
+use crate::config::toml_config;
 use crate::logging::ConfigLogger;
 use std::error::Error;
 
@@ -123,15 +123,13 @@ pub fn add_provider(
 
     let mut config = load_or_default(&log)?;
 
-    config
-        .providers
-        .push(crate::config::ProviderConfig {
-            id: provider_id.to_string(),
-            provider_type: provider_type.to_string(),
-            endpoint: endpoint.to_string(),
-            api_key: api_key_env.unwrap_or("").to_string(),
-            models: Vec::new(),
-        });
+    config.providers.push(crate::config::ProviderConfig {
+        id: provider_id.to_string(),
+        provider_type: provider_type.to_string(),
+        endpoint: endpoint.to_string(),
+        api_key: api_key_env.unwrap_or("").to_string(),
+        models: Vec::new(),
+    });
 
     log.info(format!(
         "Writing config with new provider | provider={}",
@@ -155,11 +153,7 @@ pub fn update_provider(
 
     let mut config = load_or_default(&log)?;
 
-    if let Some(provider) = config
-        .providers
-        .iter_mut()
-        .find(|p| p.id == provider_id)
-    {
+    if let Some(provider) = config.providers.iter_mut().find(|p| p.id == provider_id) {
         provider.endpoint = new_endpoint.to_string();
         provider.api_key = new_api_key_env.to_string();
     } else {
@@ -189,17 +183,11 @@ pub fn add_model_to_provider(
 
     let mut config = load_or_default(&log)?;
 
-    if let Some(provider) = config
-        .providers
-        .iter_mut()
-        .find(|p| p.id == provider_id)
-    {
-        provider
-            .models
-            .push(crate::config::ModelInfo {
-                name: model_name.to_string(),
-                display_name: display_name.to_string(),
-            });
+    if let Some(provider) = config.providers.iter_mut().find(|p| p.id == provider_id) {
+        provider.models.push(crate::config::ModelInfo {
+            name: model_name.to_string(),
+            display_name: display_name.to_string(),
+        });
     } else {
         log.error(format!("Provider not found | provider={}", provider_id));
         return Err(format!("Provider '{}' not found", provider_id).into());
@@ -226,11 +214,7 @@ pub fn remove_model_from_provider(
 
     let mut config = load_or_default(&log)?;
 
-    if let Some(provider) = config
-        .providers
-        .iter_mut()
-        .find(|p| p.id == provider_id)
-    {
+    if let Some(provider) = config.providers.iter_mut().find(|p| p.id == provider_id) {
         provider.models.retain(|m| m.name != model_name);
     } else {
         log.error(format!("Provider not found | provider={}", provider_id));
@@ -255,20 +239,18 @@ pub fn add_server(name: &str, command: &str, args: &[String]) -> Result<(), Box<
 
     let mut config = load_or_default(&log)?;
 
-    config
-        .servers
-        .push(crate::config::ServerConfig {
-            name: name.to_string(),
-            transport: crate::config::TransportType::Stdio,
-            command: Some(std::path::PathBuf::from(command)),
-            args: args.to_vec(),
-            env: std::collections::HashMap::new(),
-            workdir: None,
-            url: None,
-            headers: std::collections::HashMap::new(),
-            default_timezone: None,
-            default_city: None,
-        });
+    config.servers.push(crate::config::ServerConfig {
+        name: name.to_string(),
+        transport: crate::config::TransportType::Stdio,
+        command: Some(std::path::PathBuf::from(command)),
+        args: args.to_vec(),
+        env: std::collections::HashMap::new(),
+        workdir: None,
+        url: None,
+        headers: std::collections::HashMap::new(),
+        default_timezone: None,
+        default_city: None,
+    });
 
     log.info(format!("Writing config with new server | server={}", name));
     toml_config::save_config(&config, None).map_err(|e| {
@@ -289,20 +271,18 @@ pub fn add_http_server(
 
     let mut config = load_or_default(&log)?;
 
-    config
-        .servers
-        .push(crate::config::ServerConfig {
-            name: name.to_string(),
-            transport: crate::config::TransportType::Http,
-            command: None,
-            args: Vec::new(),
-            env: std::collections::HashMap::new(),
-            workdir: None,
-            url: Some(url.to_string()),
-            headers: headers.clone(),
-            default_timezone: None,
-            default_city: None,
-        });
+    config.servers.push(crate::config::ServerConfig {
+        name: name.to_string(),
+        transport: crate::config::TransportType::Http,
+        command: None,
+        args: Vec::new(),
+        env: std::collections::HashMap::new(),
+        workdir: None,
+        url: Some(url.to_string()),
+        headers: headers.clone(),
+        default_timezone: None,
+        default_city: None,
+    });
 
     log.info(format!(
         "Writing config with new HTTP server | server={}",

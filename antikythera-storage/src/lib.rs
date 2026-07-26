@@ -130,8 +130,7 @@ impl StorageEngine {
         if self.config.cache.enabled
             && let Some(ref d) = data
         {
-            self.cache
-                .insert(session_id.to_string(), d.clone());
+            self.cache.insert(session_id.to_string(), d.clone());
         }
 
         Ok(data)

@@ -82,8 +82,8 @@ pub mod wasm_compat;
 #[cfg(feature = "subscriber")]
 pub mod subscriber;
 
-pub mod session_logs;
 pub mod session_logger;
+pub mod session_logs;
 
 /// Compile-time lint module.
 ///
@@ -99,8 +99,8 @@ pub use logger::*;
 #[cfg(feature = "subscriber")]
 pub use subscriber::{LogSender, LogSubscriber};
 
-pub use session_logs::{BatchLogExport, SessionLogExport};
 pub use session_logger::{SessionLogger, clear_all_loggers, get_logger, logger_count};
+pub use session_logs::{BatchLogExport, SessionLogExport};
 
 /// Shared trait for Postcard binary serialization / deserialization.
 ///

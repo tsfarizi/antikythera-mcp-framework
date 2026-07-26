@@ -21,7 +21,10 @@ pub enum StorageError {
     Config(String),
 
     #[error("Path error: {path}")]
-    Path { path: PathBuf, source: std::io::Error },
+    Path {
+        path: PathBuf,
+        source: std::io::Error,
+    },
 
     #[error("Cache error: {0}")]
     Cache(String),

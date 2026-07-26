@@ -23,7 +23,10 @@ fn transition_and_log(
             get_sdk_logger(&state.session_id).log_with_source(
                 LogLevel::Debug,
                 "processor",
-                format!("FSM transition: {} -> {} | step={}", from, to, state.current_step),
+                format!(
+                    "FSM transition: {} -> {} | step={}",
+                    from, to, state.current_step
+                ),
             );
         })
         .map_err(|e| e.to_string())
@@ -50,7 +53,11 @@ pub fn process_llm_response(
     }
 
     // FSM: LlmStreaming -> LlmCommitted (runner set LlmStreaming before calling)
-    transition_and_log(state, AgentFsmState::LlmStreaming, AgentFsmState::LlmCommitted)?;
+    transition_and_log(
+        state,
+        AgentFsmState::LlmStreaming,
+        AgentFsmState::LlmCommitted,
+    )?;
 
     let parsed: serde_json::Value = match serde_json::from_str(llm_response_content) {
         Ok(value) => value,
@@ -66,7 +73,11 @@ pub fn process_llm_response(
         match &tool_action {
             AgentAction::CallTool { .. } => {
                 state.current_step += 1;
-                transition_and_log(state, AgentFsmState::LlmCommitted, AgentFsmState::ToolRequested)?;
+                transition_and_log(
+                    state,
+                    AgentFsmState::LlmCommitted,
+                    AgentFsmState::ToolRequested,
+                )?;
             }
             AgentAction::Final { .. } => {
                 transition_and_log(state, AgentFsmState::LlmCommitted, AgentFsmState::Final)?;
@@ -182,7 +193,11 @@ pub fn process_tool_result(
     });
 
     // FSM: ToolRequested -> ToolResultProcessed
-    transition_and_log(state, AgentFsmState::ToolRequested, AgentFsmState::ToolResultProcessed)?;
+    transition_and_log(
+        state,
+        AgentFsmState::ToolRequested,
+        AgentFsmState::ToolResultProcessed,
+    )?;
 
     Ok(message)
 }

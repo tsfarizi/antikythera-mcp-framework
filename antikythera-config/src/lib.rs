@@ -31,10 +31,10 @@ pub mod toml_config;
 pub mod schema;
 
 pub use app::{
-    AgentConfig, AppConfig, DocServerConfig, ModelConfig, ModelInfo, ProviderConfig, PromptsConfig,
+    AgentConfig, AppConfig, DocServerConfig, ModelConfig, ModelInfo, PromptsConfig, ProviderConfig,
     RestServerConfig,
 };
 pub use error::ConfigError;
 pub use server::{ServerConfig, TransportType};
-pub use tool::ToolConfig;
 pub use toml_config::{CONFIG_PATH, ENV_PATH};
+pub use tool::ToolConfig;

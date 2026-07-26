@@ -4,12 +4,12 @@
 //! correctly end-to-end from an external crate perspective, mirroring the
 //! access pattern a host application would use.
 
-use antikythera_core::domain::types::{ChatMessage, MessageRole};
 use antikythera_core::application::resilience::{
     ContextWindowPolicy, HealthStatus, HealthTracker, InMemoryAuditSink, PolicyAuditEvent,
     PolicyAuditSink, PolicyEventType, ResilienceConfig, ResilienceManager, RetryPolicy,
     TimeoutPolicy, TokenEstimator, prune_messages, with_retry, with_retry_if,
 };
+use antikythera_core::domain::types::{ChatMessage, MessageRole};
 
 // Split into 13 parts for consistent test organization.
 include!("resilience_tests/retry_timeout_serialization.rs");

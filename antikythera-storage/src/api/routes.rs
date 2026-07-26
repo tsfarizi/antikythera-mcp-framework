@@ -1,12 +1,14 @@
 //! HTTP route handlers for session CRUD operations.
 
 use axum::{
+    Json, Router,
     extract::{Path, State},
     http::StatusCode,
-    Json, Router,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
+
+use antikythera_domain::session::Session;
 
 use crate::StorageEngine;
 
@@ -28,12 +30,13 @@ async fn health_check() -> Json<serde_json::Value> {
 async fn get_session(
     State(engine): State<Arc<Mutex<StorageEngine>>>,
     Path(id): Path<String>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> Result<Json<Session>, StatusCode> {
     let mut engine = engine.lock().await;
     match engine.load(&id).await {
         Ok(Some(data)) => {
-            let value: serde_json::Value = serde_json::from_slice(&data).unwrap_or_default();
-            Ok(Json(value))
+            let session: Session =
+                serde_json::from_slice(&data).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            Ok(Json(session))
         }
         Ok(None) => Err(StatusCode::NOT_FOUND),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -43,9 +46,9 @@ async fn get_session(
 async fn save_session(
     State(engine): State<Arc<Mutex<StorageEngine>>>,
     Path(id): Path<String>,
-    Json(body): Json<serde_json::Value>,
+    Json(session): Json<Session>,
 ) -> Result<StatusCode, StatusCode> {
-    let data = serde_json::to_vec(&body).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let data = serde_json::to_vec(&session).map_err(|_| StatusCode::BAD_REQUEST)?;
     let mut engine = engine.lock().await;
     engine
         .save(&id, data)

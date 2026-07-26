@@ -1,7 +1,7 @@
 //! Streaming request definitions
 
-use crate::types::StreamingMode;
 use crate::buffer::BufferPolicy;
+use crate::types::StreamingMode;
 use serde::{Deserialize, Serialize};
 
 /// Streaming request describing what kind of incremental output is wanted.

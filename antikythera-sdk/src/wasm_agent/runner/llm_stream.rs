@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use antikythera_log::LogLevel;
 
 use super::runner_types::*;
-use super::{new_session_id, now_unix_ms, wasm_log, AgentRunnerError, AgentRunnerRuntime};
+use super::{AgentRunnerError, AgentRunnerRuntime, new_session_id, now_unix_ms, wasm_log};
 use crate::wasm_agent::processor::{build_llm_messages, process_llm_response, validate_tool_call};
 use crate::wasm_agent::types::{
     AgentAction, AgentFsmState, AgentMessage, StreamEventKind, ToolCall,
@@ -23,7 +23,10 @@ impl AgentRunnerRuntime {
     /// Validates the request, manages session lifecycle (restore detection,
     /// FSM transitions), builds the message list, and returns a serialized
     /// [`PreparedTurn`] that the host can hand to the LLM provider.
-    pub(super) fn prepare_user_turn(&mut self, request_json: &str) -> Result<String, AgentRunnerError> {
+    pub(super) fn prepare_user_turn(
+        &mut self,
+        request_json: &str,
+    ) -> Result<String, AgentRunnerError> {
         let started_ms = now_unix_ms();
         let input: PrepareUserTurnInput = serde_json::from_str(request_json).map_err(|e| {
             AgentRunnerError::ValidationFailed(format!("Invalid request-json: {e}"))

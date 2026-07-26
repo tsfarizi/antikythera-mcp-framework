@@ -3,7 +3,14 @@ use serde_json::{Value, json};
 pub struct ToolResultParser;
 
 impl ToolResultParser {
-    pub fn format_single(tool: String, input: Value, success: bool, output: Value, message: Option<String>, instruction: &str) -> String {
+    pub fn format_single(
+        tool: String,
+        input: Value,
+        success: bool,
+        output: Value,
+        message: Option<String>,
+        instruction: &str,
+    ) -> String {
         json!({
             "tool_result": {
                 "tool": tool,
@@ -25,7 +32,13 @@ impl ToolResultParser {
         .to_string()
     }
 
-    pub fn single_result_value(tool: String, input: Value, success: bool, output: Value, message: Option<String>) -> Value {
+    pub fn single_result_value(
+        tool: String,
+        input: Value,
+        success: bool,
+        output: Value,
+        message: Option<String>,
+    ) -> Value {
         json!({
             "tool": tool,
             "input": input,

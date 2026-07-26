@@ -109,8 +109,7 @@ fn wasm_fsm_matches_expected_transition_matrix() {
                 assert!(
                     also_pure,
                     "WASM: can_transition_to should agree for {:?} -> {:?}",
-                    from,
-                    to
+                    from, to
                 );
             } else {
                 assert!(
@@ -119,15 +118,11 @@ fn wasm_fsm_matches_expected_transition_matrix() {
                     from,
                     to
                 );
-                assert_eq!(
-                    state, from,
-                    "WASM: state must not change on rejection"
-                );
+                assert_eq!(state, from, "WASM: state must not change on rejection");
                 assert!(
                     !also_pure,
                     "WASM: can_transition_to should be false for {:?} -> {:?}",
-                    from,
-                    to
+                    from, to
                 );
             }
         }
@@ -158,8 +153,7 @@ fn core_fsm_matches_expected_transition_matrix() {
                 assert!(
                     also_pure,
                     "CORE: can_transition_to should agree for {:?} -> {:?}",
-                    from,
-                    to
+                    from, to
                 );
             } else {
                 assert!(
@@ -168,15 +162,11 @@ fn core_fsm_matches_expected_transition_matrix() {
                     from,
                     to
                 );
-                assert_eq!(
-                    state, from,
-                    "CORE: state must not change on rejection"
-                );
+                assert_eq!(state, from, "CORE: state must not change on rejection");
                 assert!(
                     !also_pure,
                     "CORE: can_transition_to should be false for {:?} -> {:?}",
-                    from,
-                    to
+                    from, to
                 );
             }
         }
@@ -192,18 +182,8 @@ fn wasm_and_core_agree_on_validity_for_every_pair() {
     for &from in ALL_STATES_WASM {
         for &to in ALL_STATES_WASM {
             // Map WASM state to core state by variant name (positional)
-            let core_from = state_at_core(
-                ALL_STATES_WASM
-                    .iter()
-                    .position(|&s| s == from)
-                    .unwrap(),
-            );
-            let core_to = state_at_core(
-                ALL_STATES_WASM
-                    .iter()
-                    .position(|&s| s == to)
-                    .unwrap(),
-            );
+            let core_from = state_at_core(ALL_STATES_WASM.iter().position(|&s| s == from).unwrap());
+            let core_to = state_at_core(ALL_STATES_WASM.iter().position(|&s| s == to).unwrap());
 
             let wasm_valid = from.can_transition_to(&to);
             let core_valid = core_from.can_transition_to(&core_to);
@@ -225,18 +205,8 @@ fn wasm_and_core_agree_on_validity_for_every_pair() {
 fn wasm_and_core_return_same_result_for_every_pair() {
     for &from in ALL_STATES_WASM {
         for &to in ALL_STATES_WASM {
-            let core_from = state_at_core(
-                ALL_STATES_WASM
-                    .iter()
-                    .position(|&s| s == from)
-                    .unwrap(),
-            );
-            let core_to = state_at_core(
-                ALL_STATES_WASM
-                    .iter()
-                    .position(|&s| s == to)
-                    .unwrap(),
-            );
+            let core_from = state_at_core(ALL_STATES_WASM.iter().position(|&s| s == from).unwrap());
+            let core_to = state_at_core(ALL_STATES_WASM.iter().position(|&s| s == to).unwrap());
 
             let mut wasm_state = from;
             let wasm_result = wasm_state.transition_to(to);

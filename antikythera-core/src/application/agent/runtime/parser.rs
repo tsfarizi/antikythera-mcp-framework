@@ -3,7 +3,11 @@ use crate::logging::{AgentLogger, SessionContext};
 use std::time::Instant;
 
 impl ToolRuntime {
-    pub fn parse_agent_action(&self, content: &str, ctx: &SessionContext) -> Result<AgentDirective, AgentError> {
+    pub fn parse_agent_action(
+        &self,
+        content: &str,
+        ctx: &SessionContext,
+    ) -> Result<AgentDirective, AgentError> {
         let log = AgentLogger::from_context(ctx);
         let start_time = Instant::now();
         let result = if let Some(value) = extract_json(content) {
@@ -21,7 +25,11 @@ impl ToolRuntime {
         result
     }
 
-    fn parse_action_value(&self, value: Value, ctx: &SessionContext) -> Result<AgentDirective, AgentError> {
+    fn parse_action_value(
+        &self,
+        value: Value,
+        ctx: &SessionContext,
+    ) -> Result<AgentDirective, AgentError> {
         let log = AgentLogger::from_context(ctx);
         match value {
             Value::Object(map) => {

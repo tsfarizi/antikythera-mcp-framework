@@ -17,6 +17,5 @@ use crate::StorageEngine;
 
 /// Build the REST API router for standalone storage service.
 pub fn build_router(engine: Arc<Mutex<StorageEngine>>) -> Router {
-    Router::new()
-        .nest("/api", routes::api_routes(engine))
+    Router::new().nest("/api", routes::api_routes(engine))
 }

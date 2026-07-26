@@ -49,10 +49,7 @@ impl StorageBackend for FilesystemBackend {
         tokio::task::spawn_blocking(move || std::fs::write(&path_clone, data))
             .await
             .map_err(|e| StorageError::Backend(e.to_string()))?
-            .map_err(|e| StorageError::Path {
-                path,
-                source: e,
-            })
+            .map_err(|e| StorageError::Path { path, source: e })
     }
 
     async fn load(&self, session_id: &str) -> Result<Option<Vec<u8>>, StorageError> {
@@ -66,10 +63,7 @@ impl StorageBackend for FilesystemBackend {
                 if e.kind() == std::io::ErrorKind::NotFound {
                     Ok(None)
                 } else {
-                    Err(StorageError::Path {
-                        path,
-                        source: e,
-                    })
+                    Err(StorageError::Path { path, source: e })
                 }
             })
     }
@@ -80,10 +74,7 @@ impl StorageBackend for FilesystemBackend {
         tokio::task::spawn_blocking(move || match std::fs::remove_file(&path_clone) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(e) => Err(StorageError::Path {
-                path,
-                source: e,
-            }),
+            Err(e) => Err(StorageError::Path { path, source: e }),
         })
         .await
         .map_err(|e| StorageError::Backend(e.to_string()))?
@@ -113,10 +104,7 @@ impl StorageBackend for FilesystemBackend {
         tokio::task::spawn_blocking(move || match std::fs::metadata(&path_clone) {
             Ok(_) => Ok(true),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
-            Err(e) => Err(StorageError::Path {
-                path,
-                source: e,
-            }),
+            Err(e) => Err(StorageError::Path { path, source: e }),
         })
         .await
         .map_err(|e| StorageError::Backend(e.to_string()))?
@@ -129,10 +117,7 @@ impl StorageBackend for FilesystemBackend {
         tokio::task::spawn_blocking(move || std::fs::write(&path_clone, data))
             .await
             .map_err(|e| StorageError::Backend(e.to_string()))?
-            .map_err(|e| StorageError::Path {
-                path,
-                source: e,
-            })
+            .map_err(|e| StorageError::Path { path, source: e })
     }
 
     async fn sync_backup(&self, session_id: &str) -> Result<(), StorageError> {
@@ -142,9 +127,9 @@ impl StorageBackend for FilesystemBackend {
         tokio::task::spawn_blocking(move || std::fs::copy(&backup, &target))
             .await
             .map_err(|e| StorageError::Backend(e.to_string()))?
-            .map_err(|e| StorageError::Backup(format!(
-                "failed to sync backup for {session_id}: {e}"
-            )))?;
+            .map_err(|e| {
+                StorageError::Backup(format!("failed to sync backup for {session_id}: {e}"))
+            })?;
         Ok(())
     }
 
@@ -154,10 +139,7 @@ impl StorageBackend for FilesystemBackend {
         tokio::task::spawn_blocking(move || match std::fs::metadata(&path_clone) {
             Ok(_) => Ok(true),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
-            Err(e) => Err(StorageError::Path {
-                path,
-                source: e,
-            }),
+            Err(e) => Err(StorageError::Path { path, source: e }),
         })
         .await
         .map_err(|e| StorageError::Backend(e.to_string()))?
@@ -169,10 +151,7 @@ impl StorageBackend for FilesystemBackend {
         tokio::task::spawn_blocking(move || match std::fs::remove_file(&path_clone) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(e) => Err(StorageError::Path {
-                path,
-                source: e,
-            }),
+            Err(e) => Err(StorageError::Path { path, source: e }),
         })
         .await
         .map_err(|e| StorageError::Backend(e.to_string()))?

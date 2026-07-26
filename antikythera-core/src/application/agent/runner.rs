@@ -60,7 +60,10 @@ impl<P: ModelProvider> Agent<P> {
         // Rate limit check before making LLM calls
         if let Some(ref limiter) = self.rate_limiter {
             let sid = options.session_id.as_deref().unwrap_or("default");
-            limiter.check_rate_limit(sid).await.map_err(|_| AgentError::RateLimited)?;
+            limiter
+                .check_rate_limit(sid)
+                .await
+                .map_err(|_| AgentError::RateLimited)?;
         }
         let mut session_id = options.session_id.clone();
         let mut steps = Vec::new();
@@ -161,7 +164,10 @@ impl<P: ModelProvider> Agent<P> {
             // Rate limit check before each LLM call
             if let Some(ref limiter) = self.rate_limiter {
                 let sid = session_id.as_deref().unwrap_or("default");
-                limiter.check_rate_limit(sid).await.map_err(|_| AgentError::RateLimited)?;
+                limiter
+                    .check_rate_limit(sid)
+                    .await
+                    .map_err(|_| AgentError::RateLimited)?;
             }
             let result = self.client.chat(request).await?;
             logs.extend(result.logs.clone());
@@ -198,8 +204,7 @@ impl<P: ModelProvider> Agent<P> {
                     if let Some(ref sender) = options.event_sender {
                         let _ = sender.send(DomainEvent::AgentRunCompleted {
                             session_id: result.session_id.clone(),
-                            response: serde_json::to_string(&response)
-                                .unwrap_or_default(),
+                            response: serde_json::to_string(&response).unwrap_or_default(),
                             total_steps: steps.len(),
                         });
                     }
@@ -375,5 +380,4 @@ impl<P: ModelProvider> Agent<P> {
 
         Ok((outcome, final_response))
     }
-
 }

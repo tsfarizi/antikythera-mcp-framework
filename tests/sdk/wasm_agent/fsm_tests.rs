@@ -40,8 +40,14 @@ const VALID_TRANSITIONS: &[(AgentFsmState, AgentFsmState)] = &[
     (AgentFsmState::LlmCommitted, AgentFsmState::ToolRequested),
     (AgentFsmState::LlmCommitted, AgentFsmState::Final),
     (AgentFsmState::LlmCommitted, AgentFsmState::Idle),
-    (AgentFsmState::ToolRequested, AgentFsmState::ToolResultProcessed),
-    (AgentFsmState::ToolResultProcessed, AgentFsmState::LlmStreaming),
+    (
+        AgentFsmState::ToolRequested,
+        AgentFsmState::ToolResultProcessed,
+    ),
+    (
+        AgentFsmState::ToolResultProcessed,
+        AgentFsmState::LlmStreaming,
+    ),
     (AgentFsmState::ToolResultProcessed, AgentFsmState::Final),
     (AgentFsmState::ToolResultProcessed, AgentFsmState::Idle),
     (AgentFsmState::Final, AgentFsmState::Idle),
@@ -264,10 +270,7 @@ fn can_transition_to_is_pure_function() {
         for &to in ALL_STATES {
             let state_before = from;
             let _result = from.can_transition_to(&to);
-            assert_eq!(
-                from, state_before,
-                "can_transition_to must not mutate self"
-            );
+            assert_eq!(from, state_before, "can_transition_to must not mutate self");
         }
     }
 }
@@ -310,7 +313,10 @@ fn display_idle() {
 
 #[test]
 fn display_user_turn_prepared() {
-    assert_eq!(AgentFsmState::UserTurnPrepared.to_string(), "user_turn_prepared");
+    assert_eq!(
+        AgentFsmState::UserTurnPrepared.to_string(),
+        "user_turn_prepared"
+    );
 }
 
 #[test]
@@ -363,7 +369,10 @@ fn serialization_uses_snake_case_strings() {
         (AgentFsmState::LlmStreaming, "\"llm_streaming\""),
         (AgentFsmState::LlmCommitted, "\"llm_committed\""),
         (AgentFsmState::ToolRequested, "\"tool_requested\""),
-        (AgentFsmState::ToolResultProcessed, "\"tool_result_processed\""),
+        (
+            AgentFsmState::ToolResultProcessed,
+            "\"tool_result_processed\"",
+        ),
         (AgentFsmState::Final, "\"final\""),
     ];
     for &(state, expected_json) in cases {
@@ -401,11 +410,7 @@ fn deserialization_rejects_non_string() {
     let bad_inputs = &["null", "42", "true", "{}", "[]"];
     for input in bad_inputs {
         let result = serde_json::from_str::<AgentFsmState>(input);
-        assert!(
-            result.is_err(),
-            "deserialization of {} should fail",
-            input
-        );
+        assert!(result.is_err(), "deserialization of {} should fail", input);
     }
 }
 
@@ -618,11 +623,7 @@ fn idle_rejects_all_except_user_turn_prepared() {
         } else {
             let before = state;
             let result = state.transition_to(target);
-            assert!(
-                result.is_err(),
-                "Idle -> {:?} should be rejected",
-                target
-            );
+            assert!(result.is_err(), "Idle -> {:?} should be rejected", target);
             assert_eq!(state, before, "state must not change on rejection");
         }
     }
@@ -638,11 +639,7 @@ fn final_only_allows_transition_to_idle() {
         } else {
             let before = state;
             let result = state.transition_to(target);
-            assert!(
-                result.is_err(),
-                "Final -> {:?} should be rejected",
-                target
-            );
+            assert!(result.is_err(), "Final -> {:?} should be rejected", target);
             assert_eq!(state, before);
         }
     }

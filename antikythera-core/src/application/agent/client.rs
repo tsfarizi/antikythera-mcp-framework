@@ -5,10 +5,10 @@
 //! `antikythera-cli`).
 
 use crate::application::config::{AppConfig, PromptsConfig, ServerConfig, ToolConfig};
-use crate::application::tooling::{ToolServerInterface, transport::McpTransport};
 use crate::application::resilience::ContextWindowPolicy;
-use crate::domain::types::MessagePart;
+use crate::application::tooling::{ToolServerInterface, transport::McpTransport};
 use crate::domain::types::ChatMessage;
+use crate::domain::types::MessagePart;
 use crate::infrastructure::model::{ModelError, ModelRequest};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -214,7 +214,11 @@ pub trait AgentClient: Send + Sync {
 
     /// Record agent execution outcome in session stats.
     #[allow(async_fn_in_trait)]
-    async fn record_agent_outcome(&self, session_id: &str, steps: &[crate::application::agent::AgentStep]);
+    async fn record_agent_outcome(
+        &self,
+        session_id: &str,
+        steps: &[crate::application::agent::AgentStep],
+    );
 }
 
 /// Summarise text to a short preview string.

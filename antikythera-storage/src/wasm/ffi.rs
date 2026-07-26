@@ -19,12 +19,11 @@ pub struct WasmStorageHandle {
 #[allow(clippy::not_unsafe_ptr_arg_deref)]
 #[unsafe(no_mangle)]
 pub extern "C" fn storage_new(config_ptr: *const u8, config_len: usize) -> *mut WasmStorageHandle {
-    let config_str = match unsafe {
-        std::str::from_utf8(std::slice::from_raw_parts(config_ptr, config_len))
-    } {
-        Ok(s) => s,
-        Err(_) => return std::ptr::null_mut(),
-    };
+    let config_str =
+        match unsafe { std::str::from_utf8(std::slice::from_raw_parts(config_ptr, config_len)) } {
+            Ok(s) => s,
+            Err(_) => return std::ptr::null_mut(),
+        };
 
     let config = match StorageConfig::from_toml(config_str) {
         Ok(c) => c,

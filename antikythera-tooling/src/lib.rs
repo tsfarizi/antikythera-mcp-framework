@@ -14,7 +14,7 @@ pub use interface::{
     PROTOCOL_VERSION, ServerToolInfo, TaskSupport, ToolAnnotations, ToolExecution, ToolIcon,
     ToolServerInterface,
 };
-pub use manager::ServerManager;
 pub use manager::ServerInstance;
+pub use manager::ServerManager;
 pub use manager::TransportFactory;
 pub use transport::McpTransport;

@@ -227,6 +227,7 @@ dependencies = [
 name = "antikythera-storage"
 version = "1.5.1"
 dependencies = [
+ "antikythera-domain",
  "async-trait",
  "axum",
  "chrono",

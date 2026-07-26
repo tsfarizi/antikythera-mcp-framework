@@ -15,9 +15,9 @@ mod llm_stream;
 mod runner_telemetry;
 mod runner_types;
 mod session_lifecycle;
-mod tool_pipeline;
 #[cfg(test)]
 mod tests;
+mod tool_pipeline;
 use runner_types::*;
 
 pub(super) fn wasm_log(session_id: &str, level: LogLevel, message: &str) {

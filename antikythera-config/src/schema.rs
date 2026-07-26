@@ -89,7 +89,11 @@ impl Default for PromptsConfig {
 macro_rules! prompt_accessor {
     ($field:ident, $default_fn:ident) => {
         pub fn $field(&self) -> &str {
-            if self.$field.is_empty() { Self::$default_fn() } else { &self.$field }
+            if self.$field.is_empty() {
+                Self::$default_fn()
+            } else {
+                &self.$field
+            }
         }
     };
 }
@@ -149,7 +153,10 @@ impl PromptsConfig {
         if self.fallback_response_keys.is_empty() {
             Self::default_fallback_response_keys().to_vec()
         } else {
-            self.fallback_response_keys.iter().map(String::as_str).collect()
+            self.fallback_response_keys
+                .iter()
+                .map(String::as_str)
+                .collect()
         }
     }
 }

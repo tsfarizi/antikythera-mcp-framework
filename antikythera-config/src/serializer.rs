@@ -7,10 +7,7 @@ use super::schema::AppConfig;
 /// prompt template to a top-level `prompt_template` key so operators
 /// can inspect the active configuration at a glance.
 pub fn to_raw_toml_string(config: &AppConfig) -> String {
-    render_display_toml(
-        config.system_prompt.as_deref(),
-        config.prompt_template(),
-    )
+    render_display_toml(config.system_prompt.as_deref(), config.prompt_template())
 }
 
 fn render_display_toml(system_prompt: Option<&str>, prompt_template: &str) -> String {

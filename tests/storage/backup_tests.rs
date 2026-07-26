@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use antikythera_storage::backend::filesystem::FilesystemBackend;
 use antikythera_storage::backend::StorageBackend;
-use antikythera_storage::backup::verifier;
+use antikythera_storage::backend::filesystem::FilesystemBackend;
 use antikythera_storage::backup::BackupCoordinator;
+use antikythera_storage::backup::verifier;
 use antikythera_storage::config::BackupConfig;
 use tempfile::tempdir;
 
@@ -64,7 +64,9 @@ async fn test_backup_verifier_verify_and_delete() {
     assert!(backup_path.exists());
 
     // Verify sync (primary storage has it) then delete backup
-    let result = verifier::verify_and_delete(backend.as_ref(), session_id).await.unwrap();
+    let result = verifier::verify_and_delete(backend.as_ref(), session_id)
+        .await
+        .unwrap();
     assert!(result);
 
     // Backup should be gone, primary still intact
@@ -103,7 +105,9 @@ async fn test_backup_verifier_delete_when_not_synced() {
     backend.backup(session_id, b"only backup").await.unwrap();
 
     // verify_and_delete should return false since primary doesn't have it
-    let result = verifier::verify_and_delete(&backend, session_id).await.unwrap();
+    let result = verifier::verify_and_delete(&backend, session_id)
+        .await
+        .unwrap();
     assert!(!result);
 
     // Backup should still exist

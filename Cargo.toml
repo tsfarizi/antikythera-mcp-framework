@@ -16,7 +16,6 @@ members = [
     "tests",
     "scripts",
 ]
-exclude = ["example/antikythera-cli"]
 
 [workspace.package]
 version = "1.5.1"
@@ -70,6 +69,9 @@ wasm-bindgen = "0.2.120"
 # API documentation (for core)
 utoipa = "5.4.0"
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum"] }
+
+# Internal crates
+antikythera-domain = { path = "antikythera-domain" }
 
 [profile.release]
 lto = true

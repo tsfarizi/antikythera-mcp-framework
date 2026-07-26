@@ -1,0 +1,47 @@
+{
+  "prepared_turn": {
+    "type": "PreparedTurn",
+    "fields": {
+      "correlation_id": { "type": "string", "description": "Unique identifier for correlating request/response pairs" },
+      "force_json": { "type": "boolean", "description": "Whether to force JSON output format from LLM" },
+      "messages_json": { "type": "string", "description": "JSON-encoded conversation messages array" },
+      "metadata_json": { "type": "string", "description": "JSON-encoded metadata for the turn" },
+      "prompt": { "type": "string", "description": "The user prompt content" },
+      "session_id": { "type": "string", "description": "Session identifier for state tracking" },
+      "step": { "type": "number", "description": "Current step number in the conversation" },
+      "summary_handoff": { "type": "string", "description": "Summary data for handoff between turns" },
+      "system_prompt": { "type": "string", "description": "System prompt to prepend to the conversation" }
+    }
+  },
+  "commit_result": {
+    "type": "CommitResult",
+    "fields": {
+      "action": { "type": "string", "description": "Action identifier for the committed response" },
+      "content": { "type": "string", "description": "Content of the committed LLM response" },
+      "fsm_state": { "type": "string", "description": "Current finite state machine state after commit" },
+      "session_id": { "type": "string", "description": "Session identifier" },
+      "step": { "type": "number", "description": "Step number after commit" },
+      "tool_input": { "type": "string", "description": "JSON-encoded tool input if a tool call was detected" },
+      "tool_name": { "type": "string", "description": "Name of the tool to invoke if applicable" }
+    }
+  },
+  "tool_result": {
+    "type": "ToolResult",
+    "fields": {
+      "next_message": { "type": "string", "description": "Next message to append to the conversation" },
+      "session_id": { "type": "string", "description": "Session identifier" },
+      "step": { "type": "number", "description": "Step number after tool execution" },
+      "tool_result": { "type": "ToolResultInner", "description": "Inner result of the tool execution" }
+    }
+  },
+  "tool_result_inner": {
+    "type": "ToolResultInner",
+    "fields": {
+      "error": { "type": "string", "description": "Error message if tool execution failed" },
+      "name": { "type": "string", "description": "Name of the tool that was executed" },
+      "output": { "type": "string", "description": "JSON-encoded output from the tool" },
+      "step_id": { "type": "number", "description": "Step identifier for this tool execution" },
+      "success": { "type": "boolean", "description": "Whether the tool execution succeeded" }
+    }
+  }
+}

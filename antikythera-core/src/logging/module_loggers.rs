@@ -389,10 +389,18 @@ impl SecurityLogger {
 macro_rules! impl_app_logger {
     ($ty:ty) => {
         impl crate::application::ports::logging::AppLogger for $ty {
-            fn log_info(&self, message: String) { self.info(message); }
-            fn log_warn(&self, message: String) { self.warn(message); }
-            fn log_error(&self, message: String) { self.error(message); }
-            fn log_debug(&self, message: String) { self.debug(message); }
+            fn log_info(&self, message: String) {
+                self.info(message);
+            }
+            fn log_warn(&self, message: String) {
+                self.warn(message);
+            }
+            fn log_error(&self, message: String) {
+                self.error(message);
+            }
+            fn log_debug(&self, message: String) {
+                self.debug(message);
+            }
         }
     };
 }
@@ -410,6 +418,25 @@ impl_app_logger!(OrchestratorLogger);
 impl_app_logger!(StreamingLogger);
 impl_app_logger!(ObservabilityLogger);
 impl_app_logger!(SecurityLogger);
-impl_app_logger!(SessionLogger);
-
 use super::registry::SessionLogger;
+
+/// Newtype adapter wrapping [`antikythera_log::SessionLogger`] to implement
+/// the [`AppLogger`] port trait. Required because both the trait (from
+/// `antikythera_ports`) and the wrapped type (from `antikythera_log`) are
+/// external to this crate, so the orphan rule prevents a direct impl.
+pub struct SessionLoggerAdapter(pub SessionLogger);
+
+impl crate::application::ports::logging::AppLogger for SessionLoggerAdapter {
+    fn log_info(&self, message: String) {
+        self.0.info(message);
+    }
+    fn log_warn(&self, message: String) {
+        self.0.warn(message);
+    }
+    fn log_error(&self, message: String) {
+        self.0.error(message);
+    }
+    fn log_debug(&self, message: String) {
+        self.0.debug(message);
+    }
+}

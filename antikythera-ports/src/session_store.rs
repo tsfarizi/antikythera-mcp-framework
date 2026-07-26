@@ -18,9 +18,5 @@ pub trait SessionStore: Send + Sync {
     fn replace_history(&mut self, session_id: &str, messages: Vec<ChatMessage>);
 
     /// Append messages to a session.
-    fn push_messages(
-        &mut self,
-        session_id: &str,
-        messages: impl IntoIterator<Item = ChatMessage>,
-    );
+    fn push_messages(&mut self, session_id: &str, messages: impl IntoIterator<Item = ChatMessage>);
 }

@@ -1,0 +1,140 @@
+{
+  "world": "antikythera-mcp",
+  "package": "antikythera:mcp-framework@1.0.0",
+  "imports": {
+    "host-imports": {
+      "description": "Host-provided functions that the WASM component imports",
+      "functions": {
+        "call-llm": {
+          "params": [{ "name": "request", "type": "llm-request" }],
+          "returns": "result<llm-response, string>",
+          "description": "Send an LLM request and receive a response"
+        },
+        "emit-tool-call": {
+          "params": [{ "name": "event", "type": "tool-call-event" }],
+          "returns": "result<tool-execution-result, string>",
+          "description": "Emit a tool call event to the host for execution"
+        },
+        "log-message": {
+          "params": [{ "name": "event", "type": "log-event" }],
+          "returns": "void",
+          "description": "Log a message to the host logging system"
+        },
+        "save-state": {
+          "params": [
+            { "name": "context-id", "type": "string" },
+            { "name": "state-json", "type": "string" }
+          ],
+          "returns": "result<_, string>",
+          "description": "Persist session state to host storage"
+        },
+        "load-state": {
+          "params": [{ "name": "context-id", "type": "string" }],
+          "returns": "result<option<string>, string>",
+          "description": "Load previously persisted session state from host storage"
+        }
+      }
+    }
+  },
+  "exports": {
+    "prompt-manager": {
+      "description": "Host-side prompt storage interface",
+      "functions": {
+        "get-prompt": {
+          "params": [{ "name": "prompt-id", "type": "string" }],
+          "returns": "result<option<string>, string>",
+          "description": "Retrieve a prompt template by its identifier"
+        },
+        "list-prompts": {
+          "params": [],
+          "returns": "result<list<string>, string>",
+          "description": "List all available prompt identifiers"
+        }
+      }
+    },
+    "mcp-client": {
+      "description": "Host-side MCP server proxy interface",
+      "functions": {
+        "list-tools": {
+          "params": [{ "name": "server-id", "type": "string" }],
+          "returns": "result<list<tool-call-event>, string>",
+          "description": "List tools exposed by a connected MCP server"
+        },
+        "invoke-tool": {
+          "params": [
+            { "name": "server-id", "type": "string" },
+            { "name": "tool-name", "type": "string" },
+            { "name": "input-json", "type": "string" }
+          ],
+          "returns": "result<tool-execution-result, string>",
+          "description": "Invoke a tool on an MCP server and return the result"
+        }
+      }
+    },
+    "ffi-server": {
+      "description": "Optional REST bridge for non-WASM hosts",
+      "functions": {
+        "start": {
+          "params": [{ "name": "bind-address", "type": "string" }],
+          "returns": "result<_, string>",
+          "description": "Start the HTTP bridge on the given bind address"
+        },
+        "stop": {
+          "params": [],
+          "returns": "result<_, string>",
+          "description": "Gracefully stop the HTTP bridge"
+        }
+      }
+    }
+  },
+  "types": {
+    "llm-request": {
+      "fields": {
+        "provider": "option<string>",
+        "model": "option<string>",
+        "session-id": "option<string>",
+        "messages-json": "string",
+        "force-json": "bool",
+        "temperature": "option<float32>",
+        "max-tokens": "option<u32>",
+        "schema-name": "option<string>",
+        "metadata-json": "option<string>"
+      }
+    },
+    "llm-response": {
+      "fields": {
+        "content": "string",
+        "model": "option<string>",
+        "session-id": "option<string>",
+        "message-json": "option<string>",
+        "tokens-used": "option<u32>",
+        "finish-reason": "option<string>",
+        "raw-response-json": "option<string>"
+      }
+    },
+    "tool-call-event": {
+      "fields": {
+        "tool-name": "string",
+        "arguments-json": "string",
+        "session-id": "option<string>",
+        "step-id": "u32"
+      }
+    },
+    "tool-execution-result": {
+      "fields": {
+        "tool-name": "string",
+        "success": "bool",
+        "output-json": "string",
+        "error-message": "option<string>",
+        "step-id": "u32"
+      }
+    },
+    "log-event": {
+      "fields": {
+        "level": "string",
+        "message": "string",
+        "timestamp": "option<string>"
+      }
+    }
+  }
+}

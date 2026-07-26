@@ -6,7 +6,7 @@
 use antikythera_log::LogLevel;
 
 use super::runner_types::*;
-use super::{now_unix_ms, wasm_log, AgentRunnerError, AgentRunnerRuntime, SessionRuntime};
+use super::{AgentRunnerError, AgentRunnerRuntime, SessionRuntime, now_unix_ms, wasm_log};
 use crate::wasm_agent::types::StreamEventKind;
 
 /// Session lifecycle operations: archive, sweep, enforce capacity, and ensure.

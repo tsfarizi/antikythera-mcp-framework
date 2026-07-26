@@ -3,8 +3,9 @@
 //! Bridges the port traits defined in [`crate::application::ports::logging`]
 //! to the session-based logger registry maintained by `antikythera_log`.
 
+use antikythera_log::Logger;
 use antikythera_log::session_logger;
-use antikythera_log::{LogEntry, LogFilter, Logger};
+use antikythera_ports::types::{LogEntry as PortsLogEntry, LogFilter as PortsLogFilter};
 use std::sync::Arc;
 
 use crate::application::ports::logging::{AppLogger, LogProvider, LogQueryPort};
@@ -55,22 +56,88 @@ impl LogProvider for AntikytheraLogProvider {
     }
 }
 
+/// Convert from `antikythera_log` entry to `antikythera_ports` entry.
+///
+/// Both types are structurally identical (same fields, same semantics);
+/// this bridge exists because the two crates define their own canonical
+/// copies of the log types. The port trait uses `antikythera_ports::types`;
+/// the logger returns `antikythera_log` entries.
+fn log_entry_to_ports(entry: antikythera_log::LogEntry) -> PortsLogEntry {
+    PortsLogEntry {
+        level: log_level_to_ports(entry.level),
+        message: entry.message,
+        timestamp: entry.timestamp,
+        session_id: entry.session_id,
+        source: entry.source,
+        context: entry.context,
+        sequence: entry.sequence,
+    }
+}
+
+fn log_level_to_ports(level: antikythera_log::LogLevel) -> antikythera_ports::types::LogLevel {
+    match level {
+        antikythera_log::LogLevel::Debug => antikythera_ports::types::LogLevel::Debug,
+        antikythera_log::LogLevel::Info => antikythera_ports::types::LogLevel::Info,
+        antikythera_log::LogLevel::Warn => antikythera_ports::types::LogLevel::Warn,
+        antikythera_log::LogLevel::Error => antikythera_ports::types::LogLevel::Error,
+    }
+}
+
+/// Convert from `antikythera_ports` filter to `antikythera_log` filter.
+///
+/// The `antikythera_log::Logger::get_logs` method accepts its own `LogFilter`
+/// type, so we must translate the port's filter before calling into the logger.
+fn ports_filter_to_log(filter: &PortsLogFilter) -> antikythera_log::LogFilter {
+    let mut f = antikythera_log::LogFilter::new();
+    if let Some(level) = filter.min_level {
+        f = f.min_level(ports_level_to_log(level));
+    }
+    if let Some(ref session_id) = filter.session_id {
+        f = f.session(session_id.as_str());
+    }
+    if let Some(ref source) = filter.source {
+        f = f.source(source.as_str());
+    }
+    if let Some(limit) = filter.limit {
+        f = f.limit(limit);
+    }
+    if let Some(offset) = filter.offset {
+        f = f.offset(offset);
+    }
+    f
+}
+
+fn ports_level_to_log(level: antikythera_ports::types::LogLevel) -> antikythera_log::LogLevel {
+    match level {
+        antikythera_ports::types::LogLevel::Debug => antikythera_log::LogLevel::Debug,
+        antikythera_ports::types::LogLevel::Info => antikythera_log::LogLevel::Info,
+        antikythera_ports::types::LogLevel::Warn => antikythera_log::LogLevel::Warn,
+        antikythera_ports::types::LogLevel::Error => antikythera_log::LogLevel::Error,
+    }
+}
+
 /// Queries historical log entries from the session logger registry.
 impl LogQueryPort for AntikytheraLogProvider {
-    fn query_logs(&self, session_id: &str, filter: &LogFilter) -> Vec<LogEntry> {
+    fn query_logs(&self, session_id: &str, filter: &PortsLogFilter) -> Vec<PortsLogEntry> {
         let logger = session_logger::get_logger(session_id);
-        let batch = logger.get_logs(filter);
-        batch.entries
+        let log_filter = ports_filter_to_log(filter);
+        let batch = logger.get_logs(&log_filter);
+        batch.entries.into_iter().map(log_entry_to_ports).collect()
     }
 
-    fn get_latest_logs(&self, session_id: &str, count: usize) -> Vec<LogEntry> {
+    fn get_latest_logs(&self, session_id: &str, count: usize) -> Vec<PortsLogEntry> {
         let logger = session_logger::get_logger(session_id);
-        logger.get_latest(count)
+        logger
+            .get_latest(count)
+            .into_iter()
+            .map(log_entry_to_ports)
+            .collect()
     }
 
-    fn get_logs_json(&self, session_id: &str, filter: &LogFilter) -> Result<String, String> {
+    fn get_logs_json(&self, session_id: &str, filter: &PortsLogFilter) -> Result<String, String> {
         let logger = session_logger::get_logger(session_id);
-        logger.get_logs_json(filter)
+        let log_filter = ports_filter_to_log(filter);
+        logger.get_logs_json(&log_filter)
     }
 }
 

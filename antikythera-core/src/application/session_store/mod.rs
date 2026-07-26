@@ -1,10 +1,14 @@
+pub mod logged_store;
+#[allow(unused_imports)]
+pub use logged_store::LoggedSessionStore;
+
 use std::collections::VecDeque;
 
+use crate::domain::message_types::Message;
+use crate::domain::session_manager::SessionManager;
 use crate::domain::types::ChatMessage;
 use crate::domain::types::MessagePart;
 use crate::logging::SessionLogger;
-use crate::domain::message_types::Message;
-use crate::domain::session_manager::SessionManager;
 
 /// Default maximum number of concurrent sessions kept in memory.
 ///

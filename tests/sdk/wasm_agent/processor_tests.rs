@@ -5,11 +5,11 @@
 //! Anthropic) are intentionally **not** tested here — that parsing is the
 //! host's responsibility via FFI.
 
+use antikythera_sdk::wasm_agent::types::AgentFsmState;
 use antikythera_sdk::{
     AgentAction, AgentState, ToolDefinition, ToolParameterSchema, ToolRegistry,
     ToolValidationError, WasmAgentConfig, process_llm_response, validate_tool_call,
 };
-use antikythera_sdk::wasm_agent::types::AgentFsmState;
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -6,9 +6,9 @@
 /// C FFI exports for WASM consumers.
 pub mod ffi;
 
+use crate::StorageEngine;
 use crate::config::StorageConfig;
 use crate::error::StorageError;
-use crate::StorageEngine;
 
 /// WASM-compatible storage wrapper.
 pub struct WasmStorage {

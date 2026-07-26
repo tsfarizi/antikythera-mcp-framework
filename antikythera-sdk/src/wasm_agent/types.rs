@@ -78,7 +78,10 @@ impl AgentFsmState {
             *self = next;
             Ok(())
         } else {
-            Err(FsmTransitionError { from: *self, to: next })
+            Err(FsmTransitionError {
+                from: *self,
+                to: next,
+            })
         }
     }
 
@@ -289,8 +292,8 @@ impl From<antikythera_core::domain::entities::AgentAction> for AgentAction {
     fn from(core_action: antikythera_core::domain::entities::AgentAction) -> Self {
         match core_action {
             antikythera_core::domain::entities::AgentAction::CallTool(tool_call) => {
-                let input = serde_json::to_value(&tool_call.arguments)
-                    .unwrap_or(serde_json::Value::Null);
+                let input =
+                    serde_json::to_value(&tool_call.arguments).unwrap_or(serde_json::Value::Null);
                 AgentAction::CallTool {
                     tool: tool_call.name,
                     input,

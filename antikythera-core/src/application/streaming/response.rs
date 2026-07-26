@@ -57,7 +57,9 @@ impl StreamingResponse for InMemoryStreamingResponse {
             self.tokens.push(token.clone());
         }
         if self.request.wants_events() {
-            self.events.push(AgentEvent::Token { content: token.clone() });
+            self.events.push(AgentEvent::Token {
+                content: token.clone(),
+            });
         }
         if self.request.wants_tokens() || self.request.wants_events() {
             log.token_emitted(ctx.session_id(), token.len());
@@ -90,10 +92,8 @@ impl StreamingResponse for InMemoryStreamingResponse {
 
     fn set_final_response(&mut self, response: String) {
         if self.request.include_final_response {
-            StreamingLogger::from_context(&SessionContext::default()).debug(format!(
-                "Final response set | len={}",
-                response.len()
-            ));
+            StreamingLogger::from_context(&SessionContext::default())
+                .debug(format!("Final response set | len={}", response.len()));
             self.final_response = Some(response);
         }
     }

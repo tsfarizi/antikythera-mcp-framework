@@ -2,8 +2,8 @@
 //!
 //! Manages multiple concurrent sessions with thread-safe operations.
 
-use super::session::{Session, SessionSummary};
 use super::message_types::Message;
+use super::session::{Session, SessionSummary};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
@@ -182,9 +182,7 @@ impl SessionManager {
             .write()
             .map_err(|e| SessionManagerError::LockPoisoned(format!("delete_session: {}", e)))?;
         match sessions.remove(session_id) {
-            Some(_) => {
-                Ok(())
-            }
+            Some(_) => Ok(()),
             None => Err(SessionManagerError::SessionNotFound(format!(
                 "delete_session: {}",
                 session_id

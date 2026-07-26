@@ -20,11 +20,11 @@
 //! 3. If tool call requested, execute tool and continue
 //! 4. If final response, return to user
 
-mod context;
 pub mod client;
+mod context;
 mod directive;
-pub mod events;
 mod errors;
+pub mod events;
 mod memory;
 mod models;
 mod response_embedder;

@@ -34,7 +34,9 @@ pub enum ConfigError {
     #[error("configuration cache error: {0}")]
     CacheError(String),
 
-    #[error("config schema changed; existing file at {path:?} is unreadable: {reason}. A backup was saved to {backup_path:?}")]
+    #[error(
+        "config schema changed; existing file at {path:?} is unreadable: {reason}. A backup was saved to {backup_path:?}"
+    )]
     SchemaChanged {
         path: PathBuf,
         backup_path: PathBuf,

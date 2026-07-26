@@ -8,6 +8,9 @@ use std::path::PathBuf;
 
 use async_trait::async_trait;
 use sqlx::PgPool;
+use sqlx::types::Json;
+
+use antikythera_domain::session::Session;
 
 use crate::config::PostgresConfig;
 use crate::error::StorageError;
@@ -66,8 +69,7 @@ impl PostgresBackend {
 #[async_trait]
 impl StorageBackend for PostgresBackend {
     async fn save(&self, session_id: &str, data: &[u8]) -> Result<(), StorageError> {
-        let json_value: serde_json::Value =
-            serde_json::from_slice(data).map_err(StorageError::Serialization)?;
+        let session: Session = serde_json::from_slice(data).map_err(StorageError::Serialization)?;
 
         sqlx::query(
             r#"
@@ -77,7 +79,7 @@ impl StorageBackend for PostgresBackend {
             "#,
         )
         .bind(session_id)
-        .bind(json_value)
+        .bind(Json(&session))
         .execute(&self.pool)
         .await
         .map_err(|e| StorageError::Backend(e.to_string()))?;
@@ -86,18 +88,16 @@ impl StorageBackend for PostgresBackend {
     }
 
     async fn load(&self, session_id: &str) -> Result<Option<Vec<u8>>, StorageError> {
-        let result: Option<serde_json::Value> = sqlx::query_scalar(
-            "SELECT data FROM sessions WHERE id = $1",
-        )
-        .bind(session_id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| StorageError::Backend(e.to_string()))?;
+        let result: Option<Json<Session>> =
+            sqlx::query_scalar("SELECT data FROM sessions WHERE id = $1")
+                .bind(session_id)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(|e| StorageError::Backend(e.to_string()))?;
 
         match result {
-            Some(value) => {
-                let bytes =
-                    serde_json::to_vec(&value).map_err(StorageError::Serialization)?;
+            Some(Json(session)) => {
+                let bytes = serde_json::to_vec(&session).map_err(StorageError::Serialization)?;
                 Ok(Some(bytes))
             }
             None => Ok(None),
@@ -124,13 +124,11 @@ impl StorageBackend for PostgresBackend {
     }
 
     async fn exists(&self, session_id: &str) -> Result<bool, StorageError> {
-        let result: Option<i32> = sqlx::query_scalar(
-            "SELECT 1 FROM sessions WHERE id = $1",
-        )
-        .bind(session_id)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(|e| StorageError::Backend(e.to_string()))?;
+        let result: Option<i32> = sqlx::query_scalar("SELECT 1 FROM sessions WHERE id = $1")
+            .bind(session_id)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(|e| StorageError::Backend(e.to_string()))?;
 
         Ok(result.is_some())
     }
@@ -172,10 +170,7 @@ impl StorageBackend for PostgresBackend {
         tokio::task::spawn_blocking(move || match std::fs::remove_file(&path_clone) {
             Ok(()) => Ok(()),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            Err(e) => Err(StorageError::Path {
-                path,
-                source: e,
-            }),
+            Err(e) => Err(StorageError::Path { path, source: e }),
         })
         .await
         .map_err(|e| StorageError::Backend(e.to_string()))?

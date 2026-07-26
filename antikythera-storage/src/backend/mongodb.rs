@@ -8,7 +8,7 @@ use std::path::PathBuf;
 use async_trait::async_trait;
 use chrono::Utc;
 use futures::stream::StreamExt;
-use mongodb::bson::{doc, spec::BinarySubtype, Binary, Document};
+use mongodb::bson::{Binary, Document, doc, spec::BinarySubtype};
 use mongodb::options::{ClientOptions, IndexOptions};
 use mongodb::{Client, Collection, IndexModel};
 
@@ -35,8 +35,9 @@ impl MongoBackend {
             .await
             .map_err(|e| StorageError::Connection(format!("failed to parse MongoDB URI: {e}")))?;
 
-        let client = Client::with_options(client_options)
-            .map_err(|e| StorageError::Connection(format!("failed to create MongoDB client: {e}")))?;
+        let client = Client::with_options(client_options).map_err(|e| {
+            StorageError::Connection(format!("failed to create MongoDB client: {e}"))
+        })?;
 
         let database = config.database.clone();
         let collection_name = config.collection.clone();
@@ -67,12 +68,10 @@ impl MongoBackend {
                 }
             };
 
-            db.run_command(
-                doc! {
-                    "collMod": &collection_name,
-                    "validator": validator
-                },
-            )
+            db.run_command(doc! {
+                "collMod": &collection_name,
+                "validator": validator
+            })
             .await
             .ok();
         }

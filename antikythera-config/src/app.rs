@@ -1,7 +1,7 @@
 //! Application configuration — re-exports schema types and adds format-specific methods.
 
 pub use super::schema::{
-    AgentConfig, AppConfig, DocServerConfig, ModelConfig, ModelInfo, ProviderConfig, PromptsConfig,
+    AgentConfig, AppConfig, DocServerConfig, ModelConfig, ModelInfo, PromptsConfig, ProviderConfig,
     RestServerConfig,
 };
 

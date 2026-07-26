@@ -40,8 +40,7 @@ pub use client_tools::*;
 
 use super::session_store::{DEFAULT_MAX_SESSIONS, SessionStore};
 use super::tooling::{
-    ServerManager, ToolServerInterface, TransportFactory,
-    transport::McpTransport,
+    ServerManager, ToolServerInterface, TransportFactory, transport::McpTransport,
 };
 use crate::application::config::{AppConfig, PromptsConfig, ServerConfig, ToolConfig};
 use crate::domain::types::{ChatMessage, MessagePart};
@@ -288,9 +287,7 @@ impl<P: ModelProvider> McpClient<P> {
         config: ClientConfig,
         factory: Option<Box<dyn TransportFactory>>,
     ) -> Self {
-        let factory = factory.unwrap_or_else(|| {
-            Box::new(NoOpTransportFactory)
-        });
+        let factory = factory.unwrap_or_else(|| Box::new(NoOpTransportFactory));
         let server_manager = Arc::new(ServerManager::new(config.servers.clone(), factory));
         for (name, transport) in &config.builtin_transports {
             server_manager.register_builtin_transport(name, transport.clone());

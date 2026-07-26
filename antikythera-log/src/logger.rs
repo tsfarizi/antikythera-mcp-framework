@@ -88,7 +88,10 @@ impl LogBuffer {
 
     /// Clear all logs
     pub fn clear(&self) {
-        self.entries.lock().unwrap_or_else(|e| e.into_inner()).clear();
+        self.entries
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clear();
     }
 
     /// Get total log count
@@ -98,7 +101,10 @@ impl LogBuffer {
 
     /// Check if empty
     pub fn is_empty(&self) -> bool {
-        self.entries.lock().unwrap_or_else(|e| e.into_inner()).is_empty()
+        self.entries
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .is_empty()
     }
 }
 

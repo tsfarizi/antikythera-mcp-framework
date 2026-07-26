@@ -48,8 +48,7 @@ pub fn save_config(config: &AppConfig, path: Option<&Path>) -> Result<(), String
 
     let data = config_to_toml(config)?;
 
-    std::fs::write(config_path, data)
-        .map_err(|e| format!("Failed to write config file: {}", e))?;
+    std::fs::write(config_path, data).map_err(|e| format!("Failed to write config file: {}", e))?;
 
     Ok(())
 }

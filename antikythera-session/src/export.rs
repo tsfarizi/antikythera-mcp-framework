@@ -54,8 +54,7 @@ impl SessionExport {
     /// Deserialize from Postcard binary
     pub fn from_postcard(data: &[u8]) -> Result<Self, String> {
         let export: SessionExport = PostcardSerde::from_postcard(data).map_err(|e| {
-            SessionLogger::new("export")
-                .error(format!("Session export deserialize error: {}", e));
+            SessionLogger::new("export").error(format!("Session export deserialize error: {}", e));
             format!("Deserialize error: {}", e)
         })?;
 
@@ -127,8 +126,7 @@ impl BatchExport {
     /// Serialize to Postcard binary
     pub fn to_postcard(&self) -> Result<Vec<u8>, String> {
         PostcardSerde::to_postcard(self).map_err(|e| {
-            SessionLogger::new("export")
-                .error(format!("Batch export serialize error: {}", e));
+            SessionLogger::new("export").error(format!("Batch export serialize error: {}", e));
             format!("Serialize error: {}", e)
         })
     }
@@ -136,8 +134,7 @@ impl BatchExport {
     /// Deserialize from Postcard binary
     pub fn from_postcard(data: &[u8]) -> Result<Self, String> {
         let export: BatchExport = PostcardSerde::from_postcard(data).map_err(|e| {
-            SessionLogger::new("export")
-                .error(format!("Batch export deserialize error: {}", e));
+            SessionLogger::new("export").error(format!("Batch export deserialize error: {}", e));
             format!("Deserialize error: {}", e)
         })?;
 

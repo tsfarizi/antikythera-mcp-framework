@@ -1,12 +1,12 @@
-use antikythera_log::{LogBatch, LogEntry, LogFilter};
+use antikythera_log::{LogBatch, LogFilter as LogLogFilter};
+use antikythera_ports::types::{LogEntry as PortsLogEntry, LogFilter as PortsLogFilter};
 use std::sync::LazyLock;
 
 use super::provider::AntikytheraLogProvider;
 use crate::application::ports::logging::LogQueryPort;
 
 /// Static port instance for log queries.
-static LOG_QUERY: LazyLock<AntikytheraLogProvider> =
-    LazyLock::new(|| AntikytheraLogProvider);
+static LOG_QUERY: LazyLock<AntikytheraLogProvider> = LazyLock::new(|| AntikytheraLogProvider);
 
 // Re-exports for backward compatibility.
 // Prefer using the LogProvider / LogQueryPort traits instead.
@@ -32,17 +32,20 @@ pub fn get_active_session() -> String {
 }
 
 /// Query logs for a session, returning a LogBatch with pagination.
-pub fn query_logs(session_id: &str, filter: &LogFilter) -> LogBatch {
+///
+/// This is a direct convenience wrapper around the logger; for trait-based
+/// access, use [`LogQueryPort`] via the static `LOG_QUERY` instance.
+pub fn query_logs(session_id: &str, filter: &LogLogFilter) -> LogBatch {
     get_logger(session_id).get_logs(filter)
 }
 
 /// Get the latest N log entries for a session via the LogQueryPort.
-pub fn get_latest_logs(session_id: &str, count: usize) -> Vec<LogEntry> {
+pub fn get_latest_logs(session_id: &str, count: usize) -> Vec<PortsLogEntry> {
     LOG_QUERY.get_latest_logs(session_id, count)
 }
 
 /// Get logs as JSON for a session via the LogQueryPort.
-pub fn get_logs_json(session_id: &str, filter: &LogFilter) -> Result<String, String> {
+pub fn get_logs_json(session_id: &str, filter: &PortsLogFilter) -> Result<String, String> {
     LOG_QUERY.get_logs_json(session_id, filter)
 }
 

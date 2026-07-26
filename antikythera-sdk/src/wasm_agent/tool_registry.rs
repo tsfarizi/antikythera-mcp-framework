@@ -313,8 +313,8 @@ impl ToolRegistry {
 #[cfg(all(feature = "component", feature = "sdk-core"))]
 impl From<antikythera_core::domain::entities::ToolCall> for ToolCall {
     fn from(core_call: antikythera_core::domain::entities::ToolCall) -> Self {
-        let arguments = serde_json::to_value(&core_call.arguments)
-            .unwrap_or(serde_json::Value::Null);
+        let arguments =
+            serde_json::to_value(&core_call.arguments).unwrap_or(serde_json::Value::Null);
         Self {
             name: core_call.name,
             arguments,
@@ -326,8 +326,7 @@ impl From<antikythera_core::domain::entities::ToolCall> for ToolCall {
 #[cfg(all(feature = "component", feature = "sdk-core"))]
 impl From<antikythera_core::domain::entities::ToolResult> for ToolResult {
     fn from(core_result: antikythera_core::domain::entities::ToolResult) -> Self {
-        let output = serde_json::to_value(&core_result.output)
-            .unwrap_or(serde_json::Value::Null);
+        let output = serde_json::to_value(&core_result.output).unwrap_or(serde_json::Value::Null);
         Self {
             name: core_result.name,
             success: core_result.success,
@@ -362,9 +361,7 @@ impl From<ToolIcon> for antikythera_core::application::tooling::ToolIcon {
 
 #[cfg(all(feature = "component", feature = "sdk-core"))]
 impl From<antikythera_core::application::tooling::ToolAnnotations> for ToolAnnotations {
-    fn from(
-        core_ann: antikythera_core::application::tooling::ToolAnnotations,
-    ) -> Self {
+    fn from(core_ann: antikythera_core::application::tooling::ToolAnnotations) -> Self {
         Self {
             audience: core_ann.audience,
             priority: core_ann.priority,
@@ -391,12 +388,8 @@ impl From<antikythera_core::application::tooling::TaskSupport> for TaskSupport {
             antikythera_core::application::tooling::TaskSupport::Forbidden => {
                 TaskSupport::Forbidden
             }
-            antikythera_core::application::tooling::TaskSupport::Optional => {
-                TaskSupport::Optional
-            }
-            antikythera_core::application::tooling::TaskSupport::Required => {
-                TaskSupport::Required
-            }
+            antikythera_core::application::tooling::TaskSupport::Optional => TaskSupport::Optional,
+            antikythera_core::application::tooling::TaskSupport::Required => TaskSupport::Required,
         }
     }
 }
@@ -408,21 +401,15 @@ impl From<TaskSupport> for antikythera_core::application::tooling::TaskSupport {
             TaskSupport::Forbidden => {
                 antikythera_core::application::tooling::TaskSupport::Forbidden
             }
-            TaskSupport::Optional => {
-                antikythera_core::application::tooling::TaskSupport::Optional
-            }
-            TaskSupport::Required => {
-                antikythera_core::application::tooling::TaskSupport::Required
-            }
+            TaskSupport::Optional => antikythera_core::application::tooling::TaskSupport::Optional,
+            TaskSupport::Required => antikythera_core::application::tooling::TaskSupport::Required,
         }
     }
 }
 
 #[cfg(all(feature = "component", feature = "sdk-core"))]
 impl From<antikythera_core::application::tooling::ToolExecution> for ToolExecution {
-    fn from(
-        core_exec: antikythera_core::application::tooling::ToolExecution,
-    ) -> Self {
+    fn from(core_exec: antikythera_core::application::tooling::ToolExecution) -> Self {
         Self {
             task_support: core_exec.task_support.map(TaskSupport::from),
         }

@@ -30,5 +30,5 @@ pub mod provider;
 mod registry;
 
 pub use context::SessionContext;
-pub use registry::*;
 pub use module_loggers::*;
+pub use registry::*;

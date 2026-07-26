@@ -179,10 +179,7 @@ impl OrchestratorContext {
 
     /// Execute a closure with mutable access to this context, logging the
     /// operation.
-    pub fn with<T>(
-        &mut self,
-        f: impl FnOnce(&mut Self) -> Result<T, String>,
-    ) -> Result<T, String> {
+    pub fn with<T>(&mut self, f: impl FnOnce(&mut Self) -> Result<T, String>) -> Result<T, String> {
         get_sdk_logger("tui").log_with_source(
             LogLevel::Debug,
             "orchestrator",

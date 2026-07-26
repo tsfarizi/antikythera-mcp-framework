@@ -1,9 +1,9 @@
 use std::time::Duration;
 
+use antikythera_storage::StorageEngine;
 use antikythera_storage::backend::StorageBackend;
 use antikythera_storage::backend::filesystem::FilesystemBackend;
 use antikythera_storage::config::StorageConfig;
-use antikythera_storage::StorageEngine;
 use tempfile::tempdir;
 
 #[tokio::test]
@@ -65,7 +65,10 @@ async fn test_storage_engine_cache_behavior() {
     // Save multiple sessions
     for i in 0..4 {
         let id = format!("session-{i}");
-        engine.save(&id, format!("data-{i}").into_bytes()).await.unwrap();
+        engine
+            .save(&id, format!("data-{i}").into_bytes())
+            .await
+            .unwrap();
     }
 
     // Cache stats should reflect 4 entries
@@ -146,11 +149,17 @@ async fn test_filesystem_backend_direct_usage() {
 
     // Save and load
     backend.save("direct", b"direct-data").await.unwrap();
-    assert_eq!(backend.load("direct").await.unwrap(), Some(b"direct-data".to_vec()));
+    assert_eq!(
+        backend.load("direct").await.unwrap(),
+        Some(b"direct-data".to_vec())
+    );
 
     // Overwrite
     backend.save("direct", b"updated").await.unwrap();
-    assert_eq!(backend.load("direct").await.unwrap(), Some(b"updated".to_vec()));
+    assert_eq!(
+        backend.load("direct").await.unwrap(),
+        Some(b"updated".to_vec())
+    );
 
     // Delete
     backend.delete("direct").await.unwrap();

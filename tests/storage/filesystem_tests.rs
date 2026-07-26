@@ -1,5 +1,5 @@
-use antikythera_storage::backend::filesystem::FilesystemBackend;
 use antikythera_storage::backend::StorageBackend;
+use antikythera_storage::backend::filesystem::FilesystemBackend;
 use tempfile::tempdir;
 
 #[tokio::test]

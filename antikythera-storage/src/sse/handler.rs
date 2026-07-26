@@ -1,9 +1,9 @@
 //! HTTP request/response types for the SSE backup service.
 
 use axum::{
+    Json, Router,
     extract::{Path, State},
     http::StatusCode,
-    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

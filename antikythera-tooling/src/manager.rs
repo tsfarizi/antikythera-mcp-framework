@@ -156,7 +156,9 @@ impl ServerManager {
                 return None;
             }
         };
-        instances.get(server).map(|i| ServerInstance::new(Arc::clone(&i.transport)))
+        instances
+            .get(server)
+            .map(|i| ServerInstance::new(Arc::clone(&i.transport)))
     }
 }
 

@@ -115,8 +115,7 @@ impl AgentEventStream {
                 self.events.clear();
                 if dropped > 0 {
                     let ctx = SessionContext::default();
-                    StreamingLogger::from_context(&ctx)
-                        .buffer_overflow(ctx.session_id(), dropped);
+                    StreamingLogger::from_context(&ctx).buffer_overflow(ctx.session_id(), dropped);
                 }
                 return;
             }
@@ -128,8 +127,7 @@ impl AgentEventStream {
             }
             if dropped > 0 {
                 let ctx = SessionContext::default();
-                StreamingLogger::from_context(&ctx)
-                    .buffer_overflow(ctx.session_id(), dropped);
+                StreamingLogger::from_context(&ctx).buffer_overflow(ctx.session_id(), dropped);
             }
         }
     }
@@ -182,8 +180,7 @@ impl StreamingBuffer {
         self.flushed_total += batch.len();
         if !batch.is_empty() {
             let ctx = SessionContext::default();
-            StreamingLogger::from_context(&ctx)
-                .buffer_flushed(ctx.session_id(), batch.len());
+            StreamingLogger::from_context(&ctx).buffer_flushed(ctx.session_id(), batch.len());
         }
         batch
     }

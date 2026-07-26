@@ -21,15 +21,51 @@ pub enum DynamicValue {
 }
 
 impl DynamicValue {
-    pub fn is_null(&self) -> bool { matches!(self, DynamicValue::Null) }
-    pub fn as_str(&self) -> Option<&str> { if let DynamicValue::String(s) = self { Some(s) } else { None } }
-    pub fn as_f64(&self) -> Option<f64> { if let DynamicValue::Number(n) = self { Some(*n) } else { None } }
-    pub fn as_bool(&self) -> Option<bool> { if let DynamicValue::Bool(b) = self { Some(*b) } else { None } }
-    pub fn as_array(&self) -> Option<&[DynamicValue]> { if let DynamicValue::Array(a) = self { Some(a) } else { None } }
-    pub fn as_object(&self) -> Option<&[(String, DynamicValue)]> { if let DynamicValue::Object(o) = self { Some(o) } else { None } }
+    pub fn is_null(&self) -> bool {
+        matches!(self, DynamicValue::Null)
+    }
+    pub fn as_str(&self) -> Option<&str> {
+        if let DynamicValue::String(s) = self {
+            Some(s)
+        } else {
+            None
+        }
+    }
+    pub fn as_f64(&self) -> Option<f64> {
+        if let DynamicValue::Number(n) = self {
+            Some(*n)
+        } else {
+            None
+        }
+    }
+    pub fn as_bool(&self) -> Option<bool> {
+        if let DynamicValue::Bool(b) = self {
+            Some(*b)
+        } else {
+            None
+        }
+    }
+    pub fn as_array(&self) -> Option<&[DynamicValue]> {
+        if let DynamicValue::Array(a) = self {
+            Some(a)
+        } else {
+            None
+        }
+    }
+    pub fn as_object(&self) -> Option<&[(String, DynamicValue)]> {
+        if let DynamicValue::Object(o) = self {
+            Some(o)
+        } else {
+            None
+        }
+    }
 
-    pub fn is_array(&self) -> bool { matches!(self, DynamicValue::Array(_)) }
-    pub fn is_object(&self) -> bool { matches!(self, DynamicValue::Object(_)) }
+    pub fn is_array(&self) -> bool {
+        matches!(self, DynamicValue::Array(_))
+    }
+    pub fn is_object(&self) -> bool {
+        matches!(self, DynamicValue::Object(_))
+    }
 
     pub fn get(&self, key: &str) -> Option<&DynamicValue> {
         if let DynamicValue::Object(pairs) = self {

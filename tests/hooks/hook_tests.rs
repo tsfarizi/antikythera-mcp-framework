@@ -61,10 +61,7 @@ impl PolicyDecisionHook for ToolPolicy {
     }
 }
 
-// Split into 6 parts for consistent test organization.
-include!("hook_tests/empty_placeholder.rs");
 include!("hook_tests/middleware_prepare_context.rs");
-include!("hook_tests/empty_placeholder.rs");
 include!("hook_tests/middleware_policy_tool.rs");
 include!("hook_tests/telemetry_hook_emit.rs");
 include!("hook_tests/hook_registry_comprehensive.rs");

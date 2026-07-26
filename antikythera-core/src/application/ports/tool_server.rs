@@ -4,6 +4,6 @@
 
 // Re-export the existing trait — it's already correctly placed in application
 pub use crate::application::tooling::{
-    ServerToolInfo, TaskSupport, ToolAnnotations, ToolExecution, ToolIcon, ToolServerInterface,
-    PROTOCOL_VERSION,
+    PROTOCOL_VERSION, ServerToolInfo, TaskSupport, ToolAnnotations, ToolExecution, ToolIcon,
+    ToolServerInterface,
 };

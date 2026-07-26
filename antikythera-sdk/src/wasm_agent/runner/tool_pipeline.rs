@@ -8,9 +8,11 @@
 use antikythera_log::LogLevel;
 
 use super::runner_types::*;
-use super::{now_unix_ms, wasm_log, AgentRunnerError, AgentRunnerRuntime};
+use super::{AgentRunnerError, AgentRunnerRuntime, now_unix_ms, wasm_log};
 use crate::wasm_agent::processor::process_tool_result;
-use crate::wasm_agent::types::{AgentFsmState, ContextPolicy, StreamEventKind, ToolRegistry, ToolResult};
+use crate::wasm_agent::types::{
+    AgentFsmState, ContextPolicy, StreamEventKind, ToolRegistry, ToolResult,
+};
 
 /// Tool registration, prompting, result processing, and context policy.
 impl AgentRunnerRuntime {
@@ -158,7 +160,10 @@ impl AgentRunnerRuntime {
     ///
     /// Returns `Ok(true)` on success. Subsequent turns will use the new
     /// policy unless overridden per-request.
-    pub(super) fn set_context_policy(&mut self, policy_json: &str) -> Result<bool, AgentRunnerError> {
+    pub(super) fn set_context_policy(
+        &mut self,
+        policy_json: &str,
+    ) -> Result<bool, AgentRunnerError> {
         let input: ContextPolicyUpdateInput = serde_json::from_str(policy_json).map_err(|e| {
             AgentRunnerError::ConfigurationFailed(format!("Invalid context-policy-json: {e}"))
         })?;

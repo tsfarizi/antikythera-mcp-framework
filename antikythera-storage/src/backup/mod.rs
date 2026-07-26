@@ -28,11 +28,7 @@ impl BackupCoordinator {
     }
 
     /// Backup a single dirty session to intermediate storage.
-    pub async fn backup_session(
-        &self,
-        session_id: &str,
-        data: &[u8],
-    ) -> Result<(), StorageError> {
+    pub async fn backup_session(&self, session_id: &str, data: &[u8]) -> Result<(), StorageError> {
         self.backend.backup(session_id, data).await
     }
 
@@ -46,18 +42,17 @@ impl BackupCoordinator {
         let mut failure = 0;
 
         let backup_dir = backup_dir.to_path_buf();
-        let entries: Vec<std::path::PathBuf> =
-            tokio::task::spawn_blocking(move || {
-                let mut result = Vec::new();
-                if let Ok(read_dir) = std::fs::read_dir(&backup_dir) {
-                    for entry in read_dir.flatten() {
-                        result.push(entry.path());
-                    }
+        let entries: Vec<std::path::PathBuf> = tokio::task::spawn_blocking(move || {
+            let mut result = Vec::new();
+            if let Ok(read_dir) = std::fs::read_dir(&backup_dir) {
+                for entry in read_dir.flatten() {
+                    result.push(entry.path());
                 }
-                result
-            })
-            .await
-            .map_err(|e| StorageError::Backup(format!("failed to read backup dir: {e}")))?;
+            }
+            result
+        })
+        .await
+        .map_err(|e| StorageError::Backup(format!("failed to read backup dir: {e}")))?;
 
         for path in entries {
             if path.extension().and_then(|s| s.to_str()) == Some("json")
