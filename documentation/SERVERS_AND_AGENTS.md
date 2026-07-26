@@ -79,7 +79,7 @@ The WIT `multi-agent-runner` contract mirrors these operations through
 
 ## Native streaming pipeline
 
-Native CLI provider clients now emit streaming events while parsing provider
+Host applications that implement native streaming can emit events while parsing provider
 chunked responses:
 
 1. provider stream payload is parsed chunk-by-chunk,
@@ -87,8 +87,7 @@ chunked responses:
 3. terminal sink prints chunks live to stderr so stdout remains protocol-safe.
 
 This keeps interactive visibility in CLI mode while preserving structured
-stdout output (for JSON or automation consumers). The terminal stream sink is
-enabled with the CLI `--stream` flag.
+stdout output (for JSON or automation consumers). The example CLI enables the terminal stream sink with the `--stream` flag.
 
 ## Related documents
 

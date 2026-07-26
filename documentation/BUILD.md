@@ -16,10 +16,10 @@ flowchart TD
 
 | Target | Status | Notes |
 |:-------|:------:|:------|
-| Workspace crates | ✅ | `cargo build --workspace` |
-| `antikythera` native binary | ✅ | stdio, setup, and multi-agent modes |
-| `antikythera-config` native binary | ✅ | Provider and server config management |
+| Workspace crates | ✅ | `cargo build --workspace` — all 11 framework crates + tests + scripts |
 | `antikythera-sdk` component build | ✅ | Single WASM output via `cargo-component` + `wasm32-wasip1` |
+| `antikythera` native binary (example) | ✅ | stdio, setup, and multi-agent modes — standalone, not a workspace member |
+| `antikythera-config` native binary (example) | ✅ | Provider and server config management — standalone, not a workspace member |
 
 ## Prerequisites
 
@@ -30,7 +30,7 @@ flowchart TD
 
 ## Native builds
 
-### Build everything
+### Build all workspace crates
 
 ```bash
 cargo build --workspace
@@ -42,7 +42,9 @@ cargo build --workspace
 cargo build --workspace --release
 ```
 
-### Build only the CLI crate
+### Build the example CLI crate
+
+The CLI is a standalone crate (not a workspace member). Build it explicitly:
 
 ```bash
 cargo build -p antikythera-cli --release
@@ -88,7 +90,7 @@ dist/antikythera-sdk.wasm
 
 ## CLI harness against WASM
 
-Use the CLI to execute the generated WASM via host runtime bridge (`WasmAgentRunner`):
+Use the example CLI to execute the generated WASM via host runtime bridge (`WasmAgentRunner`):
 
 ```bash
 cargo run -p antikythera-cli --bin antikythera -- \
@@ -154,7 +156,7 @@ cargo clippy --workspace --lib --bins -- -D warnings -D deprecated
 # SDK library tests
 cargo test -p antikythera-sdk --lib
 
-# Check all crates without producing binaries
+# Check all workspace crates without producing binaries
 cargo check --workspace
 ```
 
@@ -191,50 +193,8 @@ The repository includes `Taskfile.yml` for common flows.
 | `task clean` | Clean all build artifacts |
 | `task clean-wasm` | Clean WASM build artifacts |
 
-## Feature flags overview
-
-### `antikythera-core`
-
-| Feature | Purpose |
-|:--------|:--------|
-| `native-transport` | OS process and stdio transport support |
-| `wizard` | Interactive setup and wizard-related dependencies |
-| `multi-agent` | Multi-agent orchestration support |
-| `full` | Enables the full capability set |
-
-### `antikythera-sdk`
-
-| Feature | Purpose |
-|:--------|:--------|
-| `sdk-core` | Re-exports core types (Agent, McpClient, AppConfig, etc.) |
-| `component` | WASM agent types, processor, and runner |
-| `single-agent` | Single-agent support |
-| `multi-agent` | Multi-agent orchestration support |
-| `wasm` | Browser WASM support (wasm32-unknown-unknown) |
-| `wasm-sandbox` | WASM sandbox support |
-| `subscriber` | Real-time log streaming via tokio channels |
-| `full` | Enables all features |
-
-### `antikythera-log`
-
-| Feature | Purpose |
-|:--------|:--------|
-| `wasm` | Browser-safe time via js-sys (wasm32-unknown-unknown) |
-| `subscriber` | Real-time log streaming via tokio + crossbeam-channel |
-| `lint` | Compile-time lint blocking println!, eprintln!, dbg!, tracing |
-
-### `antikythera-storage`
-
-| Feature | Purpose |
-|:--------|:--------|
-| `filesystem` | JSON file storage backend (default) |
-| `mongodb` | MongoDB backend |
-| `postgres` | PostgreSQL backend |
-| `standalone` | REST API server mode |
-| `sse` | SSE backup service |
-| `wasm` | WASM component integration |
-
 ## Notes
 
 - The component build (`wasm32-wasip1`) is the WASM deployment target. Use it when embedding agent logic in a host application via wasmtime.
+- The example CLI is a standalone crate, not a workspace member. It consumes framework crates via relative path dependencies.
 - For browser or C FFI targets, implement those in the host application itself — the framework does not provide those bindings.

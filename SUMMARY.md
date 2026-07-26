@@ -7,7 +7,6 @@
 - [Product Scope](documentation/PRODUCT_SCOPE.md)
 - [Workspace](documentation/WORKSPACE.md)
 - [Architecture](documentation/ARCHITECTURE.md)
-- [CLI](documentation/CLI.md)
 - [Build](documentation/BUILD.md)
 - [Component](documentation/COMPONENT.md)
 
@@ -29,6 +28,13 @@
 - [Security](documentation/SECURITY.md)
 - [Streaming](documentation/STREAMING.md)
 - [WASM Agent](documentation/WASM_AGENT.md)
+
+# Process
+
 - [Testing](documentation/TESTING.md)
 - [Migration](documentation/MIGRATION.md)
 - [Deprecation Policy](documentation/DEPRECATION_POLICY.md)
+
+# Example Implementations
+
+- [CLI](documentation/CLI.md) — CLI client reference implementation

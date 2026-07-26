@@ -1,12 +1,14 @@
-# CLI
+# CLI (Example Implementation)
 
-This guide documents the CLI binaries exposed by `antikythera-cli`.
+This document documents the CLI client at `example/antikythera-cli/` — a reference implementation showing how to build a host application using the Antikythera MCP Framework.
+
+> **Note:** The CLI is **not** a framework crate. It is a standalone example application that consumes framework crates (`antikythera-core`, `antikythera-sdk`, `antikythera-log`, `antikythera-session`, `antikythera-storage`) via relative path dependencies. It is not a workspace member.
 
 ## Binary map
 
 ```mermaid
 flowchart LR
-    CLI_CRATE[antikythera-cli]
+    CLI_CRATE[example/antikythera-cli]
     CLI_CRATE --> MAIN[antikythera]
     CLI_CRATE --> CONFIG[antikythera-config]
     MAIN --> STDIO[mode: stdio]
@@ -216,31 +218,37 @@ cargo run -p antikythera-cli --bin antikythera-config -- status
 
 `antikythera-config init` now seeds provider templates for `gemini`, `openai`, and `ollama`, including their common default endpoints and model presets. `add-provider` also normalizes aliases such as `google-ai` -> `gemini` and `localai` -> `ollama`.
 
-## API consistency rules
+## CLI architecture
 
-To keep CLI discoverability and public contracts stable:
+The CLI follows Clean Architecture with layered separation:
 
-| Concern | Convention |
-|:--------|:-----------|
-| Root error type | `CliError` and `CliResult<T>` for public APIs |
-| Config loaders | `load_app_config` / `save_app_config` |
-| Factory/builders | `build_*` for constructors and adapters |
-| Backward compatibility | old names retained as deprecated aliases only |
+```
+example/antikythera-cli/src/
+├── domain/           # Domain entities and use cases
+├── application/      # Application layer (discovery, prompt composition, session)
+├── infrastructure/   # LLM clients, transport, MCP integration
+├── presentation/     # TUI rendering and event handling
+├── security/         # Rate limiting, validation, secrets
+├── config/           # Config management
+└── bin/              # Binary entry points
+```
 
-### Deprecated alias map
+Each layer depends only on inward layers. Infrastructure and presentation implement port traits defined in the framework crates (`antikythera-ports`, `antikythera-core`).
 
-Current aliases are maintained only for compatibility and are documented in the deprecation policy.
+## Building your own host application
 
-| Deprecated symbol | Replacement |
-|:------------------|:------------|
-| `load_config` | `load_app_config` |
-| `save_config` | `save_app_config` |
-| `load_cli_config` | `load_app_config` |
-| `create_provider_config` | `build_active_provider_config` |
+The CLI serves as a reference for building host applications. Key patterns demonstrated:
+
+1. **Provider integration:** How to connect LLM providers via the `ModelProvider` port trait
+2. **Transport wiring:** How to set up STDIO and HTTP transports via `antikythera-tooling`
+3. **Session management:** How to use `antikythera-session` for persistent chat history
+4. **Storage integration:** How to plug in `antikythera-storage` for session persistence
+5. **Multi-agent orchestration:** How to use `MultiAgentOrchestrator` from `antikythera-sdk`
+6. **WASM harness:** How to embed and test WASM components via host-FFI
 
 ## Related documents
 
 - [`CONFIG.md`](CONFIG.md) for the config format and serialization model
 - [`BUILD.md`](BUILD.md) for build commands and component workflows
 - [`PRODUCT_SCOPE.md`](PRODUCT_SCOPE.md) for deployment targets and feature flags
-- [`DEPRECATION_POLICY.md`](DEPRECATION_POLICY.md) for deprecation lifecycle and CI enforcement
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) for framework crate relationships

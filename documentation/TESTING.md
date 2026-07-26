@@ -19,6 +19,7 @@ flowchart TD
 - Large suites use part-based organization for readability and maintenance.
 - Contract fixtures are used for compatibility detection.
 - Storage tests are in `tests/storage/` covering cache, filesystem, config, backup, and integration.
+- Example CLI tests are in `example/antikythera-cli/` (not a workspace member).
 
 ## Storage Tests
 

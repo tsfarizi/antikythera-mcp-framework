@@ -6,7 +6,7 @@ This document describes the `antikythera-storage` crate — the session persiste
 
 ```mermaid
 flowchart TD
-    CLI[antikythera-cli] --> ENGINE[StorageEngine]
+    HOST[Host application] --> ENGINE[StorageEngine]
     ENGINE --> CACHE[CacheManager]
     ENGINE --> BACKEND[StorageBackend]
     ENGINE --> BACKUP[BackupCoordinator]
@@ -122,10 +122,12 @@ verify_before_delete = true
 
 For SQL backends, backups are first written to filesystem, then synced to DB. The system ensures DB success before deleting the backup file.
 
-## CLI Usage
+## Host Integration
+
+Host applications enable storage initialization with the `--storage` flag:
 
 ```bash
-# Enable storage initialization
+# Example CLI usage
 antikythera --storage
 
 # With custom config path
@@ -195,5 +197,5 @@ antikythera-storage/src/
 
 - [`CONFIG.md`](CONFIG.md) for full configuration reference
 - [`CACHE.md`](CACHE.md) for cache behavior details
-- [`CLI.md`](CLI.md) for CLI flags and usage
+- [`CLI.md`](CLI.md) for example CLI usage
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) for system-level design

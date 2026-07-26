@@ -26,7 +26,7 @@ antikythera-core/src/security/
 
 ### CLI Implementation (`example/antikythera-cli`)
 
-Concrete security implementations live in the CLI crate:
+Concrete security implementations live in the example CLI crate:
 
 ```
 example/antikythera-cli/src/security/
@@ -492,10 +492,10 @@ cargo test -p antikythera-tests --test security_config_tests
 The security implementation follows the principle of separation of concerns:
 
 - **Core Module** (`antikythera-core`): Defines security configuration types and port traits. Contains no concrete implementations.
-- **CLI Module** (`example/antikythera-cli`): Provides concrete security implementations (validation, rate limiting, secrets management).
+- **Example CLI** (`example/antikythera-cli`): Provides concrete security implementations (validation, rate limiting, secrets management) as a reference for building host applications.
 - **FFI Interface** (SDK): Provides a clean boundary for host languages to interact with security features.
 
-This ensures that the core security ports are reusable by any embedding host, while the CLI provides the concrete implementations for its own use.
+This ensures that the core security ports are reusable by any embedding host, while the example CLI provides the concrete implementations for its own use.
 
 ## Security Considerations
 

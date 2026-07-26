@@ -6,7 +6,7 @@ This document describes the TOML-based configuration flow used by the current do
 
 The repository documents two configuration stories:
 
-1. The lightweight CLI config flow built around `app.toml`
+1. The lightweight CLI config flow built around `app.toml` (implemented in the example CLI at `example/antikythera-cli/`)
 2. Broader SDK and core configuration helpers that use serialized configuration data
 
 ## Configuration model
@@ -77,15 +77,16 @@ bind = "0.0.0.0:8081"
 core_url = "http://127.0.0.1:8080"
 ```
 
-Enable storage initialization with the `--storage` CLI flag:
+Enable storage initialization with the `--storage` flag when running a host application:
 
 ```bash
+# Example CLI
 antikythera --storage
 ```
 
 ## Related documents
 
-- [`CLI.md`](CLI.md) for the current CLI config workflow
+- [`CLI.md`](CLI.md) for the example CLI config workflow
 - [`STORAGE.md`](STORAGE.md) for storage backend details
 - [`IMPORT_EXPORT.md`](IMPORT_EXPORT.md) for backup and restore flows
 - [`CACHE.md`](CACHE.md) for cache-specific notes

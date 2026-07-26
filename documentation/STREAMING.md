@@ -4,8 +4,8 @@ This document covers the currently implemented streaming behavior.
 
 ## Streaming Architecture
 
-Token streaming is built around a process-global event sink in
-`antikythera-cli::infrastructure::llm::streaming`.
+Token streaming is built around a process-global event sink. The example CLI implementation lives in
+`example/antikythera-cli::infrastructure::llm::streaming`.
 
 ```mermaid
 flowchart LR
@@ -39,7 +39,17 @@ Provider parsers emit one of three variants:
 - `Started` and `Completed` events are forwarded to `tracing::info!` for the log panel under the `cli:streaming` source label.
 - `Chunk` events are not traced — they are too frequent and their content is visible in the chat panel.
 
+## Building your own streaming host
+
+Host applications can implement streaming by:
+
+1. Implementing the `ModelProvider` port trait from `antikythera-ports`
+2. Emitting `StreamEvent` variants during response generation
+3. Installing a custom sink to route events to your UI layer
+
+See `example/antikythera-cli/src/infrastructure/llm/streaming.rs` for a reference implementation.
+
 ## Related documents
 
-- [`CLI.md`](CLI.md)
-- [`SERVERS_AND_AGENTS.md`](SERVERS_AND_AGENTS.md)
+- [`CLI.md`](CLI.md) — example CLI implementation
+- [`SERVERS_AND_AGENTS.md`](SERVERS_AND_AGENTS.md) — server and agent management

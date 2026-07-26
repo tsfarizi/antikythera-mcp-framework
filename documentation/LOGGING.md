@@ -66,7 +66,7 @@ Macros are the **only sanctioned** logging emission points. All framework crates
 | `alog_debug!` / `alog_info!` / `alog_warn!` / `alog_error!` | Log at level with `format!`-style args |
 | `alog_debug_src!` / `alog_info_src!` / `alog_warn_src!` / `alog_error_src!` | Log with explicit source tag |
 | `alog_debug_ctx!` / `alog_info_ctx!` / `alog_warn_ctx!` / `alog_error_ctx!` | Log with context payload |
-| `cli_print!` / `cli_eprint!` | Sanctioned CLI output (never for runtime logs) |
+| `cli_print!` / `cli_eprint!` | Sanctioned host application output (never for runtime logs) |
 
 Enable the `lint` feature on `antikythera-log` to enforce this at compile time — it shadows `println!`, `eprintln!`, `dbg!`, and `tracing` macros with compile-error stubs.
 
@@ -159,7 +159,7 @@ The `ACTIVE_SESSION` static bridges log producers to the correct session bucket 
 | `set_active_session(id)` | Set the session key all module loggers write to |
 | `get_active_session()` | Read the current active session key |
 
-Default session is `"tui"`. The CLI calls `set_active_session` when a chat session starts or a background task outcome arrives, ensuring logs always land in the expected bucket.
+Default session is `"tui"`. Host applications call `set_active_session` when a chat session starts or a background task outcome arrives, ensuring logs always land in the expected bucket.
 
 ---
 
@@ -227,7 +227,7 @@ Both SDK loggers encode structured data via `context` field rather than `source`
 
 ## TUI Log Display Integration
 
-The CLI TUI reads from **both** registries on every frame tick (`event_loop.rs:297`) and merges them into a single chronological view:
+Example CLI host applications read from **both** registries on every frame tick (`event_loop.rs:297`) and merge them into a single chronological view:
 
 ```rust
 let mut core_logs = get_latest_logs("tui", 50);      // core LOGGERS registry
