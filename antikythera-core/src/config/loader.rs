@@ -34,25 +34,22 @@ pub fn load_config(path: Option<&Path>) -> Result<AppConfig, ConfigError> {
     let config = match toml_config::config_from_toml(&data) {
         Ok(c) => c,
         Err(e) => {
-            // The TOML file has a schema that doesn't match the current
-            // AppConfig struct. Back up the stale file and write a fresh
-            // default so the application can start without manual intervention.
-            let logger = ConfigLogger::new("config");
-            logger.warn(format!(
-                "Config schema changed; existing file is unreadable ({}). \
-                 Backing up to {}.bak and writing fresh defaults.",
-                e,
-                config_path.display()
-            ));
-
             let backup_path = config_path.with_extension("toml.bak");
             let _ = std::fs::copy(config_path, &backup_path);
 
-            let fresh = AppConfig::default();
-            if let Ok(fresh_data) = toml_config::config_to_toml(&fresh) {
-                let _ = std::fs::write(config_path, fresh_data);
-            }
-            fresh
+            let logger = ConfigLogger::new("config");
+            logger.warn(format!(
+                "Config schema changed; existing file is unreadable ({}). \
+                 Backup saved to {}.",
+                e,
+                backup_path.display()
+            ));
+
+            return Err(ConfigError::SchemaChanged {
+                path: config_path.to_path_buf(),
+                backup_path,
+                reason: e.to_string(),
+            });
         }
     };
 

@@ -100,3 +100,4 @@ include!("compatibility_tests/wit_contract_signatures.rs");
 include!("compatibility_tests/payload_contract_shapes.rs");
 include!("compatibility_tests/correlation_slo_contract.rs");
 include!("compatibility_tests/envelope_contract_types.rs");
+include!("compatibility_tests/browser_type_contract.rs");

@@ -12,7 +12,7 @@ dotenv:
 vars:
   WASM_TARGET: wasm32-wasip1
   WASM_BINARY: target/{{.WASM_TARGET}}/release/antikythera_sdk.wasm
-  APP_CONFIG: app.pc
+  APP_CONFIG: app.toml
   PROVIDER_ID: '{{default "local-ollama" .PROVIDER_ID}}'
   PROVIDER_TYPE: '{{default "ollama" .PROVIDER_TYPE}}'
   PROVIDER_ENDPOINT: '{{default "http://127.0.0.1:11434" .PROVIDER_ENDPOINT}}'
@@ -30,14 +30,16 @@ tasks:
       - |
         echo "Antikythera MCP Framework - Available Tasks"
         echo ""
-        echo "  task run           - Run interactive TUI CLI with auto-bootstrap config"
+        echo "  task run-cli       - Run interactive TUI CLI with auto-bootstrap config"
         echo "  task run-wasm      - Run CLI as WASM FFI host harness"
         echo "  task run-interactive - Run interactive CLI (stdio mode)"
         echo "  task run-tui       - Alias for interactive TUI-friendly CLI"
-        echo "  task setup-config  - Setup app.pc with selectable provider"
+        echo "  task run-web       - Run web frontend dev server (Vite)"
+        echo "  task setup-config  - Setup app.toml with selectable provider"
         echo "  task build         - Build WASM component"
         echo "  task build-wasm-harness - Build WASM artifact for FFI host harness"
         echo "  task build-all     - Build all WASM artifacts"
+        echo "  task build-web     - Build web frontend for production"
         echo "  task wit           - Generate WIT from Rust code"
         echo "  task clean         - Clean all build artifacts"
         echo "  task clean-wasm    - Clean WASM build artifacts"
@@ -100,7 +102,7 @@ tasks:
 
   ensure-config:
     internal: true
-    desc: Ensure app.pc exists with seeded provider defaults
+    desc: Ensure app.toml exists with seeded provider defaults
     cmds:
       - |
         if [ ! -f "{{.APP_CONFIG}}" ]; then
@@ -108,8 +110,8 @@ tasks:
           cargo run -p antikythera-cli --bin antikythera-config -- init
         fi
 
-  run:
-    desc: Run interactive TUI CLI (default run path)
+  run-cli:
+    desc: Run interactive TUI CLI with auto-bootstrap config
     deps:
       - ensure-config
     cmds:
@@ -131,7 +133,7 @@ tasks:
     deps:
       - ensure-config
     cmds:
-      - task: run CLI_ARGS='{{.CLI_ARGS}}'
+      - task: run-cli CLI_ARGS='{{.CLI_ARGS}}'
 
   run-tui:
     desc: Alias of run-interactive (TUI-friendly)
@@ -139,7 +141,7 @@ tasks:
       - task: run-interactive
 
   setup-config:
-    desc: Setup app.pc with selectable provider/model parameters
+    desc: Setup app.toml with selectable provider/model parameters
     deps:
       - wit
     cmds:
@@ -153,6 +155,21 @@ tasks:
         fi
       - cargo run -p antikythera-cli --bin antikythera-config -- set-model {{.PROVIDER_ID}} {{.MODEL_NAME}}
       - cargo run -p antikythera-cli --bin antikythera-config -- status
+
+  run-web:
+    desc: Run web frontend dev server (Vite)
+    dir: example/antikythera-web
+    cmds:
+      - echo "Starting web frontend dev server..."
+      - npm run dev
+
+  build-web:
+    desc: Build web frontend for production
+    dir: example/antikythera-web
+    cmds:
+      - echo "Building web frontend..."
+      - npm run build
+      - echo "✓ Web frontend built to example/antikythera-web/dist/"
 
   # ===========================================================================
   # Test Tasks
@@ -204,7 +221,7 @@ tasks:
       - echo "✓ Component tests passed"
 
   test-scenario:
-    desc: Run hands-on CLI scenario test (real LLM, konfigurasi dari app.pc)
+    desc: Run hands-on CLI scenario test (real LLM, konfigurasi dari app.toml)
     cmds:
       - echo "Running CLI scenario test..."
       - cargo test -p antikythera-tests --test cli_tests scenario -- --nocapture

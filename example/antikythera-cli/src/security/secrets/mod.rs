@@ -189,7 +189,7 @@ impl SecretManager {
         let mut metadata = SecretMetadata::new(id.to_string(), version);
         metadata.last_rotated_at = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .expect("SystemTime clock went backwards — cannot get duration since UNIX_EPOCH in rotate_secret")
+            .unwrap_or_default()
             .as_secs();
 
         entry.push(StoredSecret {

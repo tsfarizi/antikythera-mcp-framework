@@ -269,7 +269,7 @@ impl Default for AgentConfig {
             verbose: false,
             auto_execute_tools: true,
             session_timeout_secs: 300,
-            session_id: format!("session-{}", chrono::Utc::now().timestamp_millis()),
+            session_id: format!("session-{}", antikythera_log::wasm_compat::now_unix_ms()),
             context_policy: ContextPolicy {
                 max_history_messages: 24,
                 summarize_after_messages: 12,
@@ -316,7 +316,7 @@ impl From<&antikythera_core::config::schema::AgentConfig> for AgentConfig {
             verbose: core_config.verbose,
             auto_execute_tools: core_config.auto_execute_tools,
             session_timeout_secs: core_config.session_timeout_secs,
-            session_id: format!("session-{}", chrono::Utc::now().timestamp_millis()),
+            session_id: format!("session-{}", antikythera_log::wasm_compat::now_unix_ms()),
             context_policy: ContextPolicy::default(),
         }
     }

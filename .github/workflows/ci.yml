@@ -25,11 +25,45 @@ jobs:
       - run: cargo test --workspace
       - run: cargo clippy --workspace --lib --bins -- -D warnings -D deprecated
 
-
-
   msrv:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.91.0
       - run: cargo check --workspace
+
+  wasm-check:
+    strategy:
+      matrix:
+        include:
+          - target: wasm32-unknown-unknown
+            check_cmd: |
+              cargo check -p antikythera-sdk --target wasm32-unknown-unknown --no-default-features --features wasm
+              cargo check -p antikythera-wasm-bindgen --target wasm32-unknown-unknown
+          - target: wasm32-wasip1
+            check_cmd: |
+              cargo check -p antikythera-sdk --target wasm32-wasip1 --no-default-features --features component
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - run: ${{ matrix.check_cmd }}
+
+  contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test -p antikythera-tests --test contract_compatibility_tests
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install mdbook
+      - run: mdbook build

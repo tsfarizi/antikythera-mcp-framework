@@ -14,11 +14,11 @@ members = [
 default-members = ["example/antikythera-cli"]
 
 [workspace.package]
-version = "1.4.1"
+version = "1.4.2"
 edition = "2024"
 authors = ["tsfarizi"]
 license = "MIT"
-repository = "https://github.com/antikythera/mcp-client"
+repository = "https://github.com/tsfarizi/antikythera-mcp-framework"
 readme = "README.md"
 
 [workspace.dependencies]

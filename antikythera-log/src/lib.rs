@@ -77,6 +77,7 @@ pub mod macros;
 
 pub mod entries;
 pub mod logger;
+pub mod wasm_compat;
 
 #[cfg(feature = "subscriber")]
 pub mod subscriber;

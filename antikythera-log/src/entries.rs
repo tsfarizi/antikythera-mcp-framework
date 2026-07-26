@@ -85,7 +85,7 @@ impl LogEntry {
         Self {
             level,
             message: message.into(),
-            timestamp: chrono::Utc::now().to_rfc3339(),
+            timestamp: crate::wasm_compat::now_rfc3339(),
             session_id: None,
             source: None,
             context: None,

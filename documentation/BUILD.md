@@ -174,12 +174,21 @@ The repository includes `Taskfile.yml` for common flows.
 | Task | Purpose |
 |:-----|:--------|
 | `task build` | Build the WASM component |
-| `task build-cli` | Build the native CLI binary |
-| `task build-all` | Build both native CLI and WASM outputs |
+| `task build-wasm-harness` | Build WASM artifact for CLI harness |
+| `task build-all` | Build all WASM artifacts |
 | `task wit` | Generate WIT |
-| `task run` | Run the CLI crate |
+| `task run` | Run interactive TUI CLI |
+| `task run-wasm` | Run CLI as WASM FFI host harness |
+| `task run-interactive` | Run interactive CLI (stdio mode) |
+| `task setup-config` | Setup app.toml with selectable provider |
 | `task test` | Run workspace tests |
+| `task test-unit` | Run CLI unit tests |
+| `task test-scenario` | Run hands-on CLI scenario test |
+| `task test-sdk` | Run SDK tests |
+| `task test-ffi` | Run FFI tests |
+| `task test-component` | Run component tests |
 | `task check` | Run `cargo check --workspace` |
+| `task check-wasm` | Check WASM compilation |
 | `task lint` | Run Clippy |
 | `task format` | Run rustfmt |
 | `task inspect` | Inspect the built component with `wasm-tools` if installed |
@@ -189,8 +198,10 @@ The repository includes `Taskfile.yml` for common flows.
 
 | Workflow | Purpose |
 |:---------|:--------|
+| `.github/workflows/ci.yml` | Runs tests, clippy, MSRV check, WASM compile check, contract tests, and docs build on pushes and PRs |
 | `.github/workflows/wasm.yml` | Builds the WASM component and generated WIT on pushes, pull requests, and manual runs |
 | `.github/workflows/release.yml` | Builds release-grade artifacts on version tags and publishes to GitHub Releases |
+| `.github/workflows/doc.yml` | Builds and deploys mdBook documentation to GitHub Pages |
 
 ## Feature flags overview
 
@@ -199,7 +210,6 @@ The repository includes `Taskfile.yml` for common flows.
 | Feature | Purpose |
 |:--------|:--------|
 | `native-transport` | OS process and stdio transport support |
-| `wasm-runtime` | Sandboxed WASM execution support |
 | `wizard` | Interactive setup and wizard-related dependencies |
 | `multi-agent` | Multi-agent orchestration support |
 | `full` | Enables the full capability set |

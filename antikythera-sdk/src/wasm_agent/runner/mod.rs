@@ -211,15 +211,13 @@ fn with_runtime<T>(
 static SESSION_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 pub fn new_session_id() -> String {
-    let ts_ns = chrono::Utc::now()
-        .timestamp_nanos_opt()
-        .unwrap_or_else(|| chrono::Utc::now().timestamp_micros() * 1_000);
+    let ts_ns = antikythera_log::wasm_compat::now_timestamp_nanos();
     let seq = SESSION_ID_COUNTER.fetch_add(1, Ordering::Relaxed);
     format!("session-{ts_ns}-{seq}")
 }
 
 pub(super) fn now_unix_ms() -> i64 {
-    chrono::Utc::now().timestamp_millis()
+    antikythera_log::wasm_compat::now_unix_ms()
 }
 
 pub fn init(config_json: &str) -> Result<String, AgentRunnerError> {

@@ -35,7 +35,7 @@ impl SessionLogExport {
             version: Self::VERSION,
             session_id: session_id.into(),
             logs,
-            exported_at: chrono::Utc::now().to_rfc3339(),
+            exported_at: crate::wasm_compat::now_rfc3339(),
             notes: None,
         }
     }
@@ -128,7 +128,7 @@ impl BatchLogExport {
     pub fn from_session_logs(sessions: Vec<SessionLogExport>) -> Self {
         Self {
             version: Self::VERSION,
-            exported_at: chrono::Utc::now().to_rfc3339(),
+            exported_at: crate::wasm_compat::now_rfc3339(),
             sessions,
             notes: None,
         }

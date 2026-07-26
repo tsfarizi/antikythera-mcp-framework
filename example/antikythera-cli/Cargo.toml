@@ -27,7 +27,7 @@ antikythera-core = { path = "../../antikythera-core", version = "1.0.0", feature
 antikythera-sdk = { path = "../../antikythera-sdk", version = "1.0.0", features = ["component"] }
 antikythera-log = { path = "../../antikythera-log", version = "1.0.0" }
 antikythera-session = { path = "../../antikythera-session", version = "1.0.0" }
-antikythera-storage = { path = "../../antikythera-storage", version = "1.1.0", features = ["filesystem"] }
+antikythera-storage = { path = "../../antikythera-storage", version = "1.4.1", features = ["filesystem"] }
 
 # Core async runtime
 tokio.workspace = true
