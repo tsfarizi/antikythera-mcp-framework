@@ -13,6 +13,7 @@
   "commit_result_keys": [
     "action",
     "content",
+    "fsm_state",
     "session_id",
     "step",
     "tool_input",

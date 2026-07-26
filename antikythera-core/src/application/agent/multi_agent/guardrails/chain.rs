@@ -3,7 +3,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
 
-use crate::logging::OrchestratorLogger;
+use crate::logging::{OrchestratorLogger, SessionContext};
 
 use super::super::budget::BudgetSnapshot;
 use super::super::registry::AgentProfile;
@@ -152,7 +152,7 @@ impl GuardrailChain {
     pub fn new() -> Self {
         Self {
             guardrails: Vec::new(),
-            log: OrchestratorLogger::new(&crate::logging::get_active_session()),
+            log: OrchestratorLogger::new(&SessionContext::default().into_session_id()),
         }
     }
 

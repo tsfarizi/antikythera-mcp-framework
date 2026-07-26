@@ -16,7 +16,7 @@
 //! ```
 
 use super::policy::RetryPolicy;
-use crate::logging::ResilienceLogger;
+use crate::logging::{ResilienceLogger, SessionContext};
 use std::future::Future;
 
 // ── Core executor ─────────────────────────────────────────────────────────────
@@ -38,8 +38,26 @@ use std::future::Future;
 /// | `Err(e)`, `should_retry` → `false`   | Return `Err(e)` now       |
 pub async fn with_retry_if<F, Fut, T, E, SR>(
     policy: &RetryPolicy,
+    f: F,
+    should_retry: SR,
+) -> Result<T, E>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, E>>,
+    E: std::fmt::Display,
+    SR: Fn(&E) -> bool,
+{
+    let ctx = SessionContext::default();
+    with_retry_if_ctx(policy, f, should_retry, &ctx).await
+}
+
+/// Execute `f` up to `policy.max_attempts` times, retrying only when
+/// `should_retry` returns `true` for the error, with explicit session context.
+pub async fn with_retry_if_ctx<F, Fut, T, E, SR>(
+    policy: &RetryPolicy,
     mut f: F,
     should_retry: SR,
+    ctx: &SessionContext,
 ) -> Result<T, E>
 where
     F: FnMut() -> Fut,
@@ -57,7 +75,7 @@ where
                     return Err(err);
                 }
                 let delay = policy.delay_for_attempt(attempt - 1);
-                ResilienceLogger::new(&crate::logging::get_active_session()).warn(format!(
+                ResilienceLogger::from_context(ctx).warn(format!(
                     "Transient failure — retrying after back-off | attempt={} max={} delay_ms={} error={}",
                     attempt, policy.max_attempts, delay.as_millis(), err
                 ));
@@ -78,4 +96,15 @@ where
     E: std::fmt::Display,
 {
     with_retry_if(policy, f, |_| true).await
+}
+
+/// Execute `f` up to `policy.max_attempts` times, retrying on *every* error,
+/// with explicit session context.
+pub async fn with_retry_ctx<F, Fut, T, E>(policy: &RetryPolicy, f: F, ctx: &SessionContext) -> Result<T, E>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, E>>,
+    E: std::fmt::Display,
+{
+    with_retry_if_ctx(policy, f, |_| true, ctx).await
 }

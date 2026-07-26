@@ -16,8 +16,6 @@
 //! proactive pruning without an ML tokenizer dependency.
 
 use crate::domain::types::{ChatMessage, MessagePart, MessageRole};
-#[allow(unused_imports)]
-use crate::logging::ResilienceLogger;
 use serde::{Deserialize, Serialize};
 
 // ── Token estimator ───────────────────────────────────────────────────────────

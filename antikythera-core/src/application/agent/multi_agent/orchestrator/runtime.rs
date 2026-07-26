@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use crate::logging::OrchestratorLogger;
+use crate::logging::{OrchestratorLogger, SessionContext};
 use tokio::time::sleep;
 
 use super::super::budget::OrchestratorBudget;
@@ -174,11 +174,12 @@ pub(super) async fn execute_task<P: ModelProvider>(
         }
 
         attempt = attempt.saturating_add(1);
-        let log = OrchestratorLogger::new(
+        let ctx = SessionContext::new(
             task.session_id
                 .as_deref()
-                .unwrap_or(&crate::logging::get_active_session()),
+                .unwrap_or(&SessionContext::default().into_session_id()),
         );
+        let log = OrchestratorLogger::from_context(&ctx);
         let agent = Agent::new(client.clone());
         let options = AgentOptions {
             system_prompt: profile.system_prompt.clone(),

@@ -15,9 +15,20 @@
 //! `antikythera-log` can share the same per-session buffers. This module
 //! re-exports the registry helpers for backward compatibility and layers on
 //! the typed module loggers below.
+//!
+//! ## Sub-modules
+//!
+//! - [`context`] -- [`SessionContext`] for propagating session IDs through
+//!   the call stack without relying on global state.
+//! - [`provider`] -- The concrete [`LogProvider`] implementation
+//!   ([`provider::AntikytheraLogProvider`]) that bridges port traits to
+//!   `antikythera_log`.
 
+pub mod context;
 mod module_loggers;
+pub mod provider;
 mod registry;
 
+pub use context::SessionContext;
 pub use registry::*;
 pub use module_loggers::*;

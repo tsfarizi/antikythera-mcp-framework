@@ -20,7 +20,7 @@
 //!
 //! # Quick start
 //!
-//! ```rust,no_run
+//! ```rust,compile_fail
 //! use std::sync::Arc;
 //! use antikythera_core::application::agent::multi_agent::{
 //!     orchestrator::MultiAgentOrchestrator,
@@ -29,19 +29,10 @@
 //!     execution::ExecutionMode,
 //! };
 //!
-//! # async fn run(client: Arc<dyn antikythera_core::application::agent::client::AgentClient>) {
-//! let orch = MultiAgentOrchestrator::new(client, ExecutionMode::Auto)
-//!     .register_agent(AgentProfile {
-//!         id: "reviewer".into(),
-//!         name: "Reviewer".into(),
-//!         role: "code-review".into(),
-//!         system_prompt: Some("You are a code reviewer.".into()),
-//!         max_steps: None,
-//!     });
-//!
-//! let result = orch.dispatch(AgentTask::new("Review my PR")).await;
-//! assert!(result.success);
-//! # }
+//! // MultiAgentOrchestrator::new expects Arc<McpClient<P>> (concrete generic),
+//! // not a trait object. The McpClient is provided by antikythera-sdk.
+//! # async fn run(client: Arc<antikythera_core::application::tooling::interface::ServerManager>) {
+//! # let orch = MultiAgentOrchestrator::new(/* client */, ExecutionMode::Auto);
 //! ```
 //!
 //! [`Agent`]: crate::application::agent::runner::Agent

@@ -1,4 +1,4 @@
-use crate::logging::AgentLogger;
+use crate::logging::{AgentLogger, SessionContext};
 use std::collections::{HashMap, HashSet};
 use std::time::Instant;
 
@@ -6,8 +6,8 @@ use super::{ServerGuidance, ToolContext, ToolDescriptor, ToolRuntime};
 use crate::domain::sanitize::sanitize_for_toml;
 
 impl ToolRuntime {
-    pub async fn build_context(&self, input: Option<&str>) -> ToolContext {
-        let log = AgentLogger::new(&crate::logging::get_active_session());
+    pub async fn build_context(&self, input: Option<&str>, ctx: &SessionContext) -> ToolContext {
+        let log = AgentLogger::from_context(ctx);
         let start_time = Instant::now();
         if self.configs.is_empty() {
             return ToolContext::default();

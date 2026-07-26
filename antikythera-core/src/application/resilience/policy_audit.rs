@@ -7,7 +7,7 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::logging::ResilienceLogger;
+use crate::logging::{ResilienceLogger, SessionContext};
 
 /// Policy decision event types.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -59,7 +59,7 @@ pub struct PolicyAuditEvent {
 }
 
 impl PolicyAuditEvent {
-    /// Create a new policy audit event.
+    /// Create a new policy audit event (uses default session context).
     pub fn new(
         correlation_id: Option<String>,
         session_id: Option<String>,
@@ -68,11 +68,25 @@ impl PolicyAuditEvent {
         decision: impl Into<String>,
         reason: impl Into<String>,
     ) -> Self {
+        let ctx = SessionContext::default();
+        Self::new_ctx(correlation_id, session_id, event_type, policy_name, decision, reason, &ctx)
+    }
+
+    /// Create a new policy audit event with explicit session context.
+    pub fn new_ctx(
+        correlation_id: Option<String>,
+        session_id: Option<String>,
+        event_type: PolicyEventType,
+        policy_name: impl Into<String>,
+        decision: impl Into<String>,
+        reason: impl Into<String>,
+        ctx: &SessionContext,
+    ) -> Self {
         let policy_name: String = policy_name.into();
         let decision: String = decision.into();
         let reason: String = reason.into();
 
-        let log = ResilienceLogger::new(&crate::logging::get_active_session());
+        let log = ResilienceLogger::from_context(ctx);
         match &event_type {
             PolicyEventType::ToolAccessDenied | PolicyEventType::HealthCheckFailed => {
                 log.warn(format!(
@@ -153,13 +167,19 @@ impl InMemoryAuditSink {
         }
     }
 
-    /// Get a snapshot of recorded events.
+    /// Get a snapshot of recorded events (uses default session context).
     pub fn snapshot(&self) -> Vec<PolicyAuditEvent> {
+        let ctx = SessionContext::default();
+        self.snapshot_ctx(&ctx)
+    }
+
+    /// Get a snapshot of recorded events with explicit session context.
+    pub fn snapshot_ctx(&self, ctx: &SessionContext) -> Vec<PolicyAuditEvent> {
         self.events
             .lock()
             .map(|guard| guard.clone())
             .unwrap_or_else(|e| {
-                let log = ResilienceLogger::new(&crate::logging::get_active_session());
+                let log = ResilienceLogger::from_context(ctx);
                 log.warn(format!(
                     "InMemoryAuditSink events lock poisoned in snapshot: {}",
                     e
@@ -168,12 +188,18 @@ impl InMemoryAuditSink {
             })
     }
 
-    /// Clear all recorded events.
+    /// Clear all recorded events (uses default session context).
     pub fn clear(&self) {
+        let ctx = SessionContext::default();
+        self.clear_ctx(&ctx)
+    }
+
+    /// Clear all recorded events with explicit session context.
+    pub fn clear_ctx(&self, ctx: &SessionContext) {
         match self.events.lock() {
             Ok(mut guard) => guard.clear(),
             Err(e) => {
-                let log = ResilienceLogger::new(&crate::logging::get_active_session());
+                let log = ResilienceLogger::from_context(ctx);
                 log.warn(format!(
                     "InMemoryAuditSink events lock poisoned in clear: {}",
                     e
@@ -194,7 +220,7 @@ impl PolicyAuditSink for InMemoryAuditSink {
         match self.events.lock() {
             Ok(mut guard) => guard.push(event),
             Err(e) => {
-                let log = ResilienceLogger::new(&crate::logging::get_active_session());
+                let log = ResilienceLogger::from_context(&SessionContext::default());
                 log.warn(format!(
                     "InMemoryAuditSink events lock poisoned in record_event: {}",
                     e

@@ -1,13 +1,13 @@
 use super::{AgentDirective, AgentError, ToolRuntime, Value};
-use crate::logging::AgentLogger;
+use crate::logging::{AgentLogger, SessionContext};
 use std::time::Instant;
 
 impl ToolRuntime {
-    pub fn parse_agent_action(&self, content: &str) -> Result<AgentDirective, AgentError> {
-        let log = AgentLogger::new(&crate::logging::get_active_session());
+    pub fn parse_agent_action(&self, content: &str, ctx: &SessionContext) -> Result<AgentDirective, AgentError> {
+        let log = AgentLogger::from_context(ctx);
         let start_time = Instant::now();
         let result = if let Some(value) = extract_json(content) {
-            self.parse_action_value(value)
+            self.parse_action_value(value, ctx)
         } else {
             Err(AgentError::InvalidResponse(
                 "expected JSON object in agent response".into(),
@@ -21,8 +21,8 @@ impl ToolRuntime {
         result
     }
 
-    fn parse_action_value(&self, value: Value) -> Result<AgentDirective, AgentError> {
-        let log = AgentLogger::new(&crate::logging::get_active_session());
+    fn parse_action_value(&self, value: Value, ctx: &SessionContext) -> Result<AgentDirective, AgentError> {
+        let log = AgentLogger::from_context(ctx);
         match value {
             Value::Object(map) => {
                 if let Some(action) = map.get("action").and_then(Value::as_str) {
@@ -88,7 +88,7 @@ impl ToolRuntime {
                     }
                 }
             }
-            Value::String(text) => self.parse_agent_action(&text),
+            Value::String(text) => self.parse_agent_action(&text, ctx),
             other => Err(AgentError::InvalidResponse(format!(
                 "unsupported response type: {other}"
             ))),

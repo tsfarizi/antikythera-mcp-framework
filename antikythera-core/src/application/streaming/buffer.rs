@@ -1,7 +1,7 @@
 //! Buffering and event streams
 
 use super::types::{AgentEvent, ToolEventPhase};
-use crate::logging::StreamingLogger;
+use crate::logging::{SessionContext, StreamingLogger};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
@@ -114,8 +114,9 @@ impl AgentEventStream {
                 let dropped = self.events.len();
                 self.events.clear();
                 if dropped > 0 {
-                    StreamingLogger::new(&crate::logging::get_active_session())
-                        .buffer_overflow(&crate::logging::get_active_session(), dropped);
+                    let ctx = SessionContext::default();
+                    StreamingLogger::from_context(&ctx)
+                        .buffer_overflow(ctx.session_id(), dropped);
                 }
                 return;
             }
@@ -126,8 +127,9 @@ impl AgentEventStream {
                 dropped += 1;
             }
             if dropped > 0 {
-                StreamingLogger::new(&crate::logging::get_active_session())
-                    .buffer_overflow(&crate::logging::get_active_session(), dropped);
+                let ctx = SessionContext::default();
+                StreamingLogger::from_context(&ctx)
+                    .buffer_overflow(ctx.session_id(), dropped);
             }
         }
     }
@@ -179,8 +181,9 @@ impl StreamingBuffer {
         let batch = std::mem::take(&mut self.pending);
         self.flushed_total += batch.len();
         if !batch.is_empty() {
-            StreamingLogger::new(&crate::logging::get_active_session())
-                .buffer_flushed(&crate::logging::get_active_session(), batch.len());
+            let ctx = SessionContext::default();
+            StreamingLogger::from_context(&ctx)
+                .buffer_flushed(ctx.session_id(), batch.len());
         }
         batch
     }

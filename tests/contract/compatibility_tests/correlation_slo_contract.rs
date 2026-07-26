@@ -25,9 +25,18 @@ fn correlation_and_slo_contract_are_present() {
     )
     .unwrap();
 
-    let commit = commit_llm_response(&prepared, r#"{"action":"retry","error":"timeout"}"#).unwrap();
+    let commit = commit_llm_response(
+        &prepared,
+        &serde_json::json!({
+            "action": "call_tool",
+            "tool": "network.fetch",
+            "input": {"url": "https://example.com"}
+        })
+        .to_string(),
+    )
+    .unwrap();
     let commit_v: serde_json::Value = serde_json::from_str(&commit).unwrap();
-    assert_eq!(commit_v["action"], "retry");
+    assert_eq!(commit_v["action"], "call_tool");
 
     process_tool_result_for_session(
         "corr-slo-session",

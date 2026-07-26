@@ -13,7 +13,7 @@
 //! | > 0 % and < 50 %  | [`HealthStatus::Degraded`]  |
 //! | ≥ 50 %            | [`HealthStatus::Unhealthy`] |
 
-use crate::logging::ResilienceLogger;
+use crate::logging::{ResilienceLogger, SessionContext};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -85,6 +85,12 @@ impl ComponentHealth {
 
     /// Record a successful call with `latency_ms` round-trip time.
     pub fn record_success(&mut self, latency_ms: u64) {
+        let ctx = SessionContext::default();
+        self.record_success_ctx(latency_ms, &ctx);
+    }
+
+    /// Record a successful call with explicit session context.
+    pub fn record_success_ctx(&mut self, latency_ms: u64, ctx: &SessionContext) {
         let old_status = self.status;
         self.total_calls += 1;
         self.successful_calls += 1;
@@ -92,7 +98,7 @@ impl ComponentHealth {
         self.error_rate = 1.0 - (self.successful_calls as f64 / self.total_calls as f64);
         self.status = HealthStatus::from_error_rate(self.error_rate);
         if self.status != old_status {
-            let log = ResilienceLogger::new(&crate::logging::get_active_session());
+            let log = ResilienceLogger::from_context(ctx);
             log.info(format!(
                 "Health transition: {} -> {} | component={}",
                 old_status, self.status, self.component_id
@@ -102,13 +108,19 @@ impl ComponentHealth {
 
     /// Record a failed call with the error description.
     pub fn record_failure(&mut self, error: impl Into<String>) {
+        let ctx = SessionContext::default();
+        self.record_failure_ctx(error, &ctx);
+    }
+
+    /// Record a failed call with explicit session context.
+    pub fn record_failure_ctx(&mut self, error: impl Into<String>, ctx: &SessionContext) {
         let old_status = self.status;
         self.total_calls += 1;
         self.last_error = Some(error.into());
         self.error_rate = 1.0 - (self.successful_calls as f64 / self.total_calls as f64);
         self.status = HealthStatus::from_error_rate(self.error_rate);
         if self.status != old_status {
-            let log = ResilienceLogger::new(&crate::logging::get_active_session());
+            let log = ResilienceLogger::from_context(ctx);
             log.warn(format!(
                 "Health transition: {} -> {} | component={}",
                 old_status, self.status, self.component_id
@@ -164,10 +176,11 @@ impl HealthTracker {
                 component_id, latency_ms
             ));
         }
+        let ctx = SessionContext::default();
         self.components
             .entry(component_id.to_string())
             .or_insert_with(|| ComponentHealth::new(component_id))
-            .record_success(latency_ms);
+            .record_success_ctx(latency_ms, &ctx);
     }
 
     /// Record a failed invocation of `component_id`.
@@ -179,10 +192,11 @@ impl HealthTracker {
                 component_id, error_str
             ));
         }
+        let ctx = SessionContext::default();
         self.components
             .entry(component_id.to_string())
             .or_insert_with(|| ComponentHealth::new(component_id))
-            .record_failure(error_str);
+            .record_failure_ctx(error_str, &ctx);
     }
 
     /// Retrieve the health snapshot for a specific component, if any calls

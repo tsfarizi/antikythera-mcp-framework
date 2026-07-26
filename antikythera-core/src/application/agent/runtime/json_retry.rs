@@ -7,7 +7,7 @@
 use super::{AgentDirective, AgentError, ToolRuntime};
 use crate::application::client::{ChatRequest, McpClient};
 use crate::application::model_provider::ModelProvider;
-use crate::logging::AgentLogger;
+use crate::logging::{AgentLogger, SessionContext};
 use std::sync::Arc;
 
 /// Maximum retry attempts for JSON parsing failures.
@@ -34,13 +34,18 @@ impl ToolRuntime {
         let log = AgentLogger::new(
             session_id
                 .as_deref()
-                .unwrap_or(&crate::logging::get_active_session()),
+                .unwrap_or(&SessionContext::default().into_session_id()),
         );
         let mut retry_count = 0u8;
         let mut current_content = content.to_string();
+        let ctx = SessionContext::new(
+            session_id
+                .as_deref()
+                .unwrap_or(&SessionContext::default().into_session_id()),
+        );
 
         loop {
-            match self.parse_agent_action(&current_content) {
+            match self.parse_agent_action(&current_content, &ctx) {
                 Ok(directive) => return Ok(directive),
                 Err(e) if retry_count < MAX_JSON_RETRIES => {
                     retry_count += 1;

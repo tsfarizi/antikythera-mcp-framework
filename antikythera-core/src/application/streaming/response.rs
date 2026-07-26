@@ -3,7 +3,7 @@
 use super::buffer::AgentEventStream;
 use super::request::StreamingRequest;
 use super::types::{AgentEvent, StreamingMode, ToolEventPhase};
-use crate::logging::StreamingLogger;
+use crate::logging::{SessionContext, StreamingLogger};
 use serde::{Deserialize, Serialize};
 
 /// Snapshot returned by in-memory streaming responders.
@@ -51,8 +51,8 @@ impl StreamingResponse for InMemoryStreamingResponse {
     }
 
     fn push_token(&mut self, token: String) {
-        let log = StreamingLogger::new(&crate::logging::get_active_session());
-        let session_id = crate::logging::get_active_session();
+        let ctx = SessionContext::default();
+        let log = StreamingLogger::from_context(&ctx);
         if self.request.wants_tokens() {
             self.tokens.push(token.clone());
         }
@@ -60,7 +60,7 @@ impl StreamingResponse for InMemoryStreamingResponse {
             self.events.push(AgentEvent::Token { content: token.clone() });
         }
         if self.request.wants_tokens() || self.request.wants_events() {
-            log.token_emitted(&session_id, token.len());
+            log.token_emitted(ctx.session_id(), token.len());
         }
     }
 
@@ -76,21 +76,21 @@ impl StreamingResponse for InMemoryStreamingResponse {
                 _ => {}
             }
         }
-        let log = StreamingLogger::new(&crate::logging::get_active_session());
-        let session_id = crate::logging::get_active_session();
+        let ctx = SessionContext::default();
+        let log = StreamingLogger::from_context(&ctx);
         if let AgentEvent::Tool { tool_name, phase } = &event {
             let phase_str = match phase {
                 ToolEventPhase::Started => "started",
                 ToolEventPhase::Finished => "finished",
             };
-            log.tool_event(&session_id, tool_name, phase_str);
+            log.tool_event(ctx.session_id(), tool_name, phase_str);
         }
         self.events.push(event);
     }
 
     fn set_final_response(&mut self, response: String) {
         if self.request.include_final_response {
-            StreamingLogger::new(&crate::logging::get_active_session()).debug(format!(
+            StreamingLogger::from_context(&SessionContext::default()).debug(format!(
                 "Final response set | len={}",
                 response.len()
             ));
@@ -99,7 +99,7 @@ impl StreamingResponse for InMemoryStreamingResponse {
     }
 
     fn snapshot(&self) -> StreamingSnapshot {
-        StreamingLogger::new(&crate::logging::get_active_session()).debug(format!(
+        StreamingLogger::from_context(&SessionContext::default()).debug(format!(
             "Streaming snapshot taken | tokens={} events={} has_final={}",
             self.tokens.len(),
             self.events.len(),

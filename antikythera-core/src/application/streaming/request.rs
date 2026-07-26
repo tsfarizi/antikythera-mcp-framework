@@ -1,7 +1,7 @@
 //! Streaming request definitions
 
 use super::types::StreamingMode;
-use crate::logging::StreamingLogger;
+use crate::logging::{SessionContext, StreamingLogger};
 use serde::{Deserialize, Serialize};
 
 /// Streaming request describing what kind of incremental output is wanted.
@@ -24,7 +24,7 @@ pub(crate) const fn default_true() -> bool {
 
 impl Default for StreamingRequest {
     fn default() -> Self {
-        StreamingLogger::new(&crate::logging::get_active_session())
+        StreamingLogger::from_context(&SessionContext::default())
             .debug("StreamingRequest created with defaults");
         Self {
             mode: StreamingMode::Mixed,

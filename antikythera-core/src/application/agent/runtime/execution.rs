@@ -1,5 +1,5 @@
 use super::{ToolError, ToolInvokeError, ToolRuntime, Value};
-use crate::logging::AgentLogger;
+use crate::logging::{AgentLogger, SessionContext};
 use futures::stream::{FuturesUnordered, StreamExt};
 use std::time::Instant;
 
@@ -16,10 +16,11 @@ impl ToolRuntime {
         &self,
         tool_name: &str,
         input: Value,
+        ctx: &SessionContext,
     ) -> Result<ToolExecution, ToolError> {
-        let log = AgentLogger::new(&crate::logging::get_active_session());
+        let log = AgentLogger::from_context(ctx);
         if tool_name.eq_ignore_ascii_case("list_tools") {
-            let manifest = self.build_context(None).await;
+            let manifest = self.build_context(None, ctx).await;
             let output = serde_json::to_value(&manifest).unwrap_or(Value::Null);
             log.debug("Agent requested tool catalogue via list_tools");
             let execution = ToolExecution {
@@ -118,11 +119,13 @@ impl ToolRuntime {
     pub(crate) async fn execute_parallel(
         &self,
         tools: Vec<(String, Value)>,
+        ctx: &SessionContext,
     ) -> Result<Vec<Result<ToolExecution, ToolError>>, ToolError> {
         let mut futures = FuturesUnordered::new();
 
         for (tool_name, input) in tools {
             let runtime = self.clone();
+            let ctx = ctx.clone();
 
             futures.push(async move {
                 // Apply bounded concurrency backpressure using semaphore
@@ -137,7 +140,7 @@ impl ToolRuntime {
 
                 // Track execution wait and process times individually
 
-                runtime.execute(&tool_name, input).await
+                runtime.execute(&tool_name, input, &ctx).await
             });
         }
 

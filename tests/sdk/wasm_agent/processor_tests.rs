@@ -9,13 +9,16 @@ use antikythera_sdk::{
     AgentAction, AgentState, ToolDefinition, ToolParameterSchema, ToolRegistry,
     ToolValidationError, WasmAgentConfig, process_llm_response, validate_tool_call,
 };
+use antikythera_sdk::wasm_agent::types::AgentFsmState;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 fn fresh_state() -> AgentState {
-    AgentState::new(WasmAgentConfig::default())
+    let mut state = AgentState::new(WasmAgentConfig::default());
+    state.fsm_state = AgentFsmState::LlmStreaming;
+    state
 }
 
 // ---------------------------------------------------------------------------

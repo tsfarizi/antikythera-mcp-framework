@@ -36,6 +36,8 @@ fn step_counter_increments_on_tool_call_not_final() {
     process_llm_response(&mut state, &tool_call).unwrap();
     assert_eq!(state.current_step, 1, "step should increment on tool call");
 
+    // Reset FSM to LlmStreaming for the next call
+    state.fsm_state = AgentFsmState::LlmStreaming;
     let final_resp = serde_json::json!({ "response": "done" }).to_string();
     process_llm_response(&mut state, &final_resp).unwrap();
     assert_eq!(

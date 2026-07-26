@@ -23,7 +23,7 @@ fn transition_and_log(
             get_sdk_logger(&state.session_id).log_with_source(
                 LogLevel::Debug,
                 "processor",
-                &format!("FSM transition: {} -> {} | step={}", from, to, state.current_step),
+                format!("FSM transition: {} -> {} | step={}", from, to, state.current_step),
             );
         })
         .map_err(|e| e.to_string())

@@ -1,3 +1,4 @@
+use super::context::SessionContext;
 use super::registry::get_logger;
 use antikythera_log::{LogLevel, Logger};
 use std::sync::Arc;
@@ -18,6 +19,10 @@ macro_rules! define_module_logger {
                 Self {
                     logger: get_logger(session_id),
                 }
+            }
+
+            pub fn from_context(ctx: &SessionContext) -> Self {
+                Self::new(ctx.session_id())
             }
 
             pub fn debug(&self, message: impl Into<String>) {
@@ -384,10 +389,10 @@ impl SecurityLogger {
 macro_rules! impl_app_logger {
     ($ty:ty) => {
         impl crate::application::ports::logging::AppLogger for $ty {
-            fn log_info(&self, message: impl Into<String>) { self.info(message); }
-            fn log_warn(&self, message: impl Into<String>) { self.warn(message); }
-            fn log_error(&self, message: impl Into<String>) { self.error(message); }
-            fn log_debug(&self, message: impl Into<String>) { self.debug(message); }
+            fn log_info(&self, message: String) { self.info(message); }
+            fn log_warn(&self, message: String) { self.warn(message); }
+            fn log_error(&self, message: String) { self.error(message); }
+            fn log_debug(&self, message: String) { self.debug(message); }
         }
     };
 }

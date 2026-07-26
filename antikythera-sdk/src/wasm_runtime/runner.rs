@@ -165,7 +165,7 @@ impl WasmAgentRunner {
                     None => return -1,
                 };
 
-                WasmLogger::new(&antikythera_core::logging::get_active_session())
+                WasmLogger::new(&antikythera_core::logging::SessionContext::default().into_session_id())
                     .debug(format!("WASM agent calling LLM | req_len={}", req_len));
                 let response = (llm_handler)(req_json);
                 let response_bytes = response.into_bytes();
@@ -201,7 +201,7 @@ impl WasmAgentRunner {
                 ((result_ptr as i64) << 32) | response_len as i64
             },
         ) {
-            WasmLogger::new(&antikythera_core::logging::get_active_session()).warn(format!(
+            WasmLogger::new(&antikythera_core::logging::SessionContext::default().into_session_id()).warn(format!(
                 "Failed to register call_llm_sync host function | error={}",
                 e
             ));

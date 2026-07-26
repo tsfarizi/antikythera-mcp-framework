@@ -8,7 +8,7 @@ use super::tool_result_parser::ToolResultParser;
 use crate::application::client::{ChatRequest, McpClient};
 use crate::application::model_provider::ModelProvider;
 use crate::application::ports::security::RateLimiter as RateLimiterTrait;
-use crate::logging::AgentLogger;
+use crate::logging::{AgentLogger, SessionContext};
 use serde_json::{Value, json};
 use std::sync::Arc;
 #[cfg(feature = "native-transport")]
@@ -49,12 +49,13 @@ impl<P: ModelProvider> Agent<P> {
         prompt: String,
         mut options: AgentOptions,
     ) -> Result<AgentOutcome, AgentError> {
-        let log = AgentLogger::new(
+        let ctx = SessionContext::new(
             options
                 .session_id
                 .as_deref()
-                .unwrap_or(&crate::logging::get_active_session()),
+                .unwrap_or(&SessionContext::default().into_session_id()),
         );
+        let log = AgentLogger::from_context(&ctx);
         log.info("Agent run started");
         // Rate limit check before making LLM calls
         if let Some(ref limiter) = self.rate_limiter {
@@ -72,7 +73,7 @@ impl<P: ModelProvider> Agent<P> {
             });
         }
 
-        let context = self.runtime.build_context(Some(&prompt)).await;
+        let context = self.runtime.build_context(Some(&prompt), &ctx).await;
         let instructions = self
             .runtime
             .compose_system_instructions(&context, self.client.prompts());
@@ -218,7 +219,7 @@ impl<P: ModelProvider> Agent<P> {
                     }
                     remaining_steps -= 1;
                     log.info(format!("Agent requested tool execution | tool={}", tool));
-                    let execution = self.runtime.execute(&tool, input).await?;
+                    let execution = self.runtime.execute(&tool, input, &ctx).await?;
                     logs.push(format!(
                         "Tool '{}' executed (success: {})",
                         execution.tool, execution.success
@@ -281,7 +282,7 @@ impl<P: ModelProvider> Agent<P> {
                         tools.len()
                     ));
 
-                    let executions = self.runtime.clone().execute_parallel(tools).await?;
+                    let executions = self.runtime.clone().execute_parallel(tools, &ctx).await?;
                     let mut aggregated_results = Vec::new();
 
                     for exec_result in executions {

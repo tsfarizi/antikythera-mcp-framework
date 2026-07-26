@@ -1,5 +1,15 @@
 use antikythera_log::{LogBatch, LogEntry, LogFilter};
+use std::sync::LazyLock;
 
+use super::provider::AntikytheraLogProvider;
+use crate::application::ports::logging::LogQueryPort;
+
+/// Static port instance for log queries.
+static LOG_QUERY: LazyLock<AntikytheraLogProvider> =
+    LazyLock::new(|| AntikytheraLogProvider);
+
+// Re-exports for backward compatibility.
+// Prefer using the LogProvider / LogQueryPort traits instead.
 pub use antikythera_log::session_logger::{
     SessionLogger, clear_all_loggers, get_logger, logger_count,
 };
@@ -21,24 +31,27 @@ pub fn get_active_session() -> String {
         .clone()
 }
 
+/// Query logs for a session, returning a LogBatch with pagination.
 pub fn query_logs(session_id: &str, filter: &LogFilter) -> LogBatch {
     get_logger(session_id).get_logs(filter)
 }
 
+/// Get the latest N log entries for a session via the LogQueryPort.
 pub fn get_latest_logs(session_id: &str, count: usize) -> Vec<LogEntry> {
-    get_logger(session_id).get_latest(count)
+    LOG_QUERY.get_latest_logs(session_id, count)
 }
 
+/// Get logs as JSON for a session via the LogQueryPort.
 pub fn get_logs_json(session_id: &str, filter: &LogFilter) -> Result<String, String> {
-    get_logger(session_id).get_logs_json(filter)
+    LOG_QUERY.get_logs_json(session_id, filter)
 }
 
+/// Subscribe to real-time log stream for a session.
 pub fn subscribe_logs(session_id: &str) -> Option<antikythera_log::LogSubscriber> {
     Some(get_logger(session_id).subscribe())
 }
 
+/// Clear all logs for a session.
 pub fn clear_logs(session_id: &str) {
     get_logger(session_id).clear();
 }
-
-use std::sync::LazyLock;

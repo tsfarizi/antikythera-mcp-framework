@@ -49,7 +49,7 @@ pub use policy::{ResilienceConfig, RetryPolicy, TimeoutPolicy};
 pub use policy_audit::{
     InMemoryAuditSink, NoOpAuditSink, PolicyAuditEvent, PolicyAuditSink, PolicyEventType,
 };
-pub use retry::{with_retry, with_retry_if};
+pub use retry::{with_retry, with_retry_if, with_retry_if_ctx, with_retry_ctx};
 
 use serde_json;
 

@@ -52,7 +52,7 @@ use super::task::{
 };
 use crate::application::client::McpClient;
 use crate::application::model_provider::ModelProvider;
-use crate::logging::OrchestratorLogger;
+use crate::logging::{OrchestratorLogger, SessionContext};
 use runtime::{ExecuteTaskRuntime, execute_task};
 
 /// Outcome of pre-dispatch checks and resource acquisition.
@@ -215,7 +215,7 @@ impl<P: ModelProvider + 'static> MultiAgentOrchestrator<P> {
             concurrency_sem: None,
             default_retry_condition: RetryCondition::Always,
             guardrails: GuardrailChain::new(),
-            log: OrchestratorLogger::new(&crate::logging::get_active_session()),
+            log: OrchestratorLogger::new(&SessionContext::default().into_session_id()),
         }
     }
 

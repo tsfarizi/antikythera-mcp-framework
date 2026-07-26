@@ -28,7 +28,7 @@ use postcard::{from_bytes, to_allocvec};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::logging::AgentLogger;
+use crate::logging::{AgentLogger, SessionContext};
 
 /// Current schema version for state serialization
 pub const STATE_SCHEMA_VERSION: u32 = 1;
@@ -93,9 +93,15 @@ impl AgentStateSnapshot {
         self.schema_version == STATE_SCHEMA_VERSION
     }
 
-    /// Serialize to Postcard binary format
+    /// Serialize to Postcard binary format (uses default session context).
     pub fn to_postcard(&self) -> Result<Vec<u8>, MemoryError> {
-        let log = AgentLogger::new(&crate::logging::get_active_session());
+        let ctx = SessionContext::default();
+        self.to_postcard_ctx(&ctx)
+    }
+
+    /// Serialize to Postcard binary format with explicit session context.
+    pub fn to_postcard_ctx(&self, ctx: &SessionContext) -> Result<Vec<u8>, MemoryError> {
+        let log = AgentLogger::from_context(ctx);
         log.debug(format!(
             "Saving state | agent_id={} context_id={}",
             self.agent_id, self.context_id
@@ -103,11 +109,17 @@ impl AgentStateSnapshot {
         to_allocvec(self).map_err(|e| MemoryError::Serialization(e.to_string()))
     }
 
-    /// Deserialize from Postcard binary format
+    /// Deserialize from Postcard binary format (uses default session context).
     pub fn from_postcard(bytes: &[u8]) -> Result<Self, MemoryError> {
+        let ctx = SessionContext::default();
+        Self::from_postcard_ctx(bytes, &ctx)
+    }
+
+    /// Deserialize from Postcard binary format with explicit session context.
+    pub fn from_postcard_ctx(bytes: &[u8], ctx: &SessionContext) -> Result<Self, MemoryError> {
         let state: Self =
             from_bytes(bytes).map_err(|e| MemoryError::Serialization(e.to_string()))?;
-        let log = AgentLogger::new(&crate::logging::get_active_session());
+        let log = AgentLogger::from_context(ctx);
         log.debug(format!(
             "Loading state | agent_id={} context_id={}",
             state.agent_id, state.context_id
@@ -121,9 +133,19 @@ impl AgentStateSnapshot {
         &mut self,
         next: crate::domain::fsm::AgentFsmState,
     ) -> Result<(), crate::domain::fsm::FsmTransitionError> {
+        let ctx = SessionContext::default();
+        self.transition_fsm_ctx(next, &ctx)
+    }
+
+    /// Transition FSM state with explicit session context.
+    pub fn transition_fsm_ctx(
+        &mut self,
+        next: crate::domain::fsm::AgentFsmState,
+        ctx: &SessionContext,
+    ) -> Result<(), crate::domain::fsm::FsmTransitionError> {
         let from = self.fsm_state;
         self.fsm_state.transition_to(next).map(|_| {
-            let log = AgentLogger::new(&crate::logging::get_active_session());
+            let log = AgentLogger::from_context(ctx);
             log.debug(format!(
                 "FSM transition: {} -> {} | agent_id={} context_id={}",
                 from, next, self.agent_id, self.context_id
