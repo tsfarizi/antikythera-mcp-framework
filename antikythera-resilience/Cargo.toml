@@ -1,0 +1,15 @@
+[package]
+name = "antikythera-resilience"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Retry, timeout, context window, and health tracking for Antikythera MCP Framework"
+
+[dependencies]
+antikythera-domain = { path = "../antikythera-domain" }
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["time"] }
+chrono.workspace = true

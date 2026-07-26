@@ -1,20 +1,12 @@
-mod envelope;
-pub mod error;
-pub mod interface;
-pub mod manager;
-
-pub mod transport;
-
-pub use envelope::{
-    EnvelopeError, ToolCallEnvelope, ToolResultEnvelope, validate_tool_call_envelope,
+pub use antikythera_tooling::{
+    EnvelopeError, McpTransport, PROTOCOL_VERSION, ServerInstance, ServerManager, ServerToolInfo,
+    TaskSupport, ToolAnnotations, ToolCallEnvelope, ToolExecution, ToolIcon, ToolInvokeError,
+    ToolResultEnvelope, ToolServerInterface, TransportFactory, validate_tool_call_envelope,
     validate_tool_result_envelope,
 };
-pub use error::ToolInvokeError;
-pub use interface::{
-    PROTOCOL_VERSION, ServerToolInfo, TaskSupport, ToolAnnotations, ToolExecution, ToolIcon,
-    ToolServerInterface,
-};
-pub use manager::ServerManager;
-pub use manager::ServerInstance;
-pub use manager::TransportFactory;
-pub use transport::McpTransport;
+
+// Submodule re-exports preserved for backward compatibility.
+pub use antikythera_tooling::error;
+pub use antikythera_tooling::interface;
+pub use antikythera_tooling::manager;
+pub use antikythera_tooling::transport;

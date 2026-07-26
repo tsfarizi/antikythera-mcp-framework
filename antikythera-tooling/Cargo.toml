@@ -1,0 +1,17 @@
+[package]
+name = "antikythera-tooling"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "MCP tool server management for Antikythera MCP Framework"
+
+[dependencies]
+antikythera-domain = { path = "../antikythera-domain" }
+antikythera-config = { path = "../antikythera-config" }
+serde.workspace = true
+serde_json.workspace = true
+async-trait.workspace = true
+thiserror.workspace = true
+tracing.workspace = true

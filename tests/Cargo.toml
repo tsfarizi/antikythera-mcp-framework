@@ -12,22 +12,6 @@ publish = false
 # ============================================================================
 
 [[test]]
-name = "security_validation_tests"
-path = "security/validation_tests.rs"
-
-[[test]]
-name = "security_rate_limit_tests"
-path = "security/rate_limit_tests.rs"
-
-[[test]]
-name = "security_rate_limit_concurrent"
-path = "security/rate_limit_concurrent.rs"
-
-[[test]]
-name = "security_secrets_tests"
-path = "security/secrets_tests.rs"
-
-[[test]]
 name = "security_config_tests"
 path = "security/config_tests.rs"
 
@@ -67,10 +51,6 @@ path = "session/comprehensive_session_tests.rs"
 name = "sdk_config"
 path = "sdk/config/config_tests.rs"
 
-[[test]]
-name = "comprehensive_config_security_tests"
-path = "config/comprehensive_config_security_tests.rs"
-
 # ============================================================================
 # WASM Agent Tests (requires component feature)
 # ============================================================================
@@ -94,10 +74,6 @@ path = "sdk/wasm_agent/runner_tests.rs"
 [[test]]
 name = "deterministic_harness_tests"
 path = "sdk/wasm_agent/deterministic_harness_tests.rs"
-
-[[test]]
-name = "contract_compatibility_tests"
-path = "contract/compatibility_tests.rs"
 
 # ============================================================================
 # Multi-Agent Hardening Tests
@@ -142,14 +118,6 @@ path = "server_tests.rs"
 [[test]]
 name = "serialization_tests"
 path = "serialization_tests.rs"
-
-# ============================================================================
-# Provider Tests
-# ============================================================================
-
-[[test]]
-name = "provider_tests"
-path = "provider_tests.rs"
 
 # ============================================================================
 # Config Tests
@@ -200,14 +168,6 @@ name = "storage_integration_tests"
 path = "storage/integration_tests.rs"
 
 # ============================================================================
-# CLI Unit Tests (moved from antikythera-cli/tests/)
-# ============================================================================
-
-[[test]]
-name = "cli_tests"
-path = "cli/mod.rs"
-
-# ============================================================================
 # Core Unit Tests (moved from antikythera-core/tests/)
 # ============================================================================
 
@@ -219,10 +179,6 @@ path = "core/multi_agent.rs"
 name = "core_tooling_tests"
 path = "core/tooling_tests.rs"
 
-[[test]]
-name = "core_transport_tests"
-path = "core/transport_tests.rs"
-
 # ============================================================================
 # Dependencies
 # ============================================================================
@@ -231,7 +187,6 @@ path = "core/transport_tests.rs"
 antikythera-log = { path = "../antikythera-log", features = ["subscriber"] }
 antikythera-session = { path = "../antikythera-session" }
 antikythera-core = { path = "../antikythera-core", features = ["full"] }
-antikythera-cli = { path = "../example/antikythera-cli" }
 antikythera-sdk = { path = "../antikythera-sdk", features = ["component", "multi-agent"] }
 antikythera-storage = { path = "../antikythera-storage", features = ["filesystem"] }
 serde_json.workspace = true

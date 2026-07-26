@@ -4,7 +4,7 @@
 //! provides thin helper functions for the CLI binary.
 
 use crate::error::{CliError, CliResult};
-pub use antikythera_core::config::app::{
+pub use antikythera_core::config::{
     AgentConfig, AppConfig, DocServerConfig, ModelConfig, ModelInfo, ProviderConfig, PromptsConfig,
     RestServerConfig,
 };
@@ -13,7 +13,7 @@ pub use antikythera_core::config::toml_config::{config_from_toml, config_to_toml
 use std::path::Path;
 
 fn default_provider_catalog() -> Vec<ProviderConfig> {
-    vec![
+    return vec![
         ProviderConfig {
             id: "ollama".to_string(),
             provider_type: "ollama".to_string(),
@@ -35,7 +35,7 @@ fn default_provider_catalog() -> Vec<ProviderConfig> {
             api_key: "OPENAI_API_KEY".to_string(),
             models: vec![],
         },
-    ]
+    ];
 }
 
 pub fn recommended_default_config() -> AppConfig {

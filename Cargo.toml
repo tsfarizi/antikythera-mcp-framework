@@ -4,17 +4,22 @@ members = [
     "antikythera-core",
     "antikythera-sdk",
     "antikythera-wasm-bindgen",
-    "example/antikythera-cli",
     "antikythera-log",
     "antikythera-session",
     "antikythera-storage",
+    "antikythera-domain",
+    "antikythera-ports",
+    "antikythera-config",
+    "antikythera-resilience",
+    "antikythera-tooling",
+    "antikythera-streaming",
     "tests",
     "scripts",
 ]
-default-members = ["example/antikythera-cli"]
+exclude = ["example/antikythera-cli"]
 
 [workspace.package]
-version = "1.4.2"
+version = "1.5.1"
 edition = "2024"
 authors = ["tsfarizi"]
 license = "MIT"

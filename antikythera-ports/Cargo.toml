@@ -1,0 +1,16 @@
+[package]
+name = "antikythera-ports"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Port trait definitions for Antikythera MCP Framework"
+
+[dependencies]
+antikythera-domain = { path = "../antikythera-domain" }
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+chrono.workspace = true

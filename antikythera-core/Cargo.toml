@@ -41,6 +41,13 @@ async-trait.workspace = true
 # Logging
 antikythera-log = { path = "../antikythera-log", version = "1.0.0", features = ["subscriber"] }
 
+# Extracted crates
+antikythera-domain = { path = "../antikythera-domain" }
+antikythera-config = { path = "../antikythera-config" }
+antikythera-ports = { path = "../antikythera-ports" }
+antikythera-resilience = { path = "../antikythera-resilience" }
+antikythera-tooling = { path = "../antikythera-tooling" }
+
 # HTTP and networking
 reqwest.workspace = true
 reqwest-eventsource.workspace = true

@@ -1,0 +1,16 @@
+[package]
+name = "antikythera-domain"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Canonical domain types for Antikythera MCP Framework"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+postcard.workspace = true
+thiserror.workspace = true
