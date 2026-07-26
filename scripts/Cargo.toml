@@ -5,7 +5,7 @@ edition.workspace = true
 publish = false
 
 [[bin]]
-name = "component-builder"
+name = "wit-validator"
 path = "build-component.rs"
 
 [dependencies]

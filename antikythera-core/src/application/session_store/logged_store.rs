@@ -10,14 +10,12 @@ use crate::domain::types::ChatMessage;
 ///
 /// This is a public API decorator for consumers who want observability
 /// on session store operations without modifying the inner implementation.
-#[allow(dead_code)]
 pub struct LoggedSessionStore<S: SessionStoreTrait> {
     inner: S,
 }
 
 impl<S: SessionStoreTrait> LoggedSessionStore<S> {
     /// Wrap `inner` with structured logging for all store operations.
-    #[allow(dead_code)]
     pub fn new(inner: S) -> Self {
         Self { inner }
     }

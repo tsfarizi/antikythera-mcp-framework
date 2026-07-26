@@ -1,5 +1,6 @@
+#[cfg(feature = "logged-session")]
 pub mod logged_store;
-#[allow(unused_imports)]
+#[cfg(feature = "logged-session")]
 pub use logged_store::LoggedSessionStore;
 
 use std::collections::VecDeque;

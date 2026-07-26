@@ -8,7 +8,6 @@ use antikythera_core::application::observability::{
     TelemetryEvent, TraceSpanContext, TraceStatus, TracingHook,
 };
 
-include!("observability_tests/empty_placeholder.rs");
 include!("observability_tests/latency_tracker_sla.rs");
 include!("observability_tests/metrics_exporter_histogram.rs");
 include!("observability_tests/audit_trail_events.rs");

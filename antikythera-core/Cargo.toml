@@ -28,6 +28,9 @@ wizard = ["dep:crossterm", "dep:ratatui"]
 # how and where that state is persisted is entirely up to the host.
 multi-agent = []
 
+# Logged session store decorator (public API for external consumers)
+logged-session = []
+
 # Full-featured build for native runtime
 full = ["native-transport", "wizard", "multi-agent"]
 

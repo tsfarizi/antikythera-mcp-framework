@@ -10,9 +10,15 @@ flowchart TD
     CLI[antikythera-cli]
     SDK[antikythera-sdk]
     CORE[antikythera-core]
+    DOMAIN[antikythera-domain]
+    PORTS[antikythera-ports]
+    CONFIG[antikythera-config]
     SESSION[antikythera-session]
     STORAGE[antikythera-storage]
     LOG[antikythera-log]
+    RESILIENCE[antikythera-resilience]
+    TOOLING[antikythera-tooling]
+    STREAMING[antikythera-streaming]
     MCP[MCP servers]
     LLM[LLM providers]
 
@@ -25,12 +31,19 @@ flowchart TD
     SDK --> CORE
     SDK --> SESSION
     SDK --> LOG
+    CORE --> DOMAIN
+    CORE --> PORTS
+    CORE --> CONFIG
     CORE --> LOG
     CORE --> SESSION
+    CORE --> RESILIENCE
+    CORE --> TOOLING
+    CORE --> STREAMING
     CORE --> MCP
     CORE --> LLM
     STORAGE --> SESSION
     STORAGE --> LOG
+    LOG --> PORTS
 ```
 
 ## Core Principles
@@ -65,7 +78,20 @@ sequenceDiagram
 
 ## Crate reading order
 
-- `antikythera-session` defines the data models and handles state retention/snapshots.
-- `antikythera-core` is the main place to understand runtime behavior, orchestration, and context pruning.
-- `antikythera-sdk` is the best view of the exported integration surface (FFI boundaries).
-- `antikythera-cli` is the user-facing binary layer over core.
+1. `antikythera-domain` — canonical domain types (start here).
+2. `antikythera-ports` — port/adapter trait definitions.
+3. `antikythera-config` — configuration schema and loading.
+4. `antikythera-log` — unified logging infrastructure.
+5. `antikythera-core` — application layer: protocol, transport, orchestration, resilience, streaming (depends on domain, ports, config, log).
+6. `antikythera-sdk` — SDK/integration surface (FFI boundaries, WASM bindings).
+7. `example/antikythera-cli` — user-facing binary.
+
+Supporting crates:
+- `antikythera-session` — session management and chat history.
+- `antikythera-storage` — pluggable session persistence.
+- `antikythera-resilience` — retry policies, health tracking, context window management.
+- `antikythera-tooling` — MCP tool server management.
+- `antikythera-streaming` — token/event streaming primitives.
+- `antikythera-wasm-bindgen` — wasm-bindgen bindings for browser targets.
+
+> **Note:** `antikythera-core/src/domain/` and `antikythera-core/src/application/ports/` are now thin re-exports from the `antikythera-domain` and `antikythera-ports` crates respectively. The canonical definitions live in those crates.

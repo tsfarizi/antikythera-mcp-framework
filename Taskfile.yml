@@ -92,10 +92,10 @@ tasks:
       - task: build-wasm-harness
 
   wit:
-    desc: Generate WIT from Rust code
+    desc: Validate WIT file conformance against Rust source types
     cmds:
-      - echo "Generating WIT from Rust code..."
-      - cargo run -p build-scripts --release -- wit
+      - echo "Validating WIT conformance..."
+      - cargo run -p build-scripts --release -- validate
 
   # ===========================================================================
   # Run Tasks

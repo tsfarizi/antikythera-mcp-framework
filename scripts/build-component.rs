@@ -1,983 +1,753 @@
-//! WASM Component Build Script
+//! WIT Conformance Validator
 //!
-//! This script handles:
-//! 1. Automatic WIT generation from Rust traits using syn
-//! 2. Component compilation for wasm32-wasip1 target
-//! 3. Output validation and inspection
+//! Validates that the checked-in `wit/antikythera.wit` file remains in sync
+//! with the Rust source types that it represents. Reports drift between WIT
+//! record fields and Rust struct fields, and between WIT interface functions
+//! and Rust public function signatures.
 //!
-//! Usage: `cargo run --release -p build-scripts -- <command>`
+//! Exit 0: conformant (no drift)
+//! Exit 1: drift detected or WIT file missing/empty
+//!
+//! Usage: `cargo run -p build-scripts --release -- validate`
 
 use std::env;
 use std::fs;
-use std::path::PathBuf;
-use std::process::{Command, exit};
+use std::path::{Path, PathBuf};
+use std::process::exit;
 
-/// ANSI color codes for terminal output
-mod colors {
-    pub const GREEN: &str = "\x1b[32m";
-    pub const YELLOW: &str = "\x1b[33m";
-    pub const BLUE: &str = "\x1b[34m";
-    pub const RED: &str = "\x1b[31m";
-    pub const BOLD: &str = "\x1b[1m";
-    pub const RESET: &str = "\x1b[0m";
+// ── ANSI helpers ─────────────────────────────────────────────────────────────
+
+const GREEN: &str = "\x1b[32m";
+const YELLOW: &str = "\x1b[33m";
+const RED: &str = "\x1b[31m";
+const BOLD: &str = "\x1b[1m";
+const RESET: &str = "\x1b[0m";
+
+// ── Parsed WIT structures ────────────────────────────────────────────────────
+
+#[derive(Debug, Clone)]
+struct WitRecord {
+    name: String,
+    fields: Vec<WitField>,
 }
 
-use colors::{BLUE, BOLD, GREEN, RED, RESET, YELLOW};
+#[derive(Debug, Clone)]
+struct WitField {
+    name: String,
+    wit_type: String,
+}
+
+#[derive(Debug, Clone)]
+struct WitFunction {
+    name: String,
+    params: Vec<WitField>,
+    return_type: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+struct WitInterface {
+    name: String,
+    functions: Vec<WitFunction>,
+}
+
+// ── Parsed Rust structures ───────────────────────────────────────────────────
+
+#[derive(Debug, Clone)]
+struct RustStruct {
+    name: String,
+    fields: Vec<RustField>,
+}
+
+#[derive(Debug, Clone)]
+struct RustField {
+    name: String,
+    rust_type: String,
+}
+
+#[derive(Debug, Clone)]
+struct RustFunction {
+    name: String,
+    params: Vec<RustField>,
+    return_type: Option<String>,
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
 
 fn main() {
-    println!("{BOLD}{BLUE}=== Building Antikythera WASM Component ==={RESET}\n");
-
     let args: Vec<String> = env::args().skip(1).collect();
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
 
     match args.as_slice() {
-        ["wit"] => generate_wit(),
-        ["component" | "component-wasm"] => build_component(),
-        ["all"] => {
-            generate_wit();
-            build_component();
-        }
+        ["validate"] => run_validate(),
         _ => {
-            eprintln!("{RED}Usage:{RESET} component-builder <command>\n");
-            eprintln!("{BOLD}Commands:{RESET}");
-            eprintln!("  wit          Generate WIT from Rust code");
-            eprintln!("  component    Build WASM component");
-            eprintln!("  all          Generate WIT and build component");
+            eprintln!("{BOLD}WIT Conformance Validator{RESET}\n");
+            eprintln!("Usage: component-builder validate");
+            eprintln!("  validate   Check WIT file against Rust source types");
             exit(1);
         }
     }
 }
 
-/// Generate WIT files from Rust source code
-fn generate_wit() {
-    println!("{YELLOW}[1/2] Generating WIT from Rust code...{RESET}{BLUE}");
+fn run_validate() {
+    println!("{BOLD}=== WIT Conformance Validator ==={RESET}\n");
 
-    let wit_dir = project_root().join("wit");
-    let wit_file = wit_dir.join("antikythera.wit");
+    let root = project_root();
+    let wit_path = root.join("wit").join("antikythera.wit");
 
-    // The WIT file is manually curated and checked into the repository.
-    // Auto-generation from Rust source is best-effort; the checked-in file
-    // is the source of truth for the WASM component interface.
-    if wit_file.exists()
-        && let Ok(content) = fs::read_to_string(&wit_file)
-        && !content.trim().is_empty()
-    {
-        println!(
-            "{GREEN}✓ WIT file already exists: {}{RESET}",
-            wit_file.display()
-        );
-        println!("{BLUE}  (using checked-in WIT — auto-generation skipped){RESET}");
-        // Validate it has a world definition
-        if content.contains("world antikythera-mcp") {
-            println!("\n{GREEN}WIT validation passed{RESET}\n");
-            return;
-        }
+    // ── 1. Read WIT file ──────────────────────────────────────────────────
+    if !wit_path.exists() {
+        eprintln!("{RED}✗ WIT file not found: {}{RESET}", wit_path.display());
+        exit(1);
     }
 
-    // Fallback: auto-generate from Rust source (best-effort)
-    let sdk_src = project_root().join("antikythera-sdk").join("src");
-
-    let wasm_agent_dir = {
-        let module_dir = sdk_src.join("wasm_agent");
-        if module_dir.exists() && module_dir.is_dir() && module_dir.join("mod.rs").exists() {
-            module_dir
-        } else if sdk_src.join("component.rs").exists() {
-            sdk_src.clone()
-        } else if sdk_src.join("component").join("mod.rs").exists() {
-            sdk_src.join("component")
-        } else {
-            eprintln!("{RED}✗ component source not found and no WIT file exists.{RESET}");
+    let wit_content = match fs::read_to_string(&wit_path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("{RED}✗ Failed to read WIT file: {e}{RESET}");
             exit(1);
         }
     };
 
-    // Collect all .rs files in the wasm_agent directory for struct/trait parsing
-    let mut source_files: Vec<PathBuf> = Vec::new();
-    if let Ok(entries) = fs::read_dir(&wasm_agent_dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.extension().is_some_and(|e| e == "rs") {
-                source_files.push(path);
-            }
-        }
-    }
-    if source_files.is_empty() {
-        eprintln!(
-            "{RED}✗ No .rs files found in {}{RESET}",
-            wasm_agent_dir.display()
-        );
+    if wit_content.trim().is_empty() {
+        eprintln!("{RED}✗ WIT file is empty{RESET}");
         exit(1);
     }
 
-    // Parse and generate WIT
-    match wit_from_rust::generate(&source_files) {
-        Ok(wit_content) => {
-            fs::create_dir_all(&wit_dir).expect("Failed to create wit directory");
-            fs::write(&wit_file, &wit_content).expect("Failed to write WIT file");
+    println!("{YELLOW}Reading WIT file:{RESET} {}", wit_path.display());
 
-            println!("{GREEN}✓ WIT generated: {}{RESET}", wit_file.display());
-            println!(
-                "\n{BLUE}Generated WIT preview:{RESET}\n{}",
-                &wit_content[..wit_content.len().min(500)]
-            );
-        }
-        Err(e) => {
-            eprintln!("{RED}✗ WIT generation failed: {e}{RESET}");
-            exit(1);
-        }
-    }
+    let wit_records = parse_wit_records(&wit_content);
+    let wit_interfaces = parse_wit_interfaces(&wit_content);
 
-    println!("\n{GREEN}WIT generation complete{RESET}\n");
-}
+    println!(
+        "  Found {} record(s), {} interface(s)\n",
+        wit_records.len(),
+        wit_interfaces.len()
+    );
 
-/// Build the WASM component
-fn build_component() {
-    println!("{YELLOW}[2/2] Building WASM component...{RESET}{BLUE}");
+    // ── 2. Scan Rust sources ──────────────────────────────────────────────
+    let sdk_src = root.join("antikythera-sdk").join("src");
+    let core_src = root.join("antikythera-core").join("src");
 
-    // Ensure wasm target is installed
-    ensure_target_installed("wasm32-wasip1");
+    let rust_structs = scan_rust_structs(&[&sdk_src, &core_src]);
+    let rust_fns = scan_rust_functions(&[&sdk_src, &core_src]);
 
-    // Build with cargo-component
-    if !command_exists("cargo-component") {
-        println!("{YELLOW}cargo-component not found. Installing...{RESET}");
-        run_command("cargo", &["install", "cargo-component"]);
-    }
+    println!(
+        "{YELLOW}Scanned Rust sources:{RESET} {} struct(s), {} function(s)\n",
+        rust_structs.len(),
+        rust_fns.len()
+    );
 
-    let sdk_dir = project_root().join("antikythera-sdk");
+    // ── 3. Validate records ───────────────────────────────────────────────
+    let mut drift_count: usize = 0;
 
-    let status = Command::new("cargo")
-        .args([
-            "component",
-            "build",
-            "--release",
-            "--target",
-            "wasm32-wasip1",
-        ])
-        .current_dir(&sdk_dir)
-        .status()
-        .expect("Failed to run cargo component");
-
-    if !status.success() {
-        eprintln!("{RED}✗ Component build failed{RESET}");
-        exit(1);
-    }
-
-    // Find and validate the output file
-    let output_dir = project_root()
-        .join("target")
-        .join("wasm32-wasip1")
-        .join("release");
-
-    // Try different naming conventions
-    let wasm_files = [
-        output_dir.join("antikythera_sdk.wasm"),
-        output_dir.join("antikythera-sdk.wasm"),
-        output_dir.join("antikythera_sdk_component.wasm"),
-    ];
-
-    let wasm_file = wasm_files.iter().find(|f| f.exists());
-
-    match wasm_file {
-        Some(file) => {
-            println!("{GREEN}✓ Component built: {}{RESET}", file.display());
-
-            // Show component info if wasm-tools is available
-            if command_exists("wasm-tools") {
-                println!("\n{BLUE}Component details:{RESET}");
-                let _ = Command::new("wasm-tools")
-                    .args(["component", "info", file.to_str().unwrap()])
-                    .status();
+    println!("{BOLD}--- Record Validation ---{RESET}");
+    for wit_rec in &wit_records {
+        let rust_name = kebab_to_camel(&wit_rec.name);
+        match rust_structs.iter().find(|s| s.name == rust_name) {
+            Some(rust_struct) => {
+                let diffs = compare_record_fields(wit_rec, rust_struct);
+                if diffs.is_empty() {
+                    println!("  {GREEN}✓{RESET} {} — conformant", wit_rec.name);
+                } else {
+                    println!("  {RED}✗{RESET} {} — DRIFT", wit_rec.name);
+                    for d in &diffs {
+                        eprintln!("    {RED}•{RESET} {d}");
+                    }
+                    drift_count += 1;
+                }
             }
-
-            println!("\n{GREEN}Component build complete!{RESET}\n");
-        }
-        None => {
-            eprintln!(
-                "{RED}✗ Component output not found in {}{RESET}",
-                output_dir.display()
-            );
-            eprintln!("{RED}Expected one of:{RESET}");
-            for f in &wasm_files {
-                eprintln!("  - {}", f.display());
+            None => {
+                println!(
+                    "  {YELLOW}○{RESET} {} — no matching Rust struct found (skipped)",
+                    wit_rec.name
+                );
             }
-            exit(1);
         }
     }
-}
+    println!();
 
-// ============================================================================
-// WIT Generation from Rust Code
-// ============================================================================
-
-mod wit_from_rust {
-    use std::fs;
-    use std::path::PathBuf;
-
-    pub fn generate(source_files: &[PathBuf]) -> Result<String, String> {
-        let mut combined_content = String::new();
-        for path in source_files {
-            let content = fs::read_to_string(path)
-                .map_err(|e| format!("Failed to read {}: {}", path.display(), e))?;
-            combined_content.push_str(&content);
-            combined_content.push('\n');
-        }
-
-        let mut wit = String::new();
-        wit.push_str("package antikythera:mcp-framework@1.0.0;\n\n");
-
-        // Parse structs first
-        let structs = parse_structs(&combined_content)?;
-        wit.push_str(&structs);
-
-        // Parse traits
-        let traits = parse_traits(&combined_content)?;
-        wit.push_str(&traits);
-
-        // Parse FFI functions from ffi_helpers.rs (or legacy ffi.rs)
-        let src_dir = source_files
-            .first()
-            .ok_or("No source files provided")?
-            .parent()
-            .ok_or("Failed to get parent directory")?;
-        let parent_dir = src_dir.parent().unwrap_or(src_dir);
-
-        let ffi_sources = [
-            parent_dir.join("ffi_helpers.rs"),
-            src_dir.join("ffi_helpers.rs"),
-            parent_dir.join("ffi.rs"),
-            src_dir.join("ffi.rs"),
-        ];
-
-        let ffi_funcs = ffi_sources
+    // ── 4. Validate interfaces ────────────────────────────────────────────
+    println!("{BOLD}--- Interface Validation ---{RESET}");
+    for wit_iface in &wit_interfaces {
+        let expected_fns: Vec<&str> = wit_iface
+            .functions
             .iter()
-            .find_map(|path| {
-                if path.exists() {
-                    let ffi_content = fs::read_to_string(path).ok()?;
-                    parse_ffi_functions(&ffi_content).ok()
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_default();
+            .map(|f| f.name.as_str())
+            .collect();
+        let matching_fns: Vec<&RustFunction> = rust_fns
+            .iter()
+            .filter(|f| expected_fns.contains(&f.name.as_str()))
+            .collect();
 
-        if !ffi_funcs.is_empty() {
-            wit.push_str("/// FFI interface for external language bindings\n");
-            wit.push_str("interface ffi-server {\n");
-            wit.push_str(&ffi_funcs);
-            wit.push_str("}\n\n");
+        if matching_fns.is_empty() {
+            println!(
+                "  {YELLOW}○{RESET} {} — no matching Rust functions found (skipped)",
+                wit_iface.name
+            );
+            continue;
         }
 
-        // Add world definition
-        wit.push_str("/// Combined world exporting both interfaces\n");
-        wit.push_str("world antikythera-mcp {\n");
-        wit.push_str("  export prompt-manager;\n");
-        wit.push_str("  export mcp-client;\n");
-        wit.push_str("  export ffi-server;\n");
-        wit.push_str("}\n");
-
-        Ok(wit)
-    }
-
-    fn parse_structs(content: &str) -> Result<String, String> {
-        let mut result = String::new();
-        let mut pos = 0;
-
-        while pos < content.len() {
-            // Find "pub struct"
-            if let Some(struct_start) = content[pos..].find("pub struct ") {
-                let struct_start = pos + struct_start;
-
-                // Extract struct name
-                let name_start = struct_start + "pub struct ".len();
-                if let Some(brace_pos) = content[name_start..].find('{') {
-                    let struct_name = content[name_start..name_start + brace_pos].trim();
-                    let brace_start = name_start + brace_pos;
-
-                    // Find matching closing brace
-                    if let Some((brace_end, fields_content)) =
-                        find_matching_brace(&content[brace_start..])
-                    {
-                        let fields_content = &fields_content[..fields_content.len() - 1]; // Remove closing brace
-
-                        let wit_name = camel_to_kebab(struct_name);
-                        result.push_str(&format!("/// {}\nrecord {} {{\n", struct_name, wit_name));
-
-                        // Parse fields
-                        for line in fields_content.lines() {
-                            let line = line.trim().trim_end_matches(',');
-                            if line.is_empty() || line.starts_with("//") || line.starts_with('#') {
-                                continue;
-                            }
-
-                            if let Some((field_name, field_type)) = parse_field_line(line) {
-                                let wit_field_name = camel_to_kebab(&field_name);
-                                let wit_type = rust_type_to_wit(&field_type);
-                                result.push_str(&format!("  {}: {},\n", wit_field_name, wit_type));
-                            }
+        let mut iface_drift = false;
+        for wit_fn in &wit_iface.functions {
+            match matching_fns.iter().find(|f| f.name == wit_fn.name) {
+                Some(rust_fn) => {
+                    let diffs = compare_function(wit_fn, rust_fn);
+                    if diffs.is_empty() {
+                        println!(
+                            "  {GREEN}✓{RESET} {}.{} — conformant",
+                            wit_iface.name, wit_fn.name
+                        );
+                    } else {
+                        println!("  {RED}✗{RESET} {}.{} — DRIFT", wit_iface.name, wit_fn.name);
+                        for d in &diffs {
+                            eprintln!("    {RED}•{RESET} {d}");
                         }
-
-                        result.push_str("}\n\n");
-                        pos = brace_start + brace_end;
-                    } else {
-                        pos = brace_start + 1;
-                    }
-                } else {
-                    pos = name_start + 1;
-                }
-            } else {
-                break;
-            }
-        }
-
-        Ok(result)
-    }
-
-    fn parse_traits(content: &str) -> Result<String, String> {
-        let mut result = String::new();
-        let mut pos = 0;
-
-        while pos < content.len() {
-            // Find "pub trait"
-            if let Some(trait_start) = content[pos..].find("pub trait ") {
-                let trait_start = pos + trait_start;
-
-                // Extract trait name
-                let name_start = trait_start + "pub trait ".len();
-                if let Some(brace_pos) = content[name_start..].find('{') {
-                    let trait_name = content[name_start..name_start + brace_pos].trim();
-                    let brace_start = name_start + brace_pos;
-
-                    // Find matching closing brace
-                    if let Some((brace_end, trait_content)) =
-                        find_matching_brace(&content[brace_start..])
-                    {
-                        let wit_name = camel_to_kebab(trait_name);
-                        result
-                            .push_str(&format!("/// {}\ninterface {} {{\n", trait_name, wit_name));
-
-                        // Parse functions in trait
-                        let functions =
-                            parse_trait_functions(&trait_content[..trait_content.len() - 1]);
-                        result.push_str(&functions);
-
-                        result.push_str("}\n\n");
-                        pos = brace_start + brace_end;
-                    } else {
-                        pos = brace_start + 1;
-                    }
-                } else {
-                    pos = name_start + 1;
-                }
-            } else {
-                break;
-            }
-        }
-
-        Ok(result)
-    }
-
-    fn find_matching_brace(content: &str) -> Option<(usize, String)> {
-        if !content.starts_with('{') {
-            return None;
-        }
-
-        let mut depth = 0;
-        let mut in_string = false;
-        let mut in_char = false;
-        let mut escaped = false;
-
-        for (i, c) in content.char_indices() {
-            if escaped {
-                escaped = false;
-                continue;
-            }
-
-            match c {
-                '\\' if in_string => escaped = true,
-                '"' if !in_char => in_string = !in_string,
-                '\'' if !in_string => in_char = !in_char,
-                '{' if !in_string && !in_char => depth += 1,
-                '}' if !in_string && !in_char => {
-                    depth -= 1;
-                    if depth == 0 {
-                        return Some((i + 1, content[..i + 1].to_string()));
+                        drift_count += 1;
+                        iface_drift = true;
                     }
                 }
-                _ => {}
-            }
-        }
-
-        None
-    }
-
-    fn parse_trait_functions(trait_content: &str) -> String {
-        let mut result = String::new();
-        let mut pending_doc = String::new();
-
-        for line in trait_content.lines() {
-            let trimmed = line.trim();
-
-            if trimmed.starts_with("///") {
-                // Store doc comment
-                pending_doc = trimmed.trim_start_matches("///").trim().to_string();
-                continue;
-            }
-
-            if trimmed.starts_with("fn ") || trimmed.starts_with("async fn ") {
-                if let Some(func_wit) = parse_function_signature(trimmed, &pending_doc) {
-                    result.push_str(&func_wit);
-                }
-                pending_doc.clear();
-            } else if !trimmed.is_empty() && !trimmed.starts_with("//") && !trimmed.starts_with('#')
-            {
-                // Non-empty, non-comment line - clear pending doc
-                if !trimmed.starts_with("fn ") {
-                    pending_doc.clear();
+                None => {
+                    println!(
+                        "  {YELLOW}○{RESET} {}.{} — no matching Rust function (skipped)",
+                        wit_iface.name, wit_fn.name
+                    );
                 }
             }
         }
-
-        result
-    }
-
-    fn parse_function_signature(func_line: &str, doc: &str) -> Option<String> {
-        let func_line = func_line
-            .trim()
-            .trim_end_matches('{')
-            .trim_end_matches(';')
-            .trim();
-
-        // Extract function name and signature
-        let func_line = if let Some(stripped) = func_line.strip_prefix("async ") {
-            stripped.trim_start()
-        } else {
-            func_line
-        };
-
-        if !func_line.starts_with("fn ") {
-            return None;
-        }
-
-        let after_fn = &func_line[3..]; // Remove "fn "
-
-        // Find opening paren
-        let paren_open = after_fn.find('(')?;
-        let func_name = after_fn[..paren_open].trim();
-        let wit_func_name = camel_to_kebab(func_name);
-
-        // Find closing paren
-        let after_open = &after_fn[paren_open + 1..];
-        let paren_depth = 1;
-        let mut paren_close = None;
-        let mut depth = paren_depth;
-
-        for (i, c) in after_open.char_indices() {
-            match c {
-                '(' => depth += 1,
-                ')' => {
-                    depth -= 1;
-                    if depth == 0 {
-                        paren_close = Some(i);
-                        break;
-                    }
-                }
-                _ => {}
-            }
-        }
-
-        let paren_close = paren_close?;
-        let params_str = &after_open[..paren_close];
-        let rest = &after_open[paren_close + 1..].trim();
-
-        // Parse parameters (skip self)
-        let params = parse_params(params_str);
-
-        // Build WIT function signature
-        let mut wit_func = String::new();
-
-        // Add doc comment
-        if !doc.is_empty() {
-            wit_func.push_str(&format!("  /// {}\n", doc));
-        }
-
-        wit_func.push_str(&format!("  {}", wit_func_name));
-
-        // Add parameters
-        if params.is_empty() {
-            wit_func.push_str("()");
-        } else {
-            let params_wit: Vec<String> = params
-                .iter()
-                .map(|(name, typ)| {
-                    let wit_name = camel_to_kebab(name);
-                    let wit_type = rust_type_to_wit(typ);
-                    format!("{}: {}", wit_name, wit_type)
-                })
-                .collect();
-
-            wit_func.push_str(&format!("({})", params_wit.join(", ")));
-        }
-
-        // Add return type
-        if let Some(arrow_pos) = rest.find("->") {
-            let ret_type = rest[arrow_pos + 2..].trim();
-            if ret_type.contains("Result<") || ret_type.contains("result<") {
-                let (ok_type, err_type) = parse_result_type(ret_type);
-                let ok_wit = rust_type_to_wit(&ok_type);
-                let err_wit = rust_type_to_wit(&err_type);
-
-                // Handle different Result combinations
-                match (ok_wit.is_empty(), err_wit.is_empty()) {
-                    (false, false) => {
-                        wit_func.push_str(&format!(" -> result<{}, {}>", ok_wit, err_wit))
-                    }
-                    (false, true) => wit_func.push_str(&format!(" -> result<{}>", ok_wit)),
-                    (true, false) => wit_func.push_str(&format!(" -> result<_, {}>", err_wit)),
-                    (true, true) => wit_func.push_str(" -> result"),
-                }
-            } else {
-                let ret_wit = rust_type_to_wit(ret_type);
-                wit_func.push_str(&format!(" -> {}", ret_wit));
-            }
-        }
-
-        wit_func.push_str(";\n");
-
-        Some(wit_func)
-    }
-
-    fn parse_params(params_str: &str) -> Vec<(String, String)> {
-        let mut result = Vec::new();
-        let mut depth = 0;
-        let mut current_param = String::new();
-
-        for c in params_str.chars() {
-            match c {
-                '<' | '(' => {
-                    depth += 1;
-                    current_param.push(c);
-                }
-                '>' | ')' => {
-                    depth -= 1;
-                    current_param.push(c);
-                }
-                ',' if depth == 0 => {
-                    if let Some((name, typ)) = parse_single_param(&current_param) {
-                        result.push((name, typ));
-                    }
-                    current_param.clear();
-                }
-                _ => current_param.push(c),
-            }
-        }
-
-        // Don't forget last param
-        if !current_param.trim().is_empty()
-            && let Some((name, typ)) = parse_single_param(&current_param)
-        {
-            result.push((name, typ));
-        }
-
-        result
-    }
-
-    fn parse_single_param(param: &str) -> Option<(String, String)> {
-        let param = param.trim();
-        if param.is_empty() || param.contains("self") {
-            return None;
-        }
-
-        if let Some(colon_pos) = param.find(':') {
-            let name = param[..colon_pos].trim().to_string();
-            let typ = param[colon_pos + 1..].trim().to_string();
-            Some((name, typ))
-        } else {
-            None
+        if !iface_drift {
+            // already printed per-function
         }
     }
+    println!();
 
-    fn parse_result_type(ret: &str) -> (String, String) {
-        // Result<OkType, ErrType>
-        let inner = ret
-            .trim()
-            .trim_start_matches("Result<")
-            .trim_start_matches("result<")
-            .trim_end_matches('>');
+    // ── 5. Report ─────────────────────────────────────────────────────────
+    if drift_count == 0 {
+        println!("{GREEN}{BOLD}✓ WIT file is conformant with Rust sources.{RESET}");
+        exit(0);
+    } else {
+        println!("{RED}{BOLD}✗ Drift detected: {drift_count} issue(s).{RESET}",);
+        exit(1);
+    }
+}
 
-        let mut depth = 0;
-        let mut comma_pos = None;
+// ── WIT parsing ──────────────────────────────────────────────────────────────
 
-        for (i, c) in inner.char_indices() {
-            match c {
-                '<' => depth += 1,
-                '>' => depth -= 1,
-                ',' if depth == 0 => {
-                    comma_pos = Some(i);
+fn parse_wit_records(content: &str) -> Vec<WitRecord> {
+    let mut records = Vec::new();
+    let mut lines = content.lines().peekable();
+
+    while let Some(line) = lines.next() {
+        let trimmed = line.trim();
+        // Match: record <name> {
+        if trimmed.starts_with("record ") && trimmed.contains('{') {
+            let name = trimmed
+                .trim_start_matches("record ")
+                .trim()
+                .trim_end_matches('{')
+                .trim()
+                .to_string();
+            let mut fields = Vec::new();
+
+            for field_line in lines.by_ref() {
+                let ft = field_line.trim();
+                if ft == "}" {
                     break;
                 }
-                _ => {}
-            }
-        }
-
-        if let Some(pos) = comma_pos {
-            let ok_type = inner[..pos].trim().to_string();
-            let err_type = inner[pos + 1..].trim().to_string();
-
-            // Handle Result<(), String>
-            let ok_type = if ok_type == "()" {
-                String::new()
-            } else {
-                ok_type
-            };
-
-            (ok_type, err_type)
-        } else {
-            // Check if it's just Result<(), Error>
-            if inner.trim() == "()" {
-                (String::new(), String::new())
-            } else {
-                // Only Ok type, error is unit
-                (inner.to_string(), String::new())
-            }
-        }
-    }
-
-    fn rust_type_to_wit(rust_type: &str) -> String {
-        let rust_type = rust_type.trim();
-
-        match rust_type {
-            "String" | "&str" | "str" => "string".to_string(),
-            "bool" => "bool".to_string(),
-            "u8" => "u8".to_string(),
-            "u16" => "u16".to_string(),
-            "u32" => "u32".to_string(),
-            "u64" => "u64".to_string(),
-            "i8" => "s8".to_string(),
-            "i16" => "s16".to_string(),
-            "i32" => "s32".to_string(),
-            "i64" => "s64".to_string(),
-            "f32" => "float32".to_string(),
-            "f64" => "float64".to_string(),
-            "()" => String::new(), // Unit type
-            _ => {
-                if rust_type.starts_with("Vec<") {
-                    let inner = rust_type
-                        .trim_start_matches("Vec<")
-                        .trim_end_matches('>')
+                if ft.is_empty() || ft.starts_with("//") || ft.starts_with("///") {
+                    continue;
+                }
+                // Parse: name: type,
+                if let Some(colon) = ft.find(':') {
+                    let fname = ft[..colon].trim().to_string();
+                    let ftype = ft[colon + 1..]
+                        .trim()
+                        .trim_end_matches(',')
+                        .trim()
                         .to_string();
-                    format!("list<{}>", rust_type_to_wit(&inner))
-                } else if rust_type.starts_with("Option<") {
-                    let inner = rust_type
-                        .trim_start_matches("Option<")
-                        .trim_end_matches('>')
-                        .to_string();
-                    format!("option<{}>", rust_type_to_wit(&inner))
-                } else if rust_type.starts_with('(') && rust_type.ends_with(')') {
-                    // Tuple
-                    let inner = rust_type.trim_start_matches('(').trim_end_matches(')');
-                    let types: Vec<String> = inner
-                        .split(',')
-                        .map(|t| rust_type_to_wit(t.trim()))
-                        .collect();
-                    if types.len() == 1 {
-                        types[0].clone()
-                    } else {
-                        format!("tuple<{}>", types.join(", "))
-                    }
-                } else if rust_type.starts_with("Result<") || rust_type.starts_with("result<") {
-                    let (ok, err) = parse_result_type(rust_type);
-                    let ok_wit = rust_type_to_wit(&ok);
-                    let err_wit = rust_type_to_wit(&err);
-                    if err_wit.is_empty() {
-                        format!("result<{}>", ok_wit)
-                    } else {
-                        format!("result<{}, {}>", ok_wit, err_wit)
-                    }
-                } else if rust_type.starts_with('&') {
-                    // Remove reference
-                    rust_type_to_wit(rust_type.trim_start_matches('&').trim())
+                    fields.push(WitField {
+                        name: fname,
+                        wit_type: ftype,
+                    });
+                }
+            }
+
+            records.push(WitRecord { name, fields });
+        }
+    }
+
+    records
+}
+
+fn parse_wit_interfaces(content: &str) -> Vec<WitInterface> {
+    let mut interfaces = Vec::new();
+    let mut lines = content.lines().peekable();
+
+    while let Some(line) = lines.next() {
+        let trimmed = line.trim();
+        // Match: interface <name> {
+        if trimmed.starts_with("interface ") && trimmed.contains('{') {
+            let name = trimmed
+                .trim_start_matches("interface ")
+                .trim()
+                .trim_end_matches('{')
+                .trim()
+                .to_string();
+            let mut functions = Vec::new();
+
+            for fn_line in lines.by_ref() {
+                let ft = fn_line.trim();
+                if ft == "}" {
+                    break;
+                }
+                if ft.is_empty() || ft.starts_with("//") || ft.starts_with("///") {
+                    continue;
+                }
+                // Parse: name(params) -> return-type;
+                if let Some(func) = parse_wit_function_sig(ft) {
+                    functions.push(func);
+                }
+            }
+
+            interfaces.push(WitInterface { name, functions });
+        }
+    }
+
+    interfaces
+}
+
+fn parse_wit_function_sig(line: &str) -> Option<WitFunction> {
+    let line = line.trim().trim_end_matches(';');
+    let paren_open = line.find('(')?;
+    let name = line[..paren_open].trim().to_string();
+    let after_paren = &line[paren_open + 1..];
+    let paren_close = after_paren.find(')')?;
+    let params_str = &after_paren[..paren_close];
+    let rest = after_paren[paren_close + 1..].trim();
+
+    let params = parse_wit_params(params_str);
+
+    let return_type = rest
+        .strip_prefix("->")
+        .map(|stripped| stripped.trim().to_string());
+
+    Some(WitFunction {
+        name,
+        params,
+        return_type,
+    })
+}
+
+fn parse_wit_params(params_str: &str) -> Vec<WitField> {
+    if params_str.trim().is_empty() {
+        return Vec::new();
+    }
+    let mut result = Vec::new();
+    for param in params_str.split(',') {
+        let param = param.trim();
+        if let Some(colon) = param.find(':') {
+            let pname = param[..colon].trim().to_string();
+            let ptype = param[colon + 1..].trim().to_string();
+            result.push(WitField {
+                name: pname,
+                wit_type: ptype,
+            });
+        }
+    }
+    result
+}
+
+// ── Rust source scanning ─────────────────────────────────────────────────────
+
+fn scan_rust_structs(dirs: &[&Path]) -> Vec<RustStruct> {
+    let mut structs = Vec::new();
+    for dir in dirs {
+        if !dir.exists() {
+            continue;
+        }
+        scan_structs_recursive(dir, &mut structs);
+    }
+    structs
+}
+
+fn scan_structs_recursive(dir: &Path, structs: &mut Vec<RustStruct>) {
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                // skip target, .git, etc.
+                if let Some(name) = path.file_name().and_then(|n| n.to_str())
+                    && (name == "target" || name == ".git" || name == "node_modules")
+                {
+                    continue;
+                }
+                scan_structs_recursive(&path, structs);
+            } else if path.extension().is_some_and(|e| e == "rs")
+                && let Ok(content) = fs::read_to_string(&path)
+            {
+                parse_rust_structs(&content, structs);
+            }
+        }
+    }
+}
+
+fn parse_rust_structs(content: &str, structs: &mut Vec<RustStruct>) {
+    let mut pos = 0;
+    while pos < content.len() {
+        if let Some(struct_start) = content[pos..].find("pub struct ") {
+            let struct_start = pos + struct_start;
+            let name_start = struct_start + "pub struct ".len();
+            if let Some(brace_pos) = content[name_start..].find('{') {
+                let struct_name = content[name_start..name_start + brace_pos]
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("")
+                    .to_string();
+                let brace_start = name_start + brace_pos;
+
+                if let Some((brace_end, fields_content)) =
+                    find_matching_brace(&content[brace_start..])
+                {
+                    let fields_content = &fields_content[..fields_content.len() - 1];
+                    let fields = parse_rust_fields(fields_content);
+                    structs.push(RustStruct {
+                        name: struct_name,
+                        fields,
+                    });
+                    pos = brace_start + brace_end;
                 } else {
-                    // Custom type - convert to kebab case
-                    camel_to_kebab(rust_type)
+                    pos = name_start + 1;
                 }
-            }
-        }
-    }
-
-    fn camel_to_kebab(input: &str) -> String {
-        let mut result = String::new();
-        let mut prev_is_upper = false;
-
-        for (i, c) in input.chars().enumerate() {
-            if c.is_uppercase() {
-                if i > 0 && !prev_is_upper {
-                    result.push('-');
-                }
-                result.push(c.to_ascii_lowercase());
-                prev_is_upper = true;
-            } else if c == '_' {
-                result.push('-');
-                prev_is_upper = false;
             } else {
-                result.push(c);
-                prev_is_upper = false;
+                pos = name_start + 1;
             }
-        }
-
-        result
-    }
-
-    fn parse_field_line(line: &str) -> Option<(String, String)> {
-        let line = line.trim().trim_end_matches(',');
-
-        // Skip comments and attributes
-        if line.is_empty() || line.starts_with("//") || line.starts_with('#') {
-            return None;
-        }
-
-        if let Some(colon_pos) = line.find(':') {
-            let name = line[..colon_pos].trim().to_string();
-            let typ = line[colon_pos + 1..].trim().to_string();
-
-            // Skip if it looks like an attribute or invalid
-            if name.starts_with("pub ") {
-                let name = name.trim_start_matches("pub ").trim().to_string();
-                return Some((name, typ));
-            }
-
-            if name.is_empty() || name.starts_with('#') {
-                return None;
-            }
-
-            Some((name, typ))
         } else {
-            None
+            break;
+        }
+    }
+}
+
+fn parse_rust_fields(content: &str) -> Vec<RustField> {
+    let mut fields = Vec::new();
+    for line in content.lines() {
+        let trimmed = line.trim().trim_end_matches(',');
+        if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with('#') {
+            continue;
+        }
+        // Handle pub(crate) and pub
+        let trimmed = trimmed
+            .strip_prefix("pub(crate)")
+            .or_else(|| trimmed.strip_prefix("pub"))
+            .unwrap_or(trimmed)
+            .trim();
+
+        if let Some(colon_pos) = trimmed.find(':') {
+            let fname = trimmed[..colon_pos].trim().to_string();
+            let ftype = trimmed[colon_pos + 1..].trim().to_string();
+            if !fname.is_empty() && !fname.starts_with('#') {
+                fields.push(RustField {
+                    name: fname,
+                    rust_type: ftype,
+                });
+            }
+        }
+    }
+    fields
+}
+
+fn scan_rust_functions(dirs: &[&Path]) -> Vec<RustFunction> {
+    let mut fns = Vec::new();
+    for dir in dirs {
+        if !dir.exists() {
+            continue;
+        }
+        scan_fns_recursive(dir, &mut fns);
+    }
+    fns
+}
+
+fn scan_fns_recursive(dir: &Path, fns: &mut Vec<RustFunction>) {
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                if let Some(name) = path.file_name().and_then(|n| n.to_str())
+                    && (name == "target" || name == ".git" || name == "node_modules")
+                {
+                    continue;
+                }
+                scan_fns_recursive(&path, fns);
+            } else if path.extension().is_some_and(|e| e == "rs")
+                && let Ok(content) = fs::read_to_string(&path)
+            {
+                parse_rust_functions(&content, fns);
+            }
+        }
+    }
+}
+
+fn parse_rust_functions(content: &str, fns: &mut Vec<RustFunction>) {
+    for line in content.lines() {
+        let trimmed = line.trim();
+        // Match: pub fn <name>(...)  or  pub fn <name>(...) -> Type
+        if !trimmed.starts_with("pub fn ") {
+            continue;
+        }
+        let after_pub = &trimmed["pub fn ".len()..];
+        if let Some(paren) = after_pub.find('(') {
+            let fn_name = after_pub[..paren].trim().to_string();
+            let after_paren = &after_pub[paren + 1..];
+            if let Some(paren_close) = after_paren.find(')') {
+                let params_str = &after_paren[..paren_close];
+                let rest = after_paren[paren_close + 1..].trim();
+
+                let params = parse_rust_params(params_str);
+
+                let return_type = rest.strip_prefix("->").map(|stripped| {
+                    stripped
+                        .trim()
+                        .trim_end_matches('{')
+                        .trim_end_matches(';')
+                        .trim()
+                        .to_string()
+                });
+
+                fns.push(RustFunction {
+                    name: fn_name,
+                    params,
+                    return_type,
+                });
+            }
+        }
+    }
+}
+
+fn parse_rust_params(params_str: &str) -> Vec<RustField> {
+    if params_str.trim().is_empty() {
+        return Vec::new();
+    }
+    let mut result = Vec::new();
+    let mut depth = 0;
+    let mut current = String::new();
+
+    for c in params_str.chars() {
+        match c {
+            '<' | '(' => {
+                depth += 1;
+                current.push(c);
+            }
+            '>' | ')' => {
+                depth -= 1;
+                current.push(c);
+            }
+            ',' if depth == 0 => {
+                if let Some(field) = parse_single_rust_param(&current) {
+                    result.push(field);
+                }
+                current.clear();
+            }
+            _ => current.push(c),
+        }
+    }
+    if !current.trim().is_empty()
+        && let Some(field) = parse_single_rust_param(&current)
+    {
+        result.push(field);
+    }
+    result
+}
+
+fn parse_single_rust_param(param: &str) -> Option<RustField> {
+    let param = param.trim();
+    if param.is_empty() || param == "self" || param == "&self" || param == "&mut self" {
+        return None;
+    }
+    if let Some(colon_pos) = param.find(':') {
+        let pname = param[..colon_pos].trim().to_string();
+        let ptype = param[colon_pos + 1..].trim().to_string();
+        Some(RustField {
+            name: pname,
+            rust_type: ptype,
+        })
+    } else {
+        None
+    }
+}
+
+// ── Comparison logic ─────────────────────────────────────────────────────────
+
+fn compare_record_fields(wit: &WitRecord, rust: &RustStruct) -> Vec<String> {
+    let mut diffs = Vec::new();
+
+    // Check each WIT field exists in Rust struct
+    for wit_field in &wit.fields {
+        let rust_field_name = kebab_to_snake(&wit_field.name);
+        match rust.fields.iter().find(|f| f.name == rust_field_name) {
+            Some(rust_field) => {
+                let wit_as_rust = wit_type_to_rust(&wit_field.wit_type);
+                if !type_equivalent(&wit_as_rust, &rust_field.rust_type) {
+                    diffs.push(format!(
+                        "field '{}': WIT type '{}' ≠ Rust type '{}'",
+                        wit_field.name, wit_field.wit_type, rust_field.rust_type
+                    ));
+                }
+            }
+            None => {
+                diffs.push(format!(
+                    "field '{}' exists in WIT but not in Rust struct",
+                    wit_field.name
+                ));
+            }
         }
     }
 
-    /// Parse FFI functions (extern "C" with #[no_mangle])
-    fn parse_ffi_functions(content: &str) -> Result<String, String> {
-        let mut result = String::new();
-        let mut pos = 0;
-
-        while pos < content.len() {
-            // Find #[no_mangle]
-            if let Some(nomangle_pos) = content[pos..].find("#[no_mangle]") {
-                let nomangle_start = pos + nomangle_pos;
-
-                // Find the extern "C" after #[no_mangle]
-                if let Some(extern_pos) = content[nomangle_start..].find("extern \"C\"") {
-                    let extern_start = nomangle_start + extern_pos;
-
-                    // Find "fn " after extern "C"
-                    if let Some(fn_pos) = content[extern_start..].find("fn ") {
-                        let fn_start = extern_start + fn_pos;
-
-                        // Get the function signature line (may span multiple lines)
-                        let mut sig_lines = String::new();
-                        let mut line_start = fn_start;
-
-                        // Collect lines until we find opening brace or semicolon
-                        for line in content[line_start..].lines() {
-                            sig_lines.push_str(line);
-                            sig_lines.push(' ');
-
-                            if line.contains('{') || line.contains("->") {
-                                break;
-                            }
-
-                            line_start += line.len() + 1; // +1 for newline
-                        }
-
-                        // Parse the function
-                        if let Some(func_wit) = parse_ffi_function(&sig_lines) {
-                            result.push_str(&func_wit);
-                            pos = line_start + 1;
-                            continue;
-                        }
-                    }
-                }
-
-                pos = nomangle_start + "#[no_mangle]".len();
-            } else {
-                break;
-            }
+    // Check for extra Rust fields not in WIT
+    for rust_field in &rust.fields {
+        let wit_name = snake_to_kebab(&rust_field.name);
+        if !wit.fields.iter().any(|f| f.name == wit_name) {
+            diffs.push(format!(
+                "field '{}' exists in Rust struct but not in WIT (extra)",
+                rust_field.name
+            ));
         }
-
-        Ok(result)
     }
 
-    /// Parse a single FFI function
-    fn parse_ffi_function(func_content: &str) -> Option<String> {
-        let func_line = func_content.lines().next()?;
+    diffs
+}
 
-        // Extract function name
-        if !func_line.contains("fn ") {
-            return None;
+fn compare_function(wit: &WitFunction, rust: &RustFunction) -> Vec<String> {
+    let mut diffs = Vec::new();
+
+    // Compare parameter count
+    if wit.params.len() != rust.params.len() {
+        diffs.push(format!(
+            "parameter count: WIT has {}, Rust has {}",
+            wit.params.len(),
+            rust.params.len()
+        ));
+    }
+
+    // Compare return type
+    match (&wit.return_type, &rust.return_type) {
+        (Some(wit_ret), Some(rust_ret)) => {
+            let wit_as_rust = wit_type_to_rust(wit_ret);
+            if !type_equivalent(&wit_as_rust, rust_ret) {
+                diffs.push(format!(
+                    "return type: WIT '{}' ≠ Rust '{}'",
+                    wit_ret, rust_ret
+                ));
+            }
         }
+        (None, None) => {}
+        _ => {
+            diffs.push(format!(
+                "return type: WIT={:?} Rust={:?}",
+                wit.return_type, rust.return_type
+            ));
+        }
+    }
 
-        let fn_start = func_line.find("fn ")?;
-        let after_fn = &func_line[fn_start + 3..];
+    diffs
+}
 
-        // Get function name
-        let fn_name_end = after_fn.find('(')?;
-        let fn_name = after_fn[..fn_name_end].trim();
-        let wit_name = camel_to_kebab(fn_name);
+// ── Type mapping ─────────────────────────────────────────────────────────────
 
-        // Get parameters between ( and )
-        let params_start = fn_name_end + 1;
-        if let Some(params_end) = after_fn[params_start..].find(')') {
-            let params_str = &after_fn[params_start..params_start + params_end];
-            let after_paren = &after_fn[params_start + params_end + 1..].trim();
+fn wit_type_to_rust(wit: &str) -> String {
+    match wit {
+        "string" => "String".to_string(),
+        "bool" => "bool".to_string(),
+        "u8" => "u8".to_string(),
+        "u16" => "u16".to_string(),
+        "u32" => "u32".to_string(),
+        "u64" => "u64".to_string(),
+        "s8" => "i8".to_string(),
+        "s16" => "i16".to_string(),
+        "s32" => "i32".to_string(),
+        "s64" => "i64".to_string(),
+        "float32" => "f32".to_string(),
+        "float64" => "f64".to_string(),
+        t if t.starts_with("option<") => {
+            let inner = &t[7..t.len() - 1];
+            format!("Option<{}>", wit_type_to_rust(inner))
+        }
+        t if t.starts_with("list<") => {
+            let inner = &t[5..t.len() - 1];
+            format!("Vec<{}>", wit_type_to_rust(inner))
+        }
+        t if t.starts_with("result<") => "Result<_, String>".to_string(),
+        _ => kebab_to_camel(wit),
+    }
+}
 
-            // Parse parameters
-            let params = parse_params(params_str);
+fn type_equivalent(rust_a: &str, rust_b: &str) -> bool {
+    // Normalize whitespace and compare
+    let normalize = |s: &str| -> String {
+        s.chars()
+            .filter(|c| !c.is_whitespace())
+            .collect::<String>()
+            .to_lowercase()
+    };
+    normalize(rust_a) == normalize(rust_b)
+}
 
-            // Parse return type (stop at '{' which is function body)
-            let return_type = if let Some(brace_pos) = after_paren.find('{') {
-                let before_brace = after_paren[..brace_pos].trim();
-                if before_brace.contains("->") {
-                    let arrow_pos = before_brace.find("->")?;
-                    let ret = before_brace[arrow_pos + 2..].trim();
-                    Some(ret.to_string())
-                } else {
-                    None
-                }
-            } else if after_paren.contains("->") {
-                let arrow_pos = after_paren.find("->")?;
-                let ret = after_paren[arrow_pos + 2..].trim();
-                Some(ret.to_string())
-            } else {
-                None
-            };
+// ── Case conversion helpers ──────────────────────────────────────────────────
 
-            // Build WIT function signature
-            let mut wit_func = String::new();
-
-            // Always include parentheses
-            if params.is_empty() {
-                wit_func.push_str(&format!("  {}()", wit_name));
-            } else {
-                let params_wit: Vec<String> = params
-                    .iter()
-                    .map(|(name, typ)| {
-                        let wit_name = camel_to_kebab(name);
-                        let wit_type = c_type_to_wit(typ);
-                        format!("{}: {}", wit_name, wit_type)
-                    })
-                    .collect();
-
-                wit_func.push_str(&format!("  {}({})", wit_name, params_wit.join(", ")));
-            }
-
-            // Add return type
-            if let Some(ret) = return_type {
-                let wit_ret = c_type_to_wit(&ret);
-                if !wit_ret.is_empty() {
-                    wit_func.push_str(&format!(" -> {}", wit_ret));
-                }
-            }
-
-            wit_func.push_str(";\n");
-
-            Some(wit_func)
+fn kebab_to_camel(input: &str) -> String {
+    let mut result = String::new();
+    let mut capitalize_next = true;
+    for c in input.chars() {
+        if c == '-' || c == '_' {
+            capitalize_next = true;
+        } else if capitalize_next {
+            result.push(c.to_ascii_uppercase());
+            capitalize_next = false;
         } else {
-            None
+            result.push(c);
         }
     }
+    result
+}
 
-    /// Convert C types to WIT types
-    fn c_type_to_wit(c_type: &str) -> String {
-        let c_type = c_type.trim();
+fn kebab_to_snake(input: &str) -> String {
+    input.replace('-', "_")
+}
 
-        match c_type {
-            // Integer types
-            "u8" | "uint8_t" => "u8".to_string(),
-            "u16" | "uint16_t" => "u16".to_string(),
-            "u32" | "uint32_t" | "c_uint" => "u32".to_string(),
-            "u64" | "uint64_t" | "c_ulonglong" => "u64".to_string(),
-            "i8" | "int8_t" => "s8".to_string(),
-            "i16" | "int16_t" => "s16".to_string(),
-            "i32" | "int32_t" | "c_int" => "s32".to_string(),
-            "i64" | "int64_t" | "c_longlong" => "s64".to_string(),
-            "usize" | "size_t" => "u32".to_string(),
-            "isize" | "ssize_t" => "s32".to_string(),
+fn snake_to_kebab(input: &str) -> String {
+    input.replace('_', "-")
+}
 
-            // Pointer types
-            "*const c_char" | "*mut c_char" | "const char*" | "char*" => "string".to_string(),
-            "*const u8" | "*mut u8" | "*const c_void" | "*mut c_void" => "pointer".to_string(),
-            "*const u32" | "*mut u32" => "list<u32>".to_string(),
+// ── Brace matching ───────────────────────────────────────────────────────────
 
-            // Void
-            "()" | "void" => String::new(),
+fn find_matching_brace(content: &str) -> Option<(usize, String)> {
+    if !content.starts_with('{') {
+        return None;
+    }
+    let mut depth = 0;
+    let mut in_string = false;
+    let mut escaped = false;
 
-            // Bool
-            "bool" | "c_bool" => "bool".to_string(),
-
-            // Float
-            "f32" | "c_float" => "float32".to_string(),
-            "f64" | "c_double" => "float64".to_string(),
-
-            _ => {
-                // Handle complex types
-                if c_type.contains('*') {
-                    // It's a pointer - determine what it points to
-                    if c_type.contains("c_char") {
-                        "string".to_string()
-                    } else {
-                        "pointer".to_string()
-                    }
-                } else {
-                    // Unknown type - convert to kebab case
-                    camel_to_kebab(c_type)
+    for (i, c) in content.char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        match c {
+            '\\' if in_string => escaped = true,
+            '"' => in_string = !in_string,
+            '{' if !in_string => depth += 1,
+            '}' if !in_string => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some((i + 1, content[..i + 1].to_string()));
                 }
             }
+            _ => {}
         }
     }
+    None
 }
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
+// ── Project root ─────────────────────────────────────────────────────────────
 
-/// Check if a command exists in PATH
-fn command_exists(cmd: &str) -> bool {
-    Command::new(cmd)
-        .arg("--version")
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()
-        .is_ok()
-}
-
-/// Run a command and print output
-fn run_command(cmd: &str, args: &[&str]) {
-    let status = Command::new(cmd).args(args).status().unwrap_or_else(|e| {
-        eprintln!("{RED}Failed to execute {cmd}: {e}{RESET}");
-        exit(1);
-    });
-
-    if !status.success() {
-        exit(status.code().unwrap_or(1));
-    }
-}
-
-/// Ensure a Rust target is installed
-fn ensure_target_installed(target: &str) {
-    let output = Command::new("rustup")
-        .args(["target", "list", "--installed"])
-        .output()
-        .expect("Failed to run rustup");
-
-    let installed = String::from_utf8_lossy(&output.stdout);
-
-    if !installed.lines().any(|line| line.trim() == target) {
-        println!("{YELLOW}Installing target: {target}{RESET}");
-        run_command("rustup", &["target", "add", target]);
-    }
-}
-
-/// Get the project root directory
 fn project_root() -> PathBuf {
     let mut current = env::current_exe()
         .expect("Failed to get current exe path")
@@ -989,7 +759,6 @@ fn project_root() -> PathBuf {
         let cargo_toml = current.join("Cargo.toml");
         if cargo_toml.exists() {
             let content = fs::read_to_string(&cargo_toml).expect("Failed to read Cargo.toml");
-
             if content.contains("[workspace]") {
                 return current;
             }

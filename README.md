@@ -26,15 +26,21 @@ flowchart TD
 
 ## Workspace Layout
 
-- `antikythera-core`: protocol/runtime, orchestration, transport, resilience, streaming.
-- `antikythera-sdk`: high-level API, component-facing integration layer.
-- `antikythera-session`: structured session state and export helpers.
+- `antikythera-core`: core MCP protocol, transport layers, and agent runtime.
+- `antikythera-sdk`: high-level API wrapper with FFI and WASM bindings.
+- `antikythera-session`: session management with persistent chat history.
 - `antikythera-storage`: session persistence with pluggable backends.
-- `antikythera-log`: structured logging and subscriber support.
+- `antikythera-log`: unified logging system and subscriber support.
+- `antikythera-domain`: canonical domain types for the framework.
+- `antikythera-ports`: port trait definitions (hexagonal architecture).
+- `antikythera-config`: configuration schema and loading.
+- `antikythera-resilience`: retry, timeout, context window, and health tracking.
+- `antikythera-tooling`: MCP tool server management.
+- `antikythera-streaming`: token/event streaming primitives.
 - `antikythera-wasm-bindgen`: wasm-bindgen bindings for browser WASM targets.
-- `example/antikythera-cli`: interactive and scripted entry binaries.
+- `example/antikythera-cli`: interactive and scripted CLI entry binaries.
 - `tests`: workspace integration tests and scenario coverage.
-- `scripts`: build-scripts crate for WIT generation and WASM component tooling.
+- `scripts`: build-scripts crate for WIT validation and WASM component tooling.
 
 ## Build and Validate
 
