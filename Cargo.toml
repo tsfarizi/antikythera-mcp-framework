@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "antikythera-core",
     "antikythera-sdk",
+    "antikythera-wasm-bindgen",
     "example/antikythera-cli",
     "antikythera-log",
     "antikythera-session",
@@ -52,7 +53,7 @@ tracing-subscriber = { version = "0.3.23", features = ["fmt", "env-filter"] }
 # Utilities
 uuid = { version = "1.23.1", features = ["v4"] }
 base64 = "0.22.1"
-chrono = { version = "0.4.44", features = ["serde"] }
+chrono = { version = "0.4.44", features = ["serde", "wasmbind"] }
 sysinfo = "0.38.4"
 dotenvy = "0.15.7"
 shellexpand = "3.1.2"

@@ -87,7 +87,8 @@ mod tests {
     fn test_logger_count_returns_number() {
         let provider = AntikytheraLogProvider;
         let count = provider.logger_count();
-        assert!(count >= 0);
+        // usize is always >= 0; just verify the call succeeds
+        let _ = count;
     }
 
     #[test]

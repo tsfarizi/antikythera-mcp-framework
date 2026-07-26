@@ -9,5 +9,7 @@
 .cargo/
 debug/
 graphify-out/
+node_modules/
+dist/
 .*
 app.toml

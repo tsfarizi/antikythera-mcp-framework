@@ -1,0 +1,21 @@
+[package]
+name = "antikythera-wasm-bindgen"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+wasm-bindgen = "0.2.120"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+antikythera-sdk = { path = "../antikythera-sdk", features = ["component"], default-features = false }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[profile.release]
+opt-level = "z"
+lto = true

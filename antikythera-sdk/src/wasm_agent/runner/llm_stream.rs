@@ -6,7 +6,6 @@
 //! See also: [`super::session_lifecycle`], [`super::tool_pipeline`].
 
 use std::collections::HashMap;
-use std::time::Instant;
 
 use antikythera_log::LogLevel;
 
@@ -25,7 +24,7 @@ impl AgentRunnerRuntime {
     /// FSM transitions), builds the message list, and returns a serialized
     /// [`PreparedTurn`] that the host can hand to the LLM provider.
     pub(super) fn prepare_user_turn(&mut self, request_json: &str) -> Result<String, AgentRunnerError> {
-        let started = Instant::now();
+        let started_ms = now_unix_ms();
         let input: PrepareUserTurnInput = serde_json::from_str(request_json).map_err(|e| {
             AgentRunnerError::ValidationFailed(format!("Invalid request-json: {e}"))
         })?;
@@ -198,7 +197,7 @@ impl AgentRunnerRuntime {
         ]));
 
         runtime.telemetry.counters.turns_prepared += 1;
-        let prepare_latency_ms = started.elapsed().as_millis() as u64;
+        let prepare_latency_ms = (now_unix_ms() - started_ms) as u64;
         runtime.telemetry.total_prepare_latency_ms += prepare_latency_ms;
         runtime.prepare_latencies_ms.push(prepare_latency_ms);
         runtime.emit_event(
@@ -302,7 +301,7 @@ impl AgentRunnerRuntime {
         llm_response_json: &str,
     ) -> Result<String, AgentRunnerError> {
         let _ = self.sweep_idle_sessions(now_unix_ms())?;
-        let started = Instant::now();
+        let started_ms = now_unix_ms();
         let prepared: PreparedTurn = serde_json::from_str(prepared_turn_json).map_err(|e| {
             AgentRunnerError::ValidationFailed(format!("Invalid prepared-turn-json: {e}"))
         })?;
@@ -352,7 +351,7 @@ impl AgentRunnerRuntime {
 
         let action = process_llm_response(&mut runtime.state, llm_response_json)?;
         runtime.telemetry.counters.llm_commits += 1;
-        let commit_latency_ms = started.elapsed().as_millis() as u64;
+        let commit_latency_ms = (now_unix_ms() - started_ms) as u64;
         runtime.telemetry.total_commit_latency_ms += commit_latency_ms;
         runtime.commit_latencies_ms.push(commit_latency_ms);
         runtime.emit_event(
