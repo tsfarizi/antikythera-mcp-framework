@@ -176,14 +176,18 @@ The repository includes `Taskfile.yml` for common flows.
 | `task build` | Build the WASM component |
 | `task build-wasm-harness` | Build WASM artifact for CLI harness |
 | `task build-all` | Build all WASM artifacts |
+| `task build-web` | Build web frontend for production |
 | `task wit` | Generate WIT |
-| `task run` | Run interactive TUI CLI |
+| `task run-cli` | Run interactive TUI CLI with auto-bootstrap config |
 | `task run-wasm` | Run CLI as WASM FFI host harness |
 | `task run-interactive` | Run interactive CLI (stdio mode) |
+| `task run-tui` | Alias for interactive TUI-friendly CLI |
+| `task run-web` | Run web frontend dev server (Vite) |
 | `task setup-config` | Setup app.toml with selectable provider |
 | `task test` | Run workspace tests |
-| `task test-unit` | Run CLI unit tests |
-| `task test-scenario` | Run hands-on CLI scenario test |
+| `task test-unit` | Run all CLI unit tests (centralized in tests/) |
+| `task test-scenario` | Run hands-on CLI scenario test (real LLM) |
+| `task test-cli-wasm-host` | Run CLI host-FFI WASM smoke test |
 | `task test-sdk` | Run SDK tests |
 | `task test-ffi` | Run FFI tests |
 | `task test-component` | Run component tests |
@@ -193,15 +197,8 @@ The repository includes `Taskfile.yml` for common flows.
 | `task format` | Run rustfmt |
 | `task inspect` | Inspect the built component with `wasm-tools` if installed |
 | `task size` | Show binary sizes |
-
-## GitHub workflows
-
-| Workflow | Purpose |
-|:---------|:--------|
-| `.github/workflows/ci.yml` | Runs tests, clippy, MSRV check, WASM compile check, contract tests, and docs build on pushes and PRs |
-| `.github/workflows/wasm.yml` | Builds the WASM component and generated WIT on pushes, pull requests, and manual runs |
-| `.github/workflows/release.yml` | Builds release-grade artifacts on version tags and publishes to GitHub Releases |
-| `.github/workflows/doc.yml` | Builds and deploys mdBook documentation to GitHub Pages |
+| `task clean` | Clean all build artifacts |
+| `task clean-wasm` | Clean WASM build artifacts |
 
 ## Feature flags overview
 
@@ -222,8 +219,29 @@ The repository includes `Taskfile.yml` for common flows.
 | `component` | WASM agent types, processor, and runner |
 | `single-agent` | Single-agent support |
 | `multi-agent` | Multi-agent orchestration support |
+| `wasm` | Browser WASM support (wasm32-unknown-unknown) |
 | `wasm-sandbox` | WASM sandbox support |
+| `subscriber` | Real-time log streaming via tokio channels |
 | `full` | Enables all features |
+
+### `antikythera-log`
+
+| Feature | Purpose |
+|:--------|:--------|
+| `wasm` | Browser-safe time via js-sys (wasm32-unknown-unknown) |
+| `subscriber` | Real-time log streaming via tokio + crossbeam-channel |
+| `lint` | Compile-time lint blocking println!, eprintln!, dbg!, tracing |
+
+### `antikythera-storage`
+
+| Feature | Purpose |
+|:--------|:--------|
+| `filesystem` | JSON file storage backend (default) |
+| `mongodb` | MongoDB backend |
+| `postgres` | PostgreSQL backend |
+| `standalone` | REST API server mode |
+| `sse` | SSE backup service |
+| `wasm` | WASM component integration |
 
 ## Notes
 

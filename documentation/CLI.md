@@ -91,13 +91,12 @@ cargo run -p antikythera-cli --bin antikythera -- --mode multi-agent --agents ag
 cargo run -p antikythera-cli --bin antikythera -- --mode wasm-harness --wasm target/wasm32-wasip1/release/antikythera_sdk.wasm --task "Smoke test"
 
 # Task shortcuts
-task run-tui
-task run
+task run-cli
 task run-wasm
 task setup-config PROVIDER_ID=openai PROVIDER_TYPE=openai PROVIDER_ENDPOINT=https://api.openai.com PROVIDER_API_KEY=OPENAI_API_KEY MODEL_NAME=gpt-4o-mini
 ```
 
-`task run` now bootstraps `app.toml` automatically when needed and opens the interactive TUI directly. Change provider/model from inside the TUI with commands such as `/use gemini gemini-2.0-flash` or `/model gpt-4o-mini` instead of passing runtime shell arguments.
+`task run-cli` now bootstraps `app.toml` automatically when needed and opens the interactive TUI directly. Change provider/model from inside the TUI with commands such as `/use gemini gemini-2.0-flash` or `/model gpt-4o-mini` instead of passing runtime shell arguments.
 
 ### Common flags
 

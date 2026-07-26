@@ -1,4 +1,4 @@
-﻿# Antikythera MCP Framework v1.0.10
+﻿# Antikythera MCP Framework
 
 Antikythera MCP Framework is a Rust workspace for building MCP-capable agent runtimes, host-integrated orchestration flows, and portable WASM agent components.
 
@@ -28,11 +28,13 @@ flowchart TD
 
 - `antikythera-core`: protocol/runtime, orchestration, transport, resilience, streaming.
 - `antikythera-sdk`: high-level API, component-facing integration layer.
-- `antikythera-cli`: interactive and scripted entry binaries.
 - `antikythera-session`: structured session state and export helpers.
+- `antikythera-storage`: session persistence with pluggable backends.
 - `antikythera-log`: structured logging and subscriber support.
+- `antikythera-wasm-bindgen`: wasm-bindgen bindings for browser WASM targets.
+- `example/antikythera-cli`: interactive and scripted entry binaries.
+- `tests`: workspace integration tests and scenario coverage.
 - `scripts`: build-scripts crate for WIT generation and WASM component tooling.
-- `tests`: integration and module-level validation suites.
 
 ## Build and Validate
 
@@ -69,8 +71,3 @@ cargo clippy --workspace --lib --bins -- -D warnings -D deprecated
 - [Testing](documentation/TESTING.md)
 - [WASM Agent](documentation/WASM_AGENT.md)
 - [Workspace](documentation/WORKSPACE.md)
-
-## Version
-
-- Workspace release: `1.0.10`
-- Documentation baseline: `1.0.10`

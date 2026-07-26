@@ -18,6 +18,7 @@ This document describes the three WASM integration paths in the Antikythera MCP 
 | `wasm` | `antikythera-sdk` | `antikythera-log/wasm` (js-sys time) | tokio runtime, filesystem | `wasm32-unknown-unknown` |
 | `wasm-sandbox` | `antikythera-sdk` | wasmtime host runner | — | native |
 | `subscriber` | `antikythera-log` | tokio + crossbeam-channel | — | native only |
+| `lint` | `antikythera-log` | compile-time lint blocking println!, eprintln!, dbg!, tracing | — | any |
 
 ### Dependency Chain
 

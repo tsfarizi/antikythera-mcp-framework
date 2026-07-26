@@ -16,18 +16,27 @@ All security parameters are configurable via FFI, allowing hosts to customize se
 
 ### Core Module (`antikythera-core`)
 
-The security functionality is implemented in the `antikythera-core` crate under the `security` module:
+The `antikythera-core` crate defines the security configuration types and port traits:
 
 ```
 antikythera-core/src/security/
+├── mod.rs      # Module root (port traits only)
+└── config.rs   # SecurityConfig types
+```
+
+### CLI Implementation (`example/antikythera-cli`)
+
+Concrete security implementations live in the CLI crate:
+
+```
+example/antikythera-cli/src/security/
 ├── mod.rs
-├── config.rs
+├── rate_limit.rs
 ├── validation/
 │   ├── mod.rs
 │   ├── json.rs
 │   ├── types.rs
 │   └── url.rs
-├── rate_limit.rs
 └── secrets/
     ├── mod.rs
     ├── crypto.rs
@@ -35,9 +44,7 @@ antikythera-core/src/security/
     └── storage.rs
 ```
 
-### FFI Interface
-
-The SDK provides FFI bindings that re-export security types from the core security module (`antikythera-core/src/security/`). All security FFI functions provide consistent error handling and C string memory management.
+This separation ensures the core security ports are reusable by any embedding host, while the CLI provides the concrete implementations for its own use.
 
 ## Input Validation
 
@@ -92,7 +99,7 @@ pub struct ValidationConfig {
 #### Rust API
 
 ```rust
-use antikythera_core::security::validation::InputValidator;
+use antikythera_cli::security::validation::InputValidator;
 
 // Create validator with default config
 let validator = InputValidator::from_config()?;
@@ -183,7 +190,7 @@ pub struct RateLimitConfig {
 #### Rust API
 
 ```rust
-use antikythera_core::security::rate_limit::RateLimiter;
+use antikythera_cli::security::rate_limit::RateLimiter;
 
 // Create rate limiter with default config
 let limiter = RateLimiter::from_config();
@@ -288,7 +295,7 @@ pub struct SecretsConfig {
 #### Rust API
 
 ```rust
-use antikythera_core::security::secrets::SecretManager;
+use antikythera_cli::security::secrets::SecretManager;
 
 // Create secret manager with default config
 let manager = SecretManager::from_config()?;
@@ -448,7 +455,7 @@ All security parameters can be configured dynamically via FFI:
 
 ## Security Logging
 
-The `SecurityLogger` struct provides structured logging for security events:
+The `SecurityLogger` (in `antikythera_core::logging`) provides structured logging for security events:
 
 ### Methods
 
@@ -467,40 +474,28 @@ Comprehensive unit tests are provided for all security modules:
 
 ```bash
 # Run security tests
-cargo test -p antikythera-core security
-
-# Run FFI tests
-cargo test -p antikythera-core security
+cargo test -p antikythera-tests --test security_validation_tests
+cargo test -p antikythera-tests --test security_rate_limit_tests
+cargo test -p antikythera-tests --test security_secrets_tests
+cargo test -p antikythera-tests --test security_config_tests
 ```
 
 ### Test Files
 
-- `tests/security/mod.rs`
-- `tests/security/config_tests.rs`
 - `tests/security/validation_tests.rs`
 - `tests/security/rate_limit_tests.rs`
 - `tests/security/secrets_tests.rs`
+- `tests/security/config_tests.rs`
 
 ## CLI vs Core Separation
 
 The security implementation follows the principle of separation of concerns:
 
-- **Core Module**: Contains all security logic and is completely agnostic of CLI concerns
-- **CLI Module**: Only handles user interaction and configuration management
-- **FFI Interface**: Provides a clean boundary for host languages to interact with security features
+- **Core Module** (`antikythera-core`): Defines security configuration types and port traits. Contains no concrete implementations.
+- **CLI Module** (`example/antikythera-cli`): Provides concrete security implementations (validation, rate limiting, secrets management).
+- **FFI Interface** (SDK): Provides a clean boundary for host languages to interact with security features.
 
-This ensures that the core security functionality can be used independently of the CLI and can be embedded in any host application.
-
-## Future Enhancements
-
-Potential future security features:
-
-1. **Advanced Threat Detection**: ML-based anomaly detection
-2. **IP-based Rate Limiting**: Per-IP rate limiting
-3. **OAuth Integration**: Support for OAuth token management
-4. **Hardware Security Modules**: Integration with HSMs for key storage
-5. **Audit Logging**: Comprehensive security event logging
-6. **Compliance Reporting**: Built-in compliance reporting tools
+This ensures that the core security ports are reusable by any embedding host, while the CLI provides the concrete implementations for its own use.
 
 ## Security Considerations
 
@@ -515,9 +510,5 @@ Potential future security features:
 4. **Input Validation**: While comprehensive, input validation cannot prevent all attacks. Always use defense in depth.
 
 5. **Thread Safety**: The current implementation uses global static variables for FFI compatibility. For multi-threaded hosts, ensure proper synchronization.
-
-## License
-
-This security module is part of the Antikythera MCP Framework and is licensed under the same terms as the main project.
 
 

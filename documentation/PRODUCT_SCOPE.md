@@ -69,7 +69,9 @@ The WASM component handles agent reasoning, session continuity, history shaping,
 | `single-agent` | Single-agent support | Stable |
 | `multi-agent` | Multi-agent orchestration runtime | Stable |
 | `component` | Server-side WASM component bindings | Active development |
+| `wasm` | Browser WASM support (wasm32-unknown-unknown) | Active development |
 | `wasm-sandbox` | Wasmtime host for running WASM agents | Active development |
+| `subscriber` | Real-time log streaming via tokio channels | Stable |
 | `wizard` | Configuration wizard in CLI | Stable |
 | `native-transport` | STDIO and HTTP MCP transport | Stable |
 | `full` | Enables all features | Stable |

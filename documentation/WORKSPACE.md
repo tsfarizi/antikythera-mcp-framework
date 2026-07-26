@@ -13,10 +13,12 @@ flowchart TD
     ROOT --> SESSION[antikythera-session]
     ROOT --> STORAGE[antikythera-storage]
     ROOT --> LOG[antikythera-log]
+    ROOT --> WASM_BINDGEN[antikythera-wasm-bindgen]
     ROOT --> TESTS[tests]
     ROOT --> SCRIPTS[scripts]
     ROOT --> WIT[wit]
     ROOT --> DOCS[documentation]
+    ROOT --> EXAMPLES[example]
 ```
 
 ## Crate responsibilities
@@ -25,10 +27,11 @@ flowchart TD
 |:-----|:-----|
 | `antikythera-core/` | Core MCP runtime, agent logic, config loading, providers, and transports |
 | `antikythera-sdk/` | Public API layer for Rust and server-side WASM component bindings, config/session/agent helper modules |
-| `antikythera-cli/` | Native binaries for the current CLI surface |
 | `antikythera-session/` | Session data model, history, and export/import |
 | `antikythera-storage/` | Session persistence layer with pluggable backends (filesystem, MongoDB, PostgreSQL), caching, and backup |
 | `antikythera-log/` | Structured logging and subscriptions |
+| `antikythera-wasm-bindgen/` | wasm-bindgen bindings for browser WASM targets (wasm32-unknown-unknown) |
+| `example/antikythera-cli/` | Native binaries for the current CLI surface |
 | `tests/` | Workspace integration tests and scenario coverage |
 | `scripts/` | WIT generation and component build helpers |
 | `wit/` | Generated WIT output |
@@ -44,6 +47,7 @@ flowchart LR
     SDK --> CORE
     SDK --> SESSION[antikythera-session]
     SDK --> LOG[antikythera-log]
+    WASM_BINDGEN[antikythera-wasm-bindgen] --> SDK
     CORE --> LOG
     CORE --> SESSION
     CORE --> MCP[MCP servers]
@@ -62,5 +66,5 @@ flowchart LR
 
 1. Start with `antikythera-core` to understand the runtime behavior.
 2. Move to `antikythera-sdk` to see the public API and bindings layer.
-3. Check `antikythera-cli` for the current command-line surface.
+3. Check `example/antikythera-cli` for the current command-line surface.
 4. Use `tests/` to see how the repository is exercised end-to-end.
