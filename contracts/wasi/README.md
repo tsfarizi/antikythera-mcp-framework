@@ -27,5 +27,5 @@ The WASI component uses WIT (WebAssembly Interface Types) defined in `wit/antiky
 ## Verification
 
 ```bash
-cargo test -p antikythera-tests --test compatibility_tests -- wit_contract_signatures_match_golden
+cargo run -p build-scripts --release -- validate
 ```

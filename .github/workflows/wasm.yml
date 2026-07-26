@@ -27,8 +27,8 @@ jobs:
         with:
           tool: cargo-component
 
-      - name: Generate WIT
-        run: cargo run -p build-scripts --release -- wit
+      - name: Validate WIT conformance
+        run: cargo run -p build-scripts --release -- validate
 
       - name: Build component WASM
         run: cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component

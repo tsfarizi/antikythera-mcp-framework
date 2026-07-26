@@ -8,7 +8,7 @@ This guide covers the commands that match the current workspace layout and tooli
 flowchart TD
     SRC[Workspace source] --> CARGO[cargo build --workspace]
     SRC --> CLI[cargo build -p antikythera-cli --release]
-    SRC --> WIT[cargo run -p build-scripts --release -- wit]
+    SRC --> WIT[cargo run -p build-scripts --release -- validate]
     WIT --> COMPONENT[cargo component build -p antikythera-sdk --release --target wasm32-wasip1]
 ```
 
@@ -57,17 +57,13 @@ cargo build -p antikythera-cli --release
 
 ## WASM component build
 
-### Generate WIT
+### Validate WIT
 
 ```bash
-cargo run -p build-scripts --release -- wit
+cargo run -p build-scripts --release -- validate
 ```
 
-This generates:
-
-```text
-wit/antikythera.wit
-```
+This validates the checked-in WIT file against Rust source types.
 
 ### Build the WASM component
 
@@ -76,12 +72,7 @@ cargo component build -p antikythera-sdk --release --target wasm32-wasip1 \
   --no-default-features --features component
 ```
 
-The helper binary in `scripts/build-component.rs` also supports:
-
-```bash
-cargo run -p build-scripts --release -- component
-cargo run -p build-scripts --release -- all
-```
+The helper binary in `scripts/build-component.rs` validates WIT conformance against Rust source types.
 
 Expected component output is produced under:
 
@@ -177,7 +168,7 @@ The repository includes `Taskfile.yml` for common flows.
 | `task build-wasm-harness` | Build WASM artifact for CLI harness |
 | `task build-all` | Build all WASM artifacts |
 | `task build-web` | Build web frontend for production |
-| `task wit` | Generate WIT |
+| `task wit` | Validate WIT conformance |
 | `task run-cli` | Run interactive TUI CLI with auto-bootstrap config |
 | `task run-wasm` | Run CLI as WASM FFI host harness |
 | `task run-interactive` | Run interactive CLI (stdio mode) |
