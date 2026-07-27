@@ -142,8 +142,23 @@ async fn run_loop(
         // SDK logs: FFI calls, WasmAgent events, config/server operations.
         // The tracing bridge (AntikytheraTuiLayer) writes all tracing:: events to the
         // "tui" session bucket — always read from "tui" here regardless of chat session.
-        let mut core_logs = get_latest_logs("tui", 50);
+        let core_logs_ports = get_latest_logs("tui", 50);
         let mut sdk_logs = get_latest_sdk_logs("tui", 20);
+        // Convert core logs from antikythera_ports type to antikythera_log type
+        // so both vectors share the same LogEntry type and can be merged.
+        let mut core_logs: Vec<antikythera_log::LogEntry> = core_logs_ports
+            .into_iter()
+            .map(|e| antikythera_log::LogEntry {
+                level: antikythera_log::LogLevel::parse_label(e.level.as_str())
+                    .unwrap_or(antikythera_log::LogLevel::Info),
+                message: e.message,
+                timestamp: e.timestamp,
+                session_id: e.session_id,
+                source: e.source,
+                context: e.context,
+                sequence: e.sequence,
+            })
+            .collect();
         // Merge: tag SDK entries so they can be highlighted differently.
         // We encode source prefix "sdk:" to differentiate from core sources.
         for entry in &mut sdk_logs {

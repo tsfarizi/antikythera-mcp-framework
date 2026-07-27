@@ -1,76 +1,35 @@
-//! CLI Configuration Management Binary
+//! Standalone Configuration Management Binary
 //!
-//! Manages the shared `app.toml` configuration file used by both the CLI binary
-//! and the core runtime.  Provider, model, and server settings are all stored in
-//! a single TOML file.
+//! Backward-compatible binary for managing `app.toml`.
+//! Prefer using `antikythera config <subcmd>` for new workflows.
 
-use antikythera_cli::config::*;
-use antikythera_cli::error::{CliError, CliResult};
+use antikythera_cli::cli::ConfigCommand;
+use antikythera_cli::error::CliResult;
 use antikythera_log::{cli_eprint, cli_print};
-use clap::{Parser, Subcommand};
+use clap::Parser;
 
 #[derive(Parser)]
 #[command(name = "antikythera-config")]
 #[command(about = "Manage Antikythera configuration (app.toml)")]
-pub struct ConfigCli {
+struct ConfigCli {
     #[command(subcommand)]
-    pub command: ConfigCommand,
+    command: ConfigCommand,
 }
 
-#[derive(Subcommand)]
-pub enum ConfigCommand {
-    /// Initialize default configuration
-    Init,
-    /// Show all configuration as JSON
-    Show,
-    /// Get a specific field value
-    Get { field: String },
-    /// Set a specific field value
-    Set { field: String, value: String },
-    /// Add a provider
-    AddProvider {
-        id: String,
-        #[arg(name = "type")]
-        provider_type: String,
-        endpoint: String,
-        /// API key environment-variable name (e.g. GEMINI_API_KEY). Omit for Ollama.
-        #[arg(name = "api_key")]
-        api_key: Option<String>,
-    },
-    /// Remove a provider by ID
-    RemoveProvider { id: String },
-    /// Set the default provider and model
-    SetModel { provider: String, model: String },
-    /// Set the REST server bind address
-    SetBind { address: String },
-    /// Export configuration as JSON
-    Export { output: Option<String> },
-    /// Import configuration from JSON
-    Import { input: String },
-    /// Reset to default configuration
-    Reset,
-    /// Show config status
-    Status,
-    /// Add a model to a provider's model list
-    AddModel {
-        /// Provider ID to add the model to
-        provider: String,
-        /// Model name (e.g. gemini-2.0-flash, gpt-4o, llama3.2)
-        model: String,
-        /// Optional human-readable display name
-        #[arg(name = "display_name")]
-        display_name: Option<String>,
-    },
-    /// Remove a model from a provider's model list
-    RemoveModel {
-        /// Provider ID
-        provider: String,
-        /// Model name to remove
-        model: String,
-    },
+fn main() {
+    let args = ConfigCli::parse();
+    if let Err(e) = execute_config_cli(args.command) {
+        cli_eprint!("Error: {}", e);
+        std::process::exit(1);
+    }
 }
 
 pub fn execute_config_cli(command: ConfigCommand) -> CliResult<()> {
+    use antikythera_cli::config::{
+        config_exists, get_field, init_default_config, load_app_config, normalize_provider_type,
+        save_app_config, set_field, AppConfig, ModelInfo, ProviderConfig, CONFIG_PATH,
+    };
+
     match command {
         ConfigCommand::Init => {
             if config_exists() {
@@ -78,10 +37,10 @@ pub fn execute_config_cli(command: ConfigCommand) -> CliResult<()> {
                 cli_print!("Use 'reset' to overwrite.");
                 return Ok(());
             }
-            let config = init_default_config()?;
-            cli_print!("✓ Default configuration created at: {}", CONFIG_PATH);
-            cli_print!("  Providers tersedia: {}", config.providers.len());
-            for provider in &config.providers {
+            let cfg = init_default_config()?;
+            cli_print!("Default configuration created at: {}", CONFIG_PATH);
+            cli_print!("  Providers: {}", cfg.providers.len());
+            for provider in &cfg.providers {
                 cli_print!(
                     "  - {} [{}] -> {}",
                     provider.id,
@@ -93,24 +52,24 @@ pub fn execute_config_cli(command: ConfigCommand) -> CliResult<()> {
         }
 
         ConfigCommand::Show => {
-            let config = load_app_config(None)?;
-            let json = serde_json::to_string_pretty(&config)?;
+            let cfg = load_app_config(None)?;
+            let json = serde_json::to_string_pretty(&cfg)?;
             cli_print!("{}", json);
             Ok(())
         }
 
         ConfigCommand::Get { field } => {
-            let config = load_app_config(None)?;
-            let value = get_field(&config, &field)?;
+            let cfg = load_app_config(None)?;
+            let value = get_field(&cfg, &field)?;
             cli_print!("{}", value);
             Ok(())
         }
 
         ConfigCommand::Set { field, value } => {
-            let mut config = load_app_config(None)?;
-            set_field(&mut config, &field, &value)?;
-            save_app_config(&config, None)?;
-            cli_print!("✓ Set '{}' = '{}'", field, value);
+            let mut cfg = load_app_config(None)?;
+            set_field(&mut cfg, &field, &value)?;
+            save_app_config(&cfg, None)?;
+            cli_print!("Set '{}' = '{}'", field, value);
             Ok(())
         }
 
@@ -120,17 +79,17 @@ pub fn execute_config_cli(command: ConfigCommand) -> CliResult<()> {
             endpoint,
             api_key,
         } => {
-            let mut config = load_app_config(None)?;
+            let mut cfg = load_app_config(None)?;
 
-            if config.providers.iter().any(|p| p.id == id) {
-                return Err(CliError::Validation(format!(
+            if cfg.providers.iter().any(|p| p.id == id) {
+                return Err(antikythera_cli::error::CliError::Validation(format!(
                     "Provider '{}' already exists",
                     id
                 )));
             }
 
             let provider_type = normalize_provider_type(&provider_type);
-            config.providers.push(ProviderConfig {
+            cfg.providers.push(ProviderConfig {
                 id: id.clone(),
                 provider_type,
                 endpoint,
@@ -138,59 +97,62 @@ pub fn execute_config_cli(command: ConfigCommand) -> CliResult<()> {
                 models: vec![],
             });
 
-            save_app_config(&config, None)?;
-            cli_print!("✓ Provider '{}' added", id);
+            save_app_config(&cfg, None)?;
+            cli_print!("Provider '{}' added", id);
             Ok(())
         }
 
         ConfigCommand::RemoveProvider { id } => {
-            let mut config = load_app_config(None)?;
-            let initial_len = config.providers.len();
-            config.providers.retain(|p| p.id != id);
+            let mut cfg = load_app_config(None)?;
+            let initial_len = cfg.providers.len();
+            cfg.providers.retain(|p| p.id != id);
 
-            if config.providers.len() == initial_len {
-                Err(CliError::Validation(format!("Provider '{}' not found", id)))
+            if cfg.providers.len() == initial_len {
+                Err(antikythera_cli::error::CliError::Validation(format!(
+                    "Provider '{}' not found",
+                    id
+                )))
             } else {
-                save_app_config(&config, None)?;
-                cli_print!("✓ Provider '{}' removed", id);
+                save_app_config(&cfg, None)?;
+                cli_print!("Provider '{}' removed", id);
                 Ok(())
             }
         }
 
         ConfigCommand::SetModel { provider, model } => {
-            let mut config = load_app_config(None)?;
+            let mut cfg = load_app_config(None)?;
 
-            if !config.providers.iter().any(|p| p.id == provider) {
-                return Err(CliError::Validation(format!(
+            if !cfg.providers.iter().any(|p| p.id == provider) {
+                return Err(antikythera_cli::error::CliError::Validation(format!(
                     "Provider '{}' not found",
                     provider
                 )));
             }
 
-            config.model.default_provider = provider.clone();
-            config.model.model = model.clone();
+            cfg.model.default_provider = provider.clone();
+            cfg.model.model = model.clone();
 
-            save_app_config(&config, None)?;
-            cli_print!("✓ Default model set: {} / {}", provider, model);
+            save_app_config(&cfg, None)?;
+            cli_print!("Default model set: {} / {}", provider, model);
             Ok(())
         }
 
         ConfigCommand::SetBind { address } => {
-            let mut config = load_app_config(None)?;
-            config.server.bind = address.clone();
-            save_app_config(&config, None)?;
-            cli_print!("✓ Bind address set to: {}", address);
+            let mut cfg = load_app_config(None)?;
+            cfg.server.bind = address.clone();
+            save_app_config(&cfg, None)?;
+            cli_print!("Bind address set to: {}", address);
             Ok(())
         }
 
         ConfigCommand::Export { output } => {
-            let config = load_app_config(None)?;
-            let json = serde_json::to_string_pretty(&config)?;
+            let cfg = load_app_config(None)?;
+            let json = serde_json::to_string_pretty(&cfg)?;
 
             match output {
                 Some(path) => {
                     std::fs::write(&path, &json)?;
-                    cli_print!("✓ Exported to: {}", path);
+                    cli_print!("Exported to: {}", path);
                 }
                 None => cli_print!("{}", json),
             }
@@ -199,34 +161,32 @@ pub fn execute_config_cli(command: ConfigCommand) -> CliResult<()> {
 
         ConfigCommand::Import { input } => {
             let json = std::fs::read_to_string(&input)?;
-
-            let config: AppConfig = serde_json::from_str(&json)?;
-
-            save_app_config(&config, None)?;
-            cli_print!("✓ Imported from: {}", input);
+            let cfg: AppConfig = serde_json::from_str(&json)?;
+            save_app_config(&cfg, None)?;
+            cli_print!("Imported from: {}", input);
             Ok(())
         }
 
         ConfigCommand::Reset => {
             init_default_config()?;
-            cli_print!("✓ Configuration reset to defaults");
+            cli_print!("Configuration reset to defaults");
             cli_print!("  Path: {}", CONFIG_PATH);
             Ok(())
         }
 
         ConfigCommand::Status => {
             if config_exists() {
-                let config = load_app_config(None)?;
-                cli_print!("✓ Config exists at: {}", CONFIG_PATH);
-                cli_print!("  Providers: {}", config.providers.len());
+                let cfg = load_app_config(None)?;
+                cli_print!("Config exists at: {}", CONFIG_PATH);
+                cli_print!("  Providers: {}", cfg.providers.len());
                 cli_print!(
                     "  Default: {}/{}",
-                    config.model.default_provider,
-                    config.model.model
+                    cfg.model.default_provider,
+                    cfg.model.model
                 );
-                cli_print!("  Server: {}", config.server.bind);
+                cli_print!("  Server: {}", cfg.server.bind);
             } else {
-                cli_print!("✗ No config found at: {}", CONFIG_PATH);
+                cli_print!("No config found at: {}", CONFIG_PATH);
                 cli_print!("  Run 'init' to create default config.");
             }
             Ok(())
@@ -237,16 +197,16 @@ pub fn execute_config_cli(command: ConfigCommand) -> CliResult<()> {
             model,
             display_name,
         } => {
-            let mut config = load_app_config(None)?;
-            let Some(p) = config.providers.iter_mut().find(|p| p.id == provider) else {
-                return Err(CliError::Validation(format!(
-                    "Provider '{}' tidak ditemukan",
+            let mut cfg = load_app_config(None)?;
+            let Some(p) = cfg.providers.iter_mut().find(|p| p.id == provider) else {
+                return Err(antikythera_cli::error::CliError::Validation(format!(
+                    "Provider '{}' not found",
                     provider
                 )));
             };
             if p.models.iter().any(|m| m.name == model) {
-                return Err(CliError::Validation(format!(
-                    "Model '{}' sudah ada di provider '{}'",
+                return Err(antikythera_cli::error::CliError::Validation(format!(
+                    "Model '{}' already exists in provider '{}'",
                     model, provider
                 )));
             }
@@ -254,66 +214,30 @@ pub fn execute_config_cli(command: ConfigCommand) -> CliResult<()> {
                 name: model.clone(),
                 display_name: display_name.clone().unwrap_or_default(),
             });
-            save_app_config(&config, None)?;
-            cli_print!("✓ Model '{}' ditambahkan ke provider '{}'", model, provider);
+            save_app_config(&cfg, None)?;
+            cli_print!("Model '{}' added to provider '{}'", model, provider);
             Ok(())
         }
 
         ConfigCommand::RemoveModel { provider, model } => {
-            let mut config = load_app_config(None)?;
-            let Some(p) = config.providers.iter_mut().find(|p| p.id == provider) else {
-                return Err(CliError::Validation(format!(
-                    "Provider '{}' tidak ditemukan",
+            let mut cfg = load_app_config(None)?;
+            let Some(p) = cfg.providers.iter_mut().find(|p| p.id == provider) else {
+                return Err(antikythera_cli::error::CliError::Validation(format!(
+                    "Provider '{}' not found",
                     provider
                 )));
             };
             let before = p.models.len();
             p.models.retain(|m| m.name != model);
             if p.models.len() == before {
-                return Err(CliError::Validation(format!(
-                    "Model '{}' tidak ditemukan di provider '{}'",
+                return Err(antikythera_cli::error::CliError::Validation(format!(
+                    "Model '{}' not found in provider '{}'",
                     model, provider
                 )));
             }
-            save_app_config(&config, None)?;
-            cli_print!("✓ Model '{}' dihapus dari provider '{}'", model, provider);
+            save_app_config(&cfg, None)?;
+            cli_print!("Model '{}' removed from provider '{}'", model, provider);
             Ok(())
         }
-    }
-}
-
-fn get_field(config: &AppConfig, field: &str) -> CliResult<String> {
-    match field {
-        "default_provider" => Ok(config.model.default_provider.clone()),
-        "model" => Ok(config.model.model.clone()),
-        "server.bind" => Ok(config.server.bind.clone()),
-        "providers" => Ok(serde_json::to_string(&config.providers)?),
-        _ => Err(CliError::Validation(format!("Unknown field: {}", field))),
-    }
-}
-
-fn set_field(config: &mut AppConfig, field: &str, value: &str) -> CliResult<()> {
-    match field {
-        "default_provider" => {
-            config.model.default_provider = value.to_string();
-            Ok(())
-        }
-        "model" => {
-            config.model.model = value.to_string();
-            Ok(())
-        }
-        "server.bind" => {
-            config.server.bind = value.to_string();
-            Ok(())
-        }
-        _ => Err(CliError::Validation(format!("Unknown field: {}", field))),
-    }
-}
-
-fn main() {
-    let args = ConfigCli::parse();
-    if let Err(e) = execute_config_cli(args.command) {
-        cli_eprint!("Error: {}", e);
-        std::process::exit(1);
     }
 }

@@ -18,7 +18,7 @@
 //!
 //! - `infrastructure/llm/` — LLM provider adapters (Gemini, Ollama, OpenAI)
 //! - `error` — `CliError` and `CliResult` used by all slices
-//! - `cli` — Clap argument parser (`Cli` struct, `RunMode` enum)
+//! - `cli` — Clap argument parser (`Cli` struct, `Command` enum)
 
 // Domain layer: entities (shared types) + per-slice use cases
 pub mod domain;

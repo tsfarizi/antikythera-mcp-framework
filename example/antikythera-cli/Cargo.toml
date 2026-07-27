@@ -8,6 +8,8 @@ repository = "https://github.com/tsfarizi/antikythera-mcp-framework"
 readme = "README.md"
 description = "CLI interface for Antikythera MCP client"
 
+[workspace]
+
 [features]
 default = ["multi-agent", "native-transport"]
 multi-agent = ["antikythera-core/multi-agent"]

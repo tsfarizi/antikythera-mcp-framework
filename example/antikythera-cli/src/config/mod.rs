@@ -102,3 +102,33 @@ pub fn init_default_config() -> CliResult<AppConfig> {
     save_app_config(&config, None)?;
     Ok(config)
 }
+
+/// Read a dotted field path from `AppConfig`.
+pub fn get_field(config: &AppConfig, field: &str) -> CliResult<String> {
+    match field {
+        "default_provider" => Ok(config.model.default_provider.clone()),
+        "model" => Ok(config.model.model.clone()),
+        "server.bind" => Ok(config.server.bind.clone()),
+        "providers" => Ok(serde_json::to_string(&config.providers)?),
+        _ => Err(CliError::Validation(format!("Unknown field: {}", field))),
+    }
+}
+
+/// Write a dotted field path on `AppConfig`.
+pub fn set_field(config: &mut AppConfig, field: &str, value: &str) -> CliResult<()> {
+    match field {
+        "default_provider" => {
+            config.model.default_provider = value.to_string();
+            Ok(())
+        }
+        "model" => {
+            config.model.model = value.to_string();
+            Ok(())
+        }
+        "server.bind" => {
+            config.server.bind = value.to_string();
+            Ok(())
+        }
+        _ => Err(CliError::Validation(format!("Unknown field: {}", field))),
+    }
+}
