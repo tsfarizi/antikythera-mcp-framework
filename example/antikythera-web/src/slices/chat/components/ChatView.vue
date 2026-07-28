@@ -31,7 +31,7 @@ watch(messages, () => {
   <div class="chat-view">
     <div class="chat-header">
       <h2>Antikythera Chatbot</h2>
-      <span v-if="status === 'streaming'" class="streaming-indicator">● Streaming...</span>
+      <span v-if="status === 'streaming'" class="streaming-indicator">● Thinking...</span>
     </div>
 
     <div ref="messagesContainer" class="messages-container">
