@@ -1,12 +1,14 @@
-//! Security implementations (CLI-owned).
-//!
-//! Concrete implementations of security port traits defined in core.
+//! Security implementations — re-exported from antikythera-security crate
+//! with CLI-specific extensions (crypto, file backend).
 
-pub mod rate_limit;
-pub mod secrets;
-pub mod validation;
+// Re-export base implementations from the security crate
+pub use antikythera_security::validation::{
+    InputValidator, InputValidatorError, ValidationResult, ValidationError,
+};
+pub use antikythera_security::rate_limit::{RateLimiter, RateLimitError, SessionUsage};
+pub use antikythera_security::secrets::{SecretManager, SecretManagerError};
+pub use antikythera_security::error::SecurityError;
 
-// Re-export for convenience
-pub use rate_limit::RateLimiter;
-pub use secrets::SecretManager;
-pub use validation::{InputValidator, InputValidatorError, ValidationResult, ValidationError};
+// CLI-specific extensions
+pub mod crypto;
+pub mod file_store;

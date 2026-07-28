@@ -83,6 +83,7 @@ dependencies = [
  "antikythera-core",
  "antikythera-log",
  "antikythera-sdk",
+ "antikythera-security",
  "antikythera-session",
  "antikythera-storage",
  "async-trait",
@@ -114,7 +115,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-config"
-version = "1.5.1"
+version = "1.6.1"
 dependencies = [
  "antikythera-domain",
  "dotenvy",
@@ -127,11 +128,12 @@ dependencies = [
 
 [[package]]
 name = "antikythera-core"
-version = "1.5.1"
+version = "1.6.1"
 dependencies = [
  "antikythera-config",
  "antikythera-domain",
  "antikythera-log",
+ "antikythera-observability",
  "antikythera-ports",
  "antikythera-resilience",
  "antikythera-tooling",
@@ -160,7 +162,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-domain"
-version = "1.5.1"
+version = "1.6.1"
 dependencies = [
  "chrono",
  "postcard",
@@ -172,7 +174,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-log"
-version = "1.5.1"
+version = "1.6.1"
 dependencies = [
  "chrono",
  "crossbeam-channel",
@@ -183,8 +185,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "antikythera-observability"
+version = "1.6.1"
+dependencies = [
+ "antikythera-domain",
+ "antikythera-ports",
+ "async-trait",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.19",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "antikythera-ports"
-version = "1.5.1"
+version = "1.6.1"
 dependencies = [
  "antikythera-domain",
  "async-trait",
@@ -196,7 +212,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-resilience"
-version = "1.5.1"
+version = "1.6.1"
 dependencies = [
  "antikythera-domain",
  "chrono",
@@ -207,7 +223,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-sdk"
-version = "1.5.1"
+version = "1.6.1"
 dependencies = [
  "antikythera-core",
  "antikythera-log",
@@ -218,8 +234,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "antikythera-security"
+version = "1.6.1"
+dependencies = [
+ "antikythera-domain",
+ "antikythera-ports",
+ "async-trait",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.19",
+ "tracing",
+]
+
+[[package]]
 name = "antikythera-session"
-version = "1.5.1"
+version = "1.6.1"
 dependencies = [
  "antikythera-domain",
  "antikythera-log",
@@ -231,7 +261,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-storage"
-version = "1.5.1"
+version = "1.6.1"
 dependencies = [
  "antikythera-domain",
  "async-trait",
@@ -247,7 +277,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-tooling"
-version = "1.5.1"
+version = "1.6.1"
 dependencies = [
  "antikythera-config",
  "antikythera-domain",

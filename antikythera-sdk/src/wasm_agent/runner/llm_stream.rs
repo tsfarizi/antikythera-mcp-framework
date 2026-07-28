@@ -473,10 +473,7 @@ impl AgentRunnerRuntime {
                         wasm_log(
                             &prepared.session_id,
                             LogLevel::Debug,
-                            &format!(
-                                "Tool '{}' executed in-process by toolrunner",
-                                tool
-                            ),
+                            &format!("Tool '{}' executed in-process by toolrunner", tool),
                         );
                         self.emit_pending_event(
                             &prepared.session_id,

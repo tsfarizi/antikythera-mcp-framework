@@ -1,8 +1,8 @@
-//! Validation types and results
+//! Validation result types.
 
 use serde::{Deserialize, Serialize};
 
-/// Validation result
+/// Result of a validation check.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ValidationResult {
     Valid,
@@ -10,7 +10,7 @@ pub enum ValidationResult {
     Sanitized(String),
 }
 
-/// Validation error
+/// A single validation error with field context.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ValidationError {
     pub field: String,

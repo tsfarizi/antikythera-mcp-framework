@@ -11,17 +11,19 @@ members = [
     "antikythera-ports",
     "antikythera-config",
     "antikythera-resilience",
+    "antikythera-security",
+    "antikythera-observability",
     "antikythera-tooling",
     "antikythera-toolrunner",
+    "tests",
 ]
 exclude = [
-    "tests",
     "scripts",
     "example/antikythera-cli",
 ]
 
 [workspace.package]
-version = "1.6.1"
+version = "1.7.1"
 edition = "2024"
 authors = ["tsfarizi"]
 license = "MIT"
@@ -50,6 +52,7 @@ postcard = { version = "1.1.3", features = ["alloc"] }
 # TUI (optional, used by antikythera-core wizard feature)
 ratatui = "0.30.2"
 crossterm = "0.29.0"
+clap = { version = "4.6.1", features = ["derive"] }
 
 # Error handling and logging
 thiserror = "2.0.19"

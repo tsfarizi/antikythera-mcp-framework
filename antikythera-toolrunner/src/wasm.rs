@@ -68,7 +68,9 @@ pub fn tool_result_to_json(result: &ToolResult) -> String {
 ///
 /// Useful for validation-only scenarios (e.g., validating LLM tool calls
 /// before delegating execution to the host).
-pub fn registry_only_runner(definitions_json: &str) -> Result<ToolRunner, crate::error::ToolRunnerError> {
+pub fn registry_only_runner(
+    definitions_json: &str,
+) -> Result<ToolRunner, crate::error::ToolRunnerError> {
     let mut runner = ToolRunner::new();
     runner.load_definitions(definitions_json)?;
     Ok(runner)

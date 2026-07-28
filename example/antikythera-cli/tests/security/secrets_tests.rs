@@ -1,7 +1,7 @@
 //! Secrets management tests
 
 use antikythera_core::security::config::SecretsConfig;
-use antikythera_cli::security::secrets::{SecretManager, SecretManagerError};
+use antikythera_cli::security::{SecretManager, SecretManagerError};
 
 #[test]
 fn test_secret_manager_creation() {
@@ -14,7 +14,7 @@ fn test_secret_manager_creation() {
 fn test_store_and_get_secret() {
     let manager = SecretManager::from_config().unwrap();
     let id = "test-secret-1";
-    let value = "my-secret-value";
+    let value = b"my-secret-value";
 
     manager.store_secret(id, value).unwrap();
     let retrieved = manager.get_secret(id).unwrap();
@@ -27,20 +27,20 @@ fn test_store_multiple_versions() {
     let manager = SecretManager::from_config().unwrap();
     let id = "test-secret-2";
 
-    manager.store_secret(id, "version1").unwrap();
-    manager.rotate_secret(id, "version2").unwrap();
-    manager.rotate_secret(id, "version3").unwrap();
+    manager.store_secret(id, b"version1").unwrap();
+    manager.rotate_secret(id, b"version2").unwrap();
+    manager.rotate_secret(id, b"version3").unwrap();
 
     let retrieved = manager.get_secret(id).unwrap();
-    assert_eq!(retrieved, "version3");
+    assert_eq!(retrieved, b"version3");
 }
 
 #[test]
 fn test_rotate_secret() {
     let manager = SecretManager::from_config().unwrap();
     let id = "test-secret-3";
-    let old_value = "old-value";
-    let new_value = "new-value";
+    let old_value = b"old-value";
+    let new_value = b"new-value";
 
     manager.store_secret(id, old_value).unwrap();
     manager.rotate_secret(id, new_value).unwrap();
@@ -54,7 +54,7 @@ fn test_delete_secret() {
     let manager = SecretManager::from_config().unwrap();
     let id = "test-secret-4";
 
-    manager.store_secret(id, "value").unwrap();
+    manager.store_secret(id, b"value").unwrap();
     manager.delete_secret(id).unwrap();
 
     assert!(manager.get_secret(id).is_err());
@@ -64,9 +64,9 @@ fn test_delete_secret() {
 fn test_list_secrets() {
     let manager = SecretManager::from_config().unwrap();
 
-    manager.store_secret("secret1", "value1").unwrap();
-    manager.store_secret("secret2", "value2").unwrap();
-    manager.store_secret("secret3", "value3").unwrap();
+    manager.store_secret("secret1", b"value1").unwrap();
+    manager.store_secret("secret2", b"value2").unwrap();
+    manager.store_secret("secret3", b"value3").unwrap();
 
     let secrets = manager.list_secrets();
     assert_eq!(secrets.len(), 3);
@@ -80,7 +80,7 @@ fn test_get_metadata() {
     let manager = SecretManager::from_config().unwrap();
     let id = "test-secret-5";
 
-    manager.store_secret(id, "value").unwrap();
+    manager.store_secret(id, b"value").unwrap();
     let metadata = manager.get_metadata(id).unwrap();
 
     assert_eq!(metadata.id, id);
@@ -104,7 +104,7 @@ fn test_secrets_disabled() {
     };
     let manager = SecretManager::new(config).unwrap();
 
-    let result = manager.store_secret("test", "value");
+    let result = manager.store_secret("test", b"value");
     assert!(matches!(result, Err(SecretManagerError::InvalidConfig(_))));
 }
 
@@ -113,7 +113,7 @@ fn test_needs_rotation() {
     let manager = SecretManager::from_config().unwrap();
     let id = "test-secret-6";
 
-    manager.store_secret(id, "value").unwrap();
+    manager.store_secret(id, b"value").unwrap();
 
     // Should not need rotation immediately
     assert!(!manager.needs_rotation(id).unwrap());
@@ -145,11 +145,11 @@ fn test_secret_versioning() {
     let manager = SecretManager::new(config).unwrap();
     let id = "test-secret-7";
 
-    manager.store_secret(id, "v1").unwrap();
-    manager.rotate_secret(id, "v2").unwrap();
-    manager.rotate_secret(id, "v3").unwrap();
-    manager.rotate_secret(id, "v4").unwrap();
-    manager.rotate_secret(id, "v5").unwrap();
+    manager.store_secret(id, b"v1").unwrap();
+    manager.rotate_secret(id, b"v2").unwrap();
+    manager.rotate_secret(id, b"v3").unwrap();
+    manager.rotate_secret(id, b"v4").unwrap();
+    manager.rotate_secret(id, b"v5").unwrap();
 
     let metadata = manager.get_metadata(id).unwrap();
     // Should only keep last 3 versions

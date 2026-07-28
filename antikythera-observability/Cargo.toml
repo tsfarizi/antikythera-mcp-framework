@@ -1,0 +1,23 @@
+[package]
+name = "antikythera-observability"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "In-memory observability implementations for Antikythera MCP Framework"
+
+[features]
+default = ["memory"]
+memory = []
+full = ["memory"]
+
+[dependencies]
+antikythera-domain = { path = "../antikythera-domain" }
+antikythera-ports = { path = "../antikythera-ports" }
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+uuid.workspace = true

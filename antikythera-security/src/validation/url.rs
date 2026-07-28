@@ -1,11 +1,13 @@
-//! URL Validation Logic
+//! URL validation with configurable allowed/blocked regex patterns.
 
-use super::types::ValidationResult;
 use regex::Regex;
 
+use super::types::ValidationResult;
+
+/// Regex-based URL validator.
 pub struct URLValidator {
-    pub allowed_patterns: Vec<Regex>,
-    pub blocked_patterns: Vec<Regex>,
+    allowed_patterns: Vec<Regex>,
+    blocked_patterns: Vec<Regex>,
 }
 
 impl URLValidator {
@@ -16,15 +18,14 @@ impl URLValidator {
         }
     }
 
+    /// Validate a URL against blocked then allowed patterns.
     pub fn validate(&self, url: &str) -> ValidationResult {
-        // Check blocked patterns first
         for regex in &self.blocked_patterns {
             if regex.is_match(url) {
-                return ValidationResult::Invalid(format!("URL matches blocked pattern: {}", url));
+                return ValidationResult::Invalid(format!("URL matches blocked pattern: {url}"));
             }
         }
 
-        // Check allowed patterns
         let is_allowed = self
             .allowed_patterns
             .iter()
@@ -32,8 +33,7 @@ impl URLValidator {
 
         if !is_allowed {
             return ValidationResult::Invalid(format!(
-                "URL does not match any allowed pattern: {}",
-                url
+                "URL does not match any allowed pattern: {url}"
             ));
         }
 

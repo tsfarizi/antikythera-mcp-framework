@@ -53,11 +53,12 @@ impl ToolRegistry {
             return Ok(());
         }
 
-        let def = self.tools.get(tool_name).ok_or_else(|| {
-            ToolRunnerError::NotFound {
+        let def = self
+            .tools
+            .get(tool_name)
+            .ok_or_else(|| ToolRunnerError::NotFound {
                 name: tool_name.to_string(),
-            }
-        })?;
+            })?;
 
         for param in def.required_params() {
             let present = arguments

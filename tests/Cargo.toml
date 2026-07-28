@@ -180,6 +180,50 @@ name = "core_tooling_tests"
 path = "core/tooling_tests.rs"
 
 # ============================================================================
+# Security Crate Tests
+# ============================================================================
+
+[[test]]
+name = "security_crate_validation_tests"
+path = "security_crate/validation_tests.rs"
+
+[[test]]
+name = "security_crate_rate_limit_tests"
+path = "security_crate/rate_limit_tests.rs"
+
+[[test]]
+name = "security_crate_secrets_tests"
+path = "security_crate/secrets_tests.rs"
+
+[[test]]
+name = "security_crate_facade_tests"
+path = "security_crate/facade_tests.rs"
+
+# ============================================================================
+# Observability Crate Tests
+# ============================================================================
+
+[[test]]
+name = "observability_crate_metrics_tests"
+path = "observability_crate/metrics_tests.rs"
+
+[[test]]
+name = "observability_crate_tracing_tests"
+path = "observability_crate/tracing_tests.rs"
+
+[[test]]
+name = "observability_crate_audit_tests"
+path = "observability_crate/audit_tests.rs"
+
+[[test]]
+name = "observability_crate_facade_tests"
+path = "observability_crate/facade_tests.rs"
+
+[[test]]
+name = "observability_crate_telemetry_tests"
+path = "observability_crate/telemetry_tests.rs"
+
+# ============================================================================
 # Dependencies
 # ============================================================================
 
@@ -189,6 +233,10 @@ antikythera-session = { path = "../antikythera-session" }
 antikythera-core = { path = "../antikythera-core", features = ["full"] }
 antikythera-sdk = { path = "../antikythera-sdk", features = ["component", "multi-agent"] }
 antikythera-storage = { path = "../antikythera-storage", features = ["filesystem"] }
+antikythera-security = { path = "../antikythera-security", features = ["full"] }
+antikythera-observability = { path = "../antikythera-observability", features = ["full"] }
+antikythera-ports = { path = "../antikythera-ports" }
+antikythera-domain = { path = "../antikythera-domain" }
 serde_json.workspace = true
 base64.workspace = true
 chrono.workspace = true

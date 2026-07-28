@@ -50,6 +50,7 @@ antikythera-config = { path = "../antikythera-config" }
 antikythera-ports = { path = "../antikythera-ports" }
 antikythera-resilience = { path = "../antikythera-resilience" }
 antikythera-tooling = { path = "../antikythera-tooling" }
+antikythera-observability = { path = "../antikythera-observability" }
 
 # HTTP and networking
 reqwest.workspace = true

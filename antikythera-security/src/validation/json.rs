@@ -1,10 +1,11 @@
-//! JSON structure validation
+//! JSON structure validation (nesting depth, array length).
 
 use serde_json::Value;
 
+/// Validates JSON structure against depth and array-length limits.
 pub struct JSONValidator {
-    pub max_nesting_depth: u32,
-    pub max_array_length: u32,
+    max_nesting_depth: u32,
+    max_array_length: u32,
 }
 
 impl JSONValidator {
@@ -15,11 +16,12 @@ impl JSONValidator {
         }
     }
 
+    /// Recursively validate a `serde_json::Value` tree.
     pub fn validate_structure(&self, value: &Value, depth: u32) -> Result<(), String> {
         if depth > self.max_nesting_depth {
             return Err(format!(
-                "JSON nesting depth {} exceeds maximum {}",
-                depth, self.max_nesting_depth
+                "JSON nesting depth {depth} exceeds maximum {}",
+                self.max_nesting_depth
             ));
         }
 
@@ -37,7 +39,7 @@ impl JSONValidator {
                 }
             }
             Value::Object(obj) => {
-                for (_, v) in obj {
+                for v in obj.values() {
                     self.validate_structure(v, depth + 1)?;
                 }
             }

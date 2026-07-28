@@ -8,5 +8,6 @@ pub mod security;
 pub mod session;
 pub mod session_manager;
 pub mod task;
+pub mod telemetry;
 pub mod types;
 pub mod validation;

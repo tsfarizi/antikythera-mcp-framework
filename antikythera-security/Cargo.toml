@@ -1,0 +1,28 @@
+[package]
+name = "antikythera-security"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+readme = "README.md"
+description = "Security implementations for Antikythera MCP Framework: validation, rate limiting, secrets management"
+
+[features]
+default = ["validation", "rate-limit", "memory"]
+validation = ["dep:regex"]
+rate-limit = []
+memory = []
+# crypto = ["dep:aes-gcm", "dep:argon2", "dep:rand"]
+# file-secrets = ["crypto"]
+full = ["validation", "rate-limit", "memory"]
+
+[dependencies]
+antikythera-domain = { path = "../antikythera-domain" }
+antikythera-ports = { path = "../antikythera-ports" }
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+regex = { version = "1.11", optional = true }

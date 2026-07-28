@@ -1,40 +1,37 @@
-//! Input Validation and Sanitization
+//! Input validation and sanitization.
 //!
-//! Comprehensive input validation for WASM components and user inputs.
+//! Concrete implementation of `antikythera_ports::InputValidator` plus
+//! richer API for size, keyword, HTML, JSON, and tool-input validation.
 
 pub mod json;
 pub mod types;
 pub mod url;
 
-use json::JSONValidator;
 pub use types::{ValidationError, ValidationResult};
+
+use json::JSONValidator;
 use url::URLValidator;
 
-use antikythera_core::security::config::ValidationConfig;
+use antikythera_domain::security::ValidationConfig;
 use regex::Regex;
 use serde_json::Value;
 use std::collections::HashSet;
 use thiserror::Error;
 
-/// Errors raised by the input validator during validation, rejection, or
-/// configuration of validation rules.
-///
-/// # Variants
-///
-/// * `InvalidInput` — input fails a structural check (size, JSON, message length).
-/// * `Rejected` — input is blocked by a policy rule (keyword, URL pattern, nesting).
-/// * `Configuration` — validator setup or reconfiguration fails (bad regex, etc.).
+/// Errors raised during validator construction or reconfiguration.
 #[derive(Debug, Clone, Error)]
 pub enum InputValidatorError {
     #[error("Invalid input: {0}")]
     InvalidInput(String),
+
     #[error("Input rejected: {0}")]
     Rejected(String),
+
     #[error("Configuration error: {0}")]
     Configuration(String),
 }
 
-/// Input validator
+/// Configurable input validator.
 pub struct InputValidator {
     config: ValidationConfig,
     url_validator: URLValidator,
@@ -43,7 +40,10 @@ pub struct InputValidator {
 }
 
 impl InputValidator {
-    /// Create an `InputValidator` from the given validation config.
+    /// Create a validator from the given config.
+    ///
+    /// Compiles all URL regex patterns up front; returns an error if any
+    /// pattern is invalid.
     pub fn new(config: ValidationConfig) -> Result<Self, InputValidatorError> {
         let allowed_url_regexes = config
             .allowed_url_patterns
@@ -82,61 +82,59 @@ impl InputValidator {
         })
     }
 
-    /// Create an `InputValidator` with the default validation config.
+    /// Create a validator with default config.
     pub fn from_config() -> Result<Self, InputValidatorError> {
         Self::new(ValidationConfig::default())
     }
 
-    /// Validate input size
+    /// Validate raw byte-size against the configured maximum.
     pub fn validate_size(&self, input: &str) -> ValidationResult {
         let size = input.len() as u64;
         if size > self.config.max_input_size_bytes {
             return ValidationResult::Invalid(format!(
-                "Input size {} bytes exceeds maximum {} bytes",
-                size, self.config.max_input_size_bytes
+                "Input size {size} bytes exceeds maximum {} bytes",
+                self.config.max_input_size_bytes
             ));
         }
         ValidationResult::Valid
     }
 
-    /// Validate message length
+    /// Validate character-count against the configured maximum.
     pub fn validate_message_length(&self, message: &str) -> ValidationResult {
         let length = message.chars().count();
         if length > self.config.max_message_length {
             return ValidationResult::Invalid(format!(
-                "Message length {} exceeds maximum {}",
-                length, self.config.max_message_length
+                "Message length {length} exceeds maximum {}",
+                self.config.max_message_length
             ));
         }
         ValidationResult::Valid
     }
 
-    /// Validate URL
+    /// Validate a URL against allowed/blocked patterns.
     pub fn validate_url(&self, url: &str) -> ValidationResult {
         self.url_validator.validate(url)
     }
 
-    /// Check for blocked keywords
+    /// Check whether input contains any blocked keyword.
     pub fn check_blocked_keywords(&self, input: &str) -> ValidationResult {
         let lower_input = input.to_lowercase();
         for keyword in &self.blocked_keywords_set {
             if lower_input.contains(keyword) {
                 return ValidationResult::Invalid(format!(
-                    "Input contains blocked keyword: {}",
-                    keyword
+                    "Input contains blocked keyword: {keyword}"
                 ));
             }
         }
         ValidationResult::Valid
     }
 
-    /// Sanitize HTML content
+    /// Basic HTML sanitization — strips dangerous tags and handlers.
     pub fn sanitize_html(&self, html: &str) -> String {
         if !self.config.sanitize_html {
             return html.to_string();
         }
 
-        // Basic HTML sanitization - remove script tags and event handlers
         html.replace("<script", "")
             .replace("</script>", "")
             .replace("javascript:", "")
@@ -145,9 +143,7 @@ impl InputValidator {
             .replace("onclick=", "")
     }
 
-    /// Parse and validate a JSON string against configured depth/array limits.
-    ///
-    /// Returns the parsed `serde_json::Value` on success.
+    /// Parse and validate JSON structure against depth/array limits.
     pub fn validate_json(&self, json_str: &str) -> Result<Value, InputValidatorError> {
         if !self.config.validate_json_schema {
             return serde_json::from_str(json_str)
@@ -164,77 +160,45 @@ impl InputValidator {
         Ok(value)
     }
 
-    /// Validate tool call input
+    /// Validate tool call input: size, JSON, keywords, URLs.
     pub fn validate_tool_input(&self, _tool_name: &str, input: &str) -> ValidationResult {
-        // Validate input size
         if let ValidationResult::Invalid(msg) = self.validate_size(input) {
             return ValidationResult::Invalid(msg);
         }
 
-        // Validate JSON structure
         if let Err(msg) = self.validate_json(input) {
-            return ValidationResult::Invalid(format!("Invalid JSON in tool input: {}", msg));
+            return ValidationResult::Invalid(format!("Invalid JSON in tool input: {msg}"));
         }
 
-        // Check for blocked keywords
         if let ValidationResult::Invalid(msg) = self.check_blocked_keywords(input) {
             return ValidationResult::Invalid(msg);
         }
 
-        // Validate URLs in input
         if let Ok(json) = self.validate_json(input) {
-            self.validate_urls_in_json(&json);
+            let res = self.validate_urls_in_json(&json);
+            if let ValidationResult::Invalid(_) = res {
+                return res;
+            }
         }
 
         ValidationResult::Valid
     }
 
-    /// Validate URLs in JSON structure
-    fn validate_urls_in_json(&self, value: &Value) -> ValidationResult {
-        match value {
-            Value::String(s) if s.starts_with("http://") || s.starts_with("https://") => {
-                self.validate_url(s)
-            }
-            Value::Array(arr) => {
-                for item in arr {
-                    let res = self.validate_urls_in_json(item);
-                    if let ValidationResult::Invalid(_) = res {
-                        return res;
-                    }
-                }
-                ValidationResult::Valid
-            }
-            Value::Object(obj) => {
-                for (_, v) in obj {
-                    let res = self.validate_urls_in_json(v);
-                    if let ValidationResult::Invalid(_) = res {
-                        return res;
-                    }
-                }
-                ValidationResult::Valid
-            }
-            _ => ValidationResult::Valid,
-        }
-    }
-
-    /// Validate concurrent tool calls
+    /// Validate concurrent tool call count against the limit.
     pub fn validate_concurrent_calls(&self, current_calls: u32) -> ValidationResult {
         if current_calls >= self.config.max_concurrent_tool_calls {
             return ValidationResult::Invalid(format!(
-                "Concurrent tool calls {} exceeds maximum {}",
-                current_calls, self.config.max_concurrent_tool_calls
+                "Concurrent tool calls {current_calls} exceeds maximum {}",
+                self.config.max_concurrent_tool_calls
             ));
         }
         ValidationResult::Valid
     }
 
-    /// Run all enabled validations (size, message length, keywords) against the input.
-    ///
-    /// Returns `Ok(())` if all checks pass, otherwise a list of `ValidationError`s.
+    /// Run all enabled validations (size, message length, keywords).
     pub fn validate(&self, input: &str) -> Result<(), Vec<ValidationError>> {
         let mut errors = Vec::new();
 
-        // Validate size
         if let ValidationResult::Invalid(msg) = self.validate_size(input) {
             errors.push(ValidationError {
                 field: "size".to_string(),
@@ -242,7 +206,6 @@ impl InputValidator {
             });
         }
 
-        // Validate message length
         if let ValidationResult::Invalid(msg) = self.validate_message_length(input) {
             errors.push(ValidationError {
                 field: "message_length".to_string(),
@@ -250,7 +213,6 @@ impl InputValidator {
             });
         }
 
-        // Check blocked keywords
         if let ValidationResult::Invalid(msg) = self.check_blocked_keywords(input) {
             errors.push(ValidationError {
                 field: "keywords".to_string(),
@@ -265,12 +227,12 @@ impl InputValidator {
         }
     }
 
-    /// Get current configuration
+    /// Get current configuration reference.
     pub fn config(&self) -> &ValidationConfig {
         &self.config
     }
 
-    /// Replace the current validation config and rebuild internal validators.
+    /// Replace config and rebuild internal validators.
     pub fn update_config(&mut self, config: ValidationConfig) -> Result<(), InputValidatorError> {
         let allowed_url_patterns = config.allowed_url_patterns.clone();
         let blocked_url_patterns = config.blocked_url_patterns.clone();
@@ -309,5 +271,73 @@ impl InputValidator {
             .collect();
 
         Ok(())
+    }
+
+    // -- private helpers --
+
+    fn validate_urls_in_json(&self, value: &Value) -> ValidationResult {
+        match value {
+            Value::String(s) if s.starts_with("http://") || s.starts_with("https://") => {
+                self.validate_url(s)
+            }
+            Value::Array(arr) => {
+                for item in arr {
+                    let res = self.validate_urls_in_json(item);
+                    if let ValidationResult::Invalid(_) = res {
+                        return res;
+                    }
+                }
+                ValidationResult::Valid
+            }
+            Value::Object(obj) => {
+                for v in obj.values() {
+                    let res = self.validate_urls_in_json(v);
+                    if let ValidationResult::Invalid(_) = res {
+                        return res;
+                    }
+                }
+                ValidationResult::Valid
+            }
+            _ => ValidationResult::Valid,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// antikythera_ports::InputValidator implementation
+// ---------------------------------------------------------------------------
+
+#[async_trait::async_trait]
+impl antikythera_ports::InputValidator for InputValidator {
+    fn validate_input(&self, input: &str, max_size: usize) -> Result<String, String> {
+        // Size check
+        if input.len() > max_size {
+            return Err(format!(
+                "Input size {} bytes exceeds maximum {max_size} bytes",
+                input.len()
+            ));
+        }
+
+        // Message length check
+        if let ValidationResult::Invalid(msg) = self.validate_message_length(input) {
+            return Err(msg);
+        }
+
+        // Keyword check
+        if let ValidationResult::Invalid(msg) = self.check_blocked_keywords(input) {
+            return Err(msg);
+        }
+
+        // HTML sanitization
+        let sanitized = self.sanitize_html(input);
+        Ok(sanitized)
+    }
+
+    fn validate_url(&self, url: &str) -> Result<(), String> {
+        match self.url_validator.validate(url) {
+            ValidationResult::Valid => Ok(()),
+            ValidationResult::Invalid(msg) => Err(msg),
+            ValidationResult::Sanitized(_) => Ok(()),
+        }
     }
 }

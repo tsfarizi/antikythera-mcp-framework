@@ -46,8 +46,7 @@ impl ToolRunner {
     ///
     /// If no tool definition exists for this name, a minimal one is created.
     pub fn register_handler(&mut self, name: &str, handler: ToolHandlerFn) {
-        self.handlers
-            .insert(name.to_string(), Arc::new(handler));
+        self.handlers.insert(name.to_string(), Arc::new(handler));
 
         // Auto-register a definition if one doesn't exist yet.
         if self.registry.get(name).is_none() {
@@ -74,8 +73,8 @@ impl ToolRunner {
 
     /// Load tool definitions from a JSON array (replaces existing definitions).
     pub fn load_definitions(&mut self, json: &str) -> Result<usize, ToolRunnerError> {
-        let defs: Vec<ToolDefinition> = serde_json::from_str(json)
-            .map_err(|e| ToolRunnerError::Registry(e.to_string()))?;
+        let defs: Vec<ToolDefinition> =
+            serde_json::from_str(json).map_err(|e| ToolRunnerError::Registry(e.to_string()))?;
         let count = defs.len();
         for def in defs {
             self.registry.register(def);
@@ -129,11 +128,12 @@ impl ToolRunner {
         self.registry.validate_call(name, &arguments)?;
 
         // Dispatch to handler.
-        let handler = self.handlers.get(name).ok_or_else(|| {
-            ToolRunnerError::HostRequired {
+        let handler = self
+            .handlers
+            .get(name)
+            .ok_or_else(|| ToolRunnerError::HostRequired {
                 tool: name.to_string(),
-            }
-        })?;
+            })?;
 
         match handler.call(&arguments) {
             Ok(output) => Ok(ToolResult {
