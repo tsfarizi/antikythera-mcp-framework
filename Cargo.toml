@@ -12,6 +12,7 @@ members = [
     "antikythera-config",
     "antikythera-resilience",
     "antikythera-tooling",
+    "antikythera-toolrunner",
 ]
 exclude = [
     "tests",
@@ -20,7 +21,7 @@ exclude = [
 ]
 
 [workspace.package]
-version = "1.5.1"
+version = "1.6.1"
 edition = "2024"
 authors = ["tsfarizi"]
 license = "MIT"

@@ -456,6 +456,42 @@ impl AgentRunnerRuntime {
             &format!("LLM response committed: action={}", result.action),
         );
         runtime.pending_llm_chunks.clear();
+
+        // After NLL, `runtime`'s borrow on `self` has ended.
+        // Try in-process execution for builtin tools via toolrunner.
+        #[cfg(feature = "toolrunner")]
+        {
+            if result.action == "call_tool" {
+                if let Some(ref runner) = self.toolrunner {
+                    let tool = result.tool_name.as_deref().unwrap_or("");
+                    let input_val = result
+                        .tool_input
+                        .as_ref()
+                        .cloned()
+                        .unwrap_or(serde_json::Value::Null);
+                    if let Ok(Some(tr)) = runner.try_execute(tool, input_val) {
+                        wasm_log(
+                            &prepared.session_id,
+                            LogLevel::Debug,
+                            &format!(
+                                "Tool '{}' executed in-process by toolrunner",
+                                tool
+                            ),
+                        );
+                        self.emit_pending_event(
+                            &prepared.session_id,
+                            StreamEventKind::ToolResult,
+                            prepared.correlation_id.clone(),
+                            serde_json::json!({
+                                "tool": tr.name,
+                                "success": tr.success,
+                            }),
+                        );
+                    }
+                }
+            }
+        }
+
         serde_json::to_string(&result)
             .map_err(|e| AgentRunnerError::Internal(format!("Failed to encode commit result: {e}")))
     }

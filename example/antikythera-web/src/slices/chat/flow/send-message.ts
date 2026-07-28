@@ -7,8 +7,12 @@ import {
   drain_eventsLogged as drain_events,
   append_llm_chunkLogged as append_llm_chunk,
   reset_sessionLogged as reset_session,
+  register_tools,
+  get_tools_prompt,
+  process_tool_result_for_session,
 } from '@/shared/wasm'
 import { streamOllama, getOllamaModel } from '@/shared/adapters/llm-adapter'
+import { executeBrowserTool, toolsDefinitionJson } from '@/shared/adapters/tool-adapter'
 import { eventBus } from '@/shared/bus/event-bus'
 import { createMessage, type Message } from '../core/message'
 import type { ChatStatus } from '../core/state'
@@ -18,6 +22,43 @@ const status = ref<ChatStatus>('idle')
 const sessionId = ref<string | null>(null)
 const streamingContent = ref('')
 const error = ref<string | null>(null)
+
+/** Register browser-side MCP tools with the WASM agent. */
+function registerBrowserTools() {
+  const json = toolsDefinitionJson()
+  const count = register_tools(json)
+  console.log(`[Chat] Registered ${count} browser MCP tool(s)`)
+
+  const prompt = get_tools_prompt()
+  if (prompt) {
+    console.log('[Chat] Tool prompt:', prompt)
+  }
+}
+
+/** Process tool-call events from drain_events, execute in browser, feed results back.
+ *  Returns true if any tool was executed. */
+async function processToolEvents(events: Array<{ kind: string; payload?: string }>): Promise<boolean> {
+  let hadToolCalls = false
+  for (const event of events) {
+    if (event.kind !== 'tool_requested') continue
+    hadToolCalls = true
+
+    const payload = event.payload ? JSON.parse(event.payload) : {}
+    const toolName = payload.tool
+    const toolInput = payload.input || {}
+    const stepId = payload.step_id || 0
+
+    console.log(`[Chat] Tool requested: ${toolName}`, toolInput)
+
+    const result = executeBrowserTool(toolName, toolInput, stepId)
+    console.log(`[Chat] Tool result:`, result)
+
+    const resultJson = JSON.stringify(result)
+    process_tool_result_for_session(sessionId.value!, resultJson)
+    console.log(`[Chat] Tool result fed back to WASM agent`)
+  }
+  return hadToolCalls
+}
 
 export function useChat() {
   async function initSession_() {
@@ -32,6 +73,10 @@ export function useChat() {
     }))
     sessionId.value = result
     console.log('[Chat] Session created:', result)
+
+    // Register browser MCP tools
+    registerBrowserTools()
+
     eventBus.emit('session:created', {
       sessionId: result,
       title: 'New Chat',
@@ -72,51 +117,100 @@ export function useChat() {
       console.log('[Chat] prepare_user_turn succeeded')
 
       const prepared = JSON.parse(preparedJson)
-      console.log('[Chat] Prepared turn:', {
-        sessionId: prepared.session_id,
-        step: prepared.step,
-        messagesCount: prepared.messages_json ? JSON.parse(prepared.messages_json).length : 0,
-      })
-
-      const messagesForLlm = prepared.messages_json
+      const messagesForLlm: Array<{ role: string; content: string }> = prepared.messages_json
         ? JSON.parse(prepared.messages_json)
         : []
 
-      // 2. Real streaming from Ollama (F4 fix)
+      // Enhance system prompt with tool-calling format instructions
+      const toolPrompt = get_tools_prompt()
+      if (toolPrompt) {
+        const toolInstructions = `${toolPrompt}
+
+## Tool Calling Format
+When you need to call a tool, respond with EXACTLY this JSON format and nothing else:
+{"action":"call_tool","tool":"tool_name","input":{param1:"value1"}}
+
+When you have a final answer (no tool needed), respond normally in plain text.
+Do NOT mix JSON tool calls with regular text.`
+
+        let foundSystem = false
+        for (const msg of messagesForLlm) {
+          if (msg.role === 'system') {
+            msg.content = msg.content + toolInstructions
+            foundSystem = true
+            break
+          }
+        }
+        if (!foundSystem) {
+          messagesForLlm.unshift({ role: 'system', content: toolInstructions })
+        }
+        console.log('[Chat] Enhanced system prompt with tool-calling instructions')
+      }
+
+      // 2. Stream from Ollama
       const model = getOllamaModel()
-      console.log('[Chat] Step 2: streamOllama with model:', model, 'messages:', messagesForLlm.length)
+      console.log('[Chat] Step 2: streamOllama with model:', model)
       let fullResponse = ''
       let tokenCount = 0
 
-      console.log('[Chat] Starting streaming...')
       for await (const token of streamOllama(model, messagesForLlm)) {
         tokenCount++
-        // 3. Append each token to WASM session
         append_llm_chunk(sessionId.value!, token, undefined)
         fullResponse += token
         streamingContent.value = fullResponse
-
-        if (tokenCount % 10 === 0) {
-          console.log(`[Chat] Streaming token ${tokenCount}, length: ${fullResponse.length}`)
-        }
-
         eventBus.emit('chat:token-received', {
           sessionId: sessionId.value!,
           token,
         })
       }
-      console.log('[Chat] Streaming complete, total tokens:', tokenCount, 'response length:', fullResponse.length)
+      console.log('[Chat] Streaming complete, tokens:', tokenCount)
 
-      // 4. Commit stream — joins chunks, processes response
-      console.log('[Chat] Step 4: commit_llm_stream')
+      // 3. Commit stream
+      console.log('[Chat] Step 3: commit_llm_stream')
       commit_llm_stream(preparedJson)
-      console.log('[Chat] commit_llm_stream succeeded')
 
-      // 5. Drain WASM events
-      console.log('[Chat] Step 5: drain_events')
+      // 4. Drain events and process tool calls
+      console.log('[Chat] Step 4: drain_events')
       const eventsJson = drain_events(sessionId.value!)
       const events = JSON.parse(eventsJson)
       console.log('[Chat] drain_events returned', events.length, 'events')
+
+      // Process any tool_requested events
+      const hadToolCalls = await processToolEvents(events)
+
+      // 5. After tool execution, drain again for tool_result events
+      const eventsJson2 = drain_events(sessionId.value!)
+      const events2 = JSON.parse(eventsJson2)
+      console.log('[Chat] drain_events (post-tool) returned', events2.length, 'events')
+
+      // If LLM returned empty content but tools were executed,
+      // do another LLM turn to get the final response with tool results
+      if (fullResponse.trim() === '' && hadToolCalls) {
+        console.log('[Chat] Empty response after tool execution, doing another LLM turn...')
+        const secondPreparedJson = prepare_user_turn(JSON.stringify({
+          session_id: sessionId.value,
+          prompt: 'Based on the tool results above, provide your answer to the user.',
+        }))
+        const secondPrepared = JSON.parse(secondPreparedJson)
+        const secondMessages: Array<{ role: string; content: string }> = secondPrepared.messages_json
+          ? JSON.parse(secondPrepared.messages_json)
+          : []
+
+        fullResponse = ''
+        tokenCount = 0
+        for await (const token of streamOllama(model, secondMessages)) {
+          tokenCount++
+          append_llm_chunk(sessionId.value!, token, undefined)
+          fullResponse += token
+          streamingContent.value = fullResponse
+          eventBus.emit('chat:token-received', {
+            sessionId: sessionId.value!,
+            token,
+          })
+        }
+        console.log('[Chat] Second LLM turn complete, tokens:', tokenCount)
+        commit_llm_stream(secondPreparedJson)
+      }
 
       // 6. Finalize
       console.log('[Chat] Step 6: Finalizing')
@@ -124,7 +218,6 @@ export function useChat() {
       messages.value.push(assistantMsg)
       streamingContent.value = ''
       status.value = 'idle'
-      console.log('[Chat] Message sent successfully')
 
       eventBus.emit('chat:response-completed', {
         sessionId: sessionId.value!,
@@ -132,27 +225,20 @@ export function useChat() {
       })
     } catch (e: unknown) {
       console.error('[Chat] ERROR in sendMessage:', e)
-      console.error('[Chat] Error stack:', e instanceof Error ? e.stack : 'No stack trace')
 
-      // F3 fix: Reset WASM session on error to recover FSM state
       const failedSessionId = sessionId.value || 'unknown'
       if (sessionId.value) {
-        console.log('[Chat] Resetting WASM session for recovery...')
         try {
           reset_session(sessionId.value)
-          console.log('[Chat] WASM session reset succeeded')
         } catch (resetErr) {
           console.error('[Chat] WASM session reset FAILED:', resetErr)
         }
-        // Re-create session for next message
         sessionId.value = null
-        console.log('[Chat] Session ID cleared for re-creation')
       }
 
       status.value = 'error'
       const errMsg = e instanceof Error ? e.message : 'Unknown error'
       error.value = errMsg
-      console.error('[Chat] Emitting error event:', { failedSessionId, errMsg })
       eventBus.emit('chat:error-occurred', {
         sessionId: failedSessionId,
         error: errMsg,

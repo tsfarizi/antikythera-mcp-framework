@@ -138,6 +138,9 @@ pub struct AgentRunnerRuntime {
     max_in_memory_sessions: usize,
     /// Tool definitions pushed from the host (MCP server capabilities).
     known_tools: ToolRegistry,
+    /// Optional in-process tool executor for builtin tools.
+    #[cfg(feature = "toolrunner")]
+    pub toolrunner: Option<antikythera_toolrunner::ToolRunner>,
 }
 
 impl Default for AgentRunnerRuntime {
@@ -150,11 +153,20 @@ impl Default for AgentRunnerRuntime {
             default_config: AgentConfig::default(),
             max_in_memory_sessions: 128,
             known_tools: ToolRegistry::default(),
+            #[cfg(feature = "toolrunner")]
+            toolrunner: None,
         }
     }
 }
 
 impl AgentRunnerRuntime {
+    /// Install an in-process tool runner for executing builtin tools without
+    /// host round-trips.
+    #[cfg(feature = "toolrunner")]
+    pub fn set_toolrunner(&mut self, runner: antikythera_toolrunner::ToolRunner) {
+        self.toolrunner = Some(runner);
+    }
+
     fn configure(&mut self, config_json: &str) -> Result<String, AgentRunnerError> {
         let input: RunnerConfigInput = serde_json::from_str(config_json).map_err(|e| {
             AgentRunnerError::ConfigurationFailed(format!("Invalid config-json: {e}"))

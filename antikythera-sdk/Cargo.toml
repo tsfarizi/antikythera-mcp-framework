@@ -37,6 +37,9 @@ wasm = ["antikythera-log/wasm"]
 # Subscriber support for real-time log streaming (requires tokio)
 subscriber = ["antikythera-log/subscriber"]
 
+# In-process tool execution via antikythera-toolrunner
+toolrunner = ["dep:antikythera-toolrunner"]
+
 # Agent modes - these control what antikythera-core includes
 single-agent = ["sdk-core", "antikythera-core/native-transport", "subscriber"]
 multi-agent = ["sdk-core", "antikythera-core/multi-agent", "subscriber"]
@@ -56,6 +59,9 @@ antikythera-log = { path = "../antikythera-log", version = "1.0.0", default-feat
 
 # Session management
 antikythera-session = { path = "../antikythera-session", version = "1.0.0", optional = true }
+
+# In-process tool execution (optional)
+antikythera-toolrunner = { path = "../antikythera-toolrunner", version = "1.5.1", optional = true }
 
 # Serialization
 serde.workspace = true
