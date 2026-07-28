@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { computed, ref, nextTick, watch } from 'vue'
 import { useChat } from '../flow/send-message'
+import { renderMarkdown } from '@/shared/utils/markdown'
 import MessageBubble from './MessageBubble.vue'
 
 const { messages, status, streamingContent, error, sendMessage } = useChat()
 const input = ref('')
 const messagesContainer = ref<HTMLElement>()
+
+const renderedStream = computed(() => {
+  if (!streamingContent.value) return ''
+  return renderMarkdown(streamingContent.value)
+})
 
 async function handleSend() {
   const text = input.value.trim()
@@ -46,9 +52,7 @@ watch(messages, () => {
       />
 
       <div v-if="streamingContent" class="message assistant streaming">
-        <div class="bubble">
-          {{ streamingContent }}<span class="cursor">▊</span>
-        </div>
+        <div class="bubble markdown-body" v-html="renderedStream" />
       </div>
 
       <div v-if="error" class="error-message">

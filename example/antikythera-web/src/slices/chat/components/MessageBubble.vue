@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { Message } from '../core/message'
+import { renderMarkdown } from '@/shared/utils/markdown'
 
-defineProps<{
+const props = defineProps<{
   message: Message
 }>()
 
 const toolsExpanded = ref(false)
+
+const renderedContent = computed(() => {
+  if (!props.message.content) return ''
+  return renderMarkdown(props.message.content)
+})
 
 function formatJson(obj: unknown): string {
   if (obj === null || obj === undefined) return 'null'
@@ -55,10 +61,8 @@ function toolNameDisplay(tool: string): string {
       </div>
     </div>
 
-    <!-- Message content -->
-    <div v-if="message.content" class="bubble">
-      {{ message.content }}
-    </div>
+    <!-- Message content (rendered as markdown) -->
+    <div v-if="message.content" class="bubble markdown-body" v-html="renderedContent" />
   </div>
 </template>
 
@@ -82,7 +86,6 @@ function toolNameDisplay(tool: string): string {
   border-radius: 16px;
   font-size: 15px;
   line-height: 1.5;
-  white-space: pre-wrap;
 }
 
 .message.user .bubble {
@@ -95,6 +98,108 @@ function toolNameDisplay(tool: string): string {
   background: #f3f4f6;
   color: #111;
   border-bottom-left-radius: 4px;
+}
+
+/* Markdown body styles */
+.markdown-body :deep(p) {
+  margin: 0 0 8px 0;
+}
+
+.markdown-body :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.markdown-body :deep(strong) {
+  font-weight: 700;
+}
+
+.markdown-body :deep(em) {
+  font-style: italic;
+}
+
+.markdown-body :deep(code) {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 13px;
+}
+
+.markdown-body :deep(pre) {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  padding: 10px 14px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.markdown-body :deep(pre code) {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: 13px;
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
+.markdown-body :deep(li) {
+  margin: 2px 0;
+}
+
+.markdown-body :deep(blockquote) {
+  border-left: 3px solid #d1d5db;
+  padding-left: 12px;
+  margin: 8px 0;
+  color: #6b7280;
+}
+
+.markdown-body :deep(a) {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.markdown-body :deep(hr) {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 12px 0;
+}
+
+.markdown-body :deep(table) {
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  border: 1px solid #d1d5db;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.markdown-body :deep(th) {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+/* User bubble markdown overrides (white text) */
+.message.user .markdown-body :deep(code) {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.message.user .markdown-body :deep(a) {
+  color: #bfdbfe;
+}
+
+.message.user .markdown-body :deep(blockquote) {
+  border-left-color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 /* Tool calls collapsible */
@@ -219,15 +324,5 @@ function toolNameDisplay(tool: string): string {
 .tool-error-text {
   background: #fef2f2;
   color: #dc2626;
-}
-
-/* Cursor animation */
-.cursor {
-  animation: blink 1s step-end infinite;
-}
-
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
 }
 </style>
