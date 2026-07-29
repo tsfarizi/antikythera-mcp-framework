@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "antikythera"
+name = "antikythera-mcp"
 version = "1.7.1"
 description = "Antikythera MCP Framework - Agent runtime with multi-agent orchestration"
 readme = "README.md"

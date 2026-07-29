@@ -10,10 +10,6 @@
     "antikythera.wasm",
     "README.md"
   ],
-  "scripts": {
-    "build:wasm": "cargo component build --release --target wasm32-wasip1 -p antikythera-sdk && cp target/wasm32-wasip1/release/antikythera_sdk.wasm antikythera.wasm",
-    "prepublishOnly": "npm run build:wasm"
-  },
   "keywords": [
     "mcp",
     "agent",

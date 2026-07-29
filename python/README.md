@@ -5,7 +5,7 @@ Agent runtime with multi-agent orchestration, session management, and MCP tool i
 ## Installation
 
 ```bash
-pip install antikythera
+pip install antikythera-mcp
 ```
 
 ## Quick Start

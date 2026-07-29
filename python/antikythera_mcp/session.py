@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from typing import Optional
 
-from antikythera.types import SessionInfo
+from antikythera_mcp.types import SessionInfo
 
 
 class SessionManager:

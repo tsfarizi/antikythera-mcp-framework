@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
-from antikythera.types import AgentConfig, AgentResult
+from antikythera_mcp.types import AgentConfig, AgentResult
 
 # Path to pre-compiled WASM binary
 _WASM_PATH = Path(__file__).parent / "antikythera.wasm"

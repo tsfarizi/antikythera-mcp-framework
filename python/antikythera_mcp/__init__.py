@@ -5,18 +5,18 @@ Agent runtime with multi-agent orchestration, session management,
 and MCP tool integration. Powered by WebAssembly.
 
 Example:
-    >>> from antikythera import Agent, PromptManager
+    >>> from antikythera_mcp import Agent, PromptManager
     >>> prompts = PromptManager()
     >>> agent = Agent(provider="openai", model="gpt-4o", system_prompt=prompts.get_content("coder"))
     >>> result = agent.run("Write a sorting algorithm")
     >>> print(result.output)
 """
 
-from antikythera.agent import Agent
-from antikythera.orchestrator import Orchestrator
-from antikythera.session import SessionManager
-from antikythera.prompts import PromptManager, PromptConfig
-from antikythera.types import (
+from antikythera_mcp.agent import Agent
+from antikythera_mcp.orchestrator import Orchestrator
+from antikythera_mcp.session import SessionManager
+from antikythera_mcp.prompts import PromptManager, PromptConfig
+from antikythera_mcp.types import (
     AgentConfig,
     AgentResult,
     AgentProfileConfig,
@@ -25,7 +25,7 @@ from antikythera.types import (
     OrchestratorConfig,
     SessionInfo,
 )
-from antikythera.utils import get_version
+from antikythera_mcp.utils import get_version
 
 __version__ = "1.7.1"
 __all__ = [
