@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "antikythera"
@@ -29,6 +29,9 @@ classifiers = [
 Homepage = "https://github.com/tsfarizi/antikythera-mcp-framework"
 Repository = "https://github.com/tsfarizi/antikythera-mcp-framework"
 Issues = "https://github.com/tsfarizi/antikythera-mcp-framework/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
 
 [tool.setuptools.package-data]
 antikythera = ["*.pyi", "py.typed", "*.wasm"]
