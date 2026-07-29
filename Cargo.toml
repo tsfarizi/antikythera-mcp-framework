@@ -15,10 +15,10 @@ members = [
     "antikythera-tooling",
     "plugin/antikythera-wasm-bindgen",
     "plugin/antikythera-toolrunner",
+    "scripts",
     "tests",
 ]
 exclude = [
-    "scripts",
     "example/antikythera-cli",
 ]
 
@@ -31,8 +31,8 @@ repository = "https://github.com/tsfarizi/antikythera-mcp-framework"
 readme = "README.md"
 
 [workspace.dependencies]
-# Async runtime
-tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "process", "io-std", "io-util"] }
+# Async runtime (base features for all targets)
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "sync", "time", "io-util"] }
 tokio-stream = "0.1.19"
 async-trait = "0.1.91"
 futures = "0.3.33"
