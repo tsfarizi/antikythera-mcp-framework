@@ -25,11 +25,6 @@ antikythera-resilience = { path = "../antikythera-resilience" }
 antikythera-tooling = { path = "../antikythera-tooling" }
 antikythera-observability = { path = "../antikythera-observability" }
 
-# HTTP and networking
-reqwest.workspace = true
-reqwest-eventsource.workspace = true
-
-
 
 # Serialization
 serde.workspace = true
@@ -50,16 +45,19 @@ dotenvy.workspace = true
 shellexpand.workspace = true
 regex = "1.10"
 
-[target.'cfg(not(all(target_arch = "wasm32", target_os = "unknown")))'.dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 # Tokio features for native targets
 tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "sync", "time", "io-util", "process", "io-std"] }
 # TUI and wizard (native only)
 crossterm = { workspace = true }
 ratatui = { workspace = true }
 
-[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
-# Tokio features for WASM targets (limited)
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# Tokio features for WASM targets (limited — no rt-multi-thread, process, io-std)
 tokio = { version = "1.53.1", features = ["macros", "rt", "sync", "time", "io-util"] }
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+# Browser WASM needs JS bindings for uuid randomness via wasm-bindgen
 uuid = { workspace = true, features = ["js"] }
 
 [dev-dependencies]
