@@ -25,10 +25,10 @@ jobs:
         run: |
           set -e
           WASI_SDK_VERSION=24
-          curl -sL -o wasi-sdk.tar.gz \
-            "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/wasi-sdk-${WASI_SDK_VERSION}.0.0-x86_64-linux.tar.gz"
+          curl -sL -o wasi-sdk.tar.xz \
+            "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-${WASI_SDK_VERSION}/wasi-sdk-${WASI_SDK_VERSION}.0.0-x86_64-linux.tar.xz"
           sudo mkdir -p /opt/wasi-sdk
-          sudo tar -C /opt -xzf wasi-sdk.tar.gz --strip-components=1
+          sudo tar -C /opt -xJf wasi-sdk.tar.xz --strip-components=1
           echo "/opt/bin" >> $GITHUB_PATH
 
       - name: Configure cross-compilation environment

@@ -101,7 +101,7 @@ name = "server_validation_tests"
 path = "tests/server/validation_tests.rs"
 
 [dependencies]
-antikythera-core = { path = "../../antikythera-core", version = "1.5.1", features = ["full"] }
+antikythera-core = { path = "../../antikythera-core", version = "1.5.1" }
 antikythera-sdk = { path = "../../antikythera-sdk", version = "1.5.1", features = ["component"] }
 antikythera-log = { path = "../../antikythera-log", version = "1.5.1" }
 antikythera-security = { path = "../../antikythera-security", features = ["full"] }
