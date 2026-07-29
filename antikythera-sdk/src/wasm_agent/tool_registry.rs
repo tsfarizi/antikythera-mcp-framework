@@ -310,7 +310,7 @@ impl ToolRegistry {
 // Conversions from core domain types
 // ============================================================================
 
-#[cfg(all(feature = "component", feature = "sdk-core"))]
+#[cfg(feature = "component")]
 impl From<antikythera_core::domain::entities::ToolCall> for ToolCall {
     fn from(core_call: antikythera_core::domain::entities::ToolCall) -> Self {
         let arguments =
@@ -323,7 +323,7 @@ impl From<antikythera_core::domain::entities::ToolCall> for ToolCall {
     }
 }
 
-#[cfg(all(feature = "component", feature = "sdk-core"))]
+#[cfg(feature = "component")]
 impl From<antikythera_core::domain::entities::ToolResult> for ToolResult {
     fn from(core_result: antikythera_core::domain::entities::ToolResult) -> Self {
         let output = serde_json::to_value(&core_result.output).unwrap_or(serde_json::Value::Null);
@@ -337,7 +337,7 @@ impl From<antikythera_core::domain::entities::ToolResult> for ToolResult {
     }
 }
 
-#[cfg(all(feature = "component", feature = "sdk-core"))]
+#[cfg(feature = "component")]
 impl From<antikythera_core::application::tooling::ToolIcon> for ToolIcon {
     fn from(core_icon: antikythera_core::application::tooling::ToolIcon) -> Self {
         Self {
@@ -348,7 +348,7 @@ impl From<antikythera_core::application::tooling::ToolIcon> for ToolIcon {
     }
 }
 
-#[cfg(all(feature = "component", feature = "sdk-core"))]
+#[cfg(feature = "component")]
 impl From<ToolIcon> for antikythera_core::application::tooling::ToolIcon {
     fn from(sdk_icon: ToolIcon) -> Self {
         Self {
@@ -359,7 +359,7 @@ impl From<ToolIcon> for antikythera_core::application::tooling::ToolIcon {
     }
 }
 
-#[cfg(all(feature = "component", feature = "sdk-core"))]
+#[cfg(feature = "component")]
 impl From<antikythera_core::application::tooling::ToolAnnotations> for ToolAnnotations {
     fn from(core_ann: antikythera_core::application::tooling::ToolAnnotations) -> Self {
         Self {
@@ -370,7 +370,7 @@ impl From<antikythera_core::application::tooling::ToolAnnotations> for ToolAnnot
     }
 }
 
-#[cfg(all(feature = "component", feature = "sdk-core"))]
+#[cfg(feature = "component")]
 impl From<ToolAnnotations> for antikythera_core::application::tooling::ToolAnnotations {
     fn from(sdk_ann: ToolAnnotations) -> Self {
         Self {
@@ -381,7 +381,7 @@ impl From<ToolAnnotations> for antikythera_core::application::tooling::ToolAnnot
     }
 }
 
-#[cfg(all(feature = "component", feature = "sdk-core"))]
+#[cfg(feature = "component")]
 impl From<antikythera_core::application::tooling::TaskSupport> for TaskSupport {
     fn from(core_ts: antikythera_core::application::tooling::TaskSupport) -> Self {
         match core_ts {
@@ -394,7 +394,7 @@ impl From<antikythera_core::application::tooling::TaskSupport> for TaskSupport {
     }
 }
 
-#[cfg(all(feature = "component", feature = "sdk-core"))]
+#[cfg(feature = "component")]
 impl From<TaskSupport> for antikythera_core::application::tooling::TaskSupport {
     fn from(sdk_ts: TaskSupport) -> Self {
         match sdk_ts {
@@ -407,7 +407,7 @@ impl From<TaskSupport> for antikythera_core::application::tooling::TaskSupport {
     }
 }
 
-#[cfg(all(feature = "component", feature = "sdk-core"))]
+#[cfg(feature = "component")]
 impl From<antikythera_core::application::tooling::ToolExecution> for ToolExecution {
     fn from(core_exec: antikythera_core::application::tooling::ToolExecution) -> Self {
         Self {
@@ -416,7 +416,7 @@ impl From<antikythera_core::application::tooling::ToolExecution> for ToolExecuti
     }
 }
 
-#[cfg(all(feature = "component", feature = "sdk-core"))]
+#[cfg(feature = "component")]
 impl From<ToolExecution> for antikythera_core::application::tooling::ToolExecution {
     fn from(sdk_exec: ToolExecution) -> Self {
         Self {

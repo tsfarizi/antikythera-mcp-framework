@@ -11,7 +11,6 @@ use crate::application::ports::security::RateLimiter as RateLimiterTrait;
 use crate::logging::{AgentLogger, SessionContext};
 use serde_json::{Value, json};
 use std::sync::Arc;
-#[cfg(feature = "native-transport")]
 use sysinfo::System;
 
 pub struct Agent<P: ModelProvider> {
@@ -105,30 +104,24 @@ impl<P: ModelProvider> Agent<P> {
 
         let mut remaining_steps = options.max_steps;
         let mut system_prompt_to_send = Some(system_prompt);
-        #[cfg(feature = "native-transport")]
         let mut system = System::new();
-        #[cfg(feature = "native-transport")]
         let mut last_resource_check: std::time::Instant = std::time::Instant::now();
-        #[cfg(feature = "native-transport")]
         const RESOURCE_CHECK_INTERVAL: std::time::Duration = std::time::Duration::from_secs(30);
         let mut first_call = true;
         let initial_attachments = std::mem::take(&mut options.attachments);
 
         loop {
-            #[cfg(feature = "native-transport")]
-            {
-                if last_resource_check.elapsed() >= RESOURCE_CHECK_INTERVAL {
-                    system.refresh_cpu_all();
-                    system.refresh_memory();
-                    let rss_mb = system.used_memory() / 1024 / 1024;
-                    let cpu = system.cpus().iter().map(|c| c.cpu_usage()).sum::<f32>()
-                        / system.cpus().len().max(1) as f32;
-                    log.debug(format!(
-                        "Agent resource utilization | rss_mb={} cpu_usage={}",
-                        rss_mb, cpu
-                    ));
-                    last_resource_check = std::time::Instant::now();
-                }
+            if last_resource_check.elapsed() >= RESOURCE_CHECK_INTERVAL {
+                system.refresh_cpu_all();
+                system.refresh_memory();
+                let rss_mb = system.used_memory() / 1024 / 1024;
+                let cpu = system.cpus().iter().map(|c| c.cpu_usage()).sum::<f32>()
+                    / system.cpus().len().max(1) as f32;
+                log.debug(format!(
+                    "Agent resource utilization | rss_mb={} cpu_usage={}",
+                    rss_mb, cpu
+                ));
+                last_resource_check = std::time::Instant::now();
             }
 
             log.debug(format!(

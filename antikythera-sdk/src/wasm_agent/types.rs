@@ -287,7 +287,7 @@ impl Default for AgentConfig {
 // Conversions from core domain types
 // ============================================================================
 
-#[cfg(all(feature = "component", feature = "sdk-core"))]
+#[cfg(feature = "component")]
 impl From<antikythera_core::domain::entities::AgentAction> for AgentAction {
     fn from(core_action: antikythera_core::domain::entities::AgentAction) -> Self {
         match core_action {
@@ -311,7 +311,7 @@ impl From<antikythera_core::domain::entities::AgentAction> for AgentAction {
     }
 }
 
-#[cfg(all(feature = "component", feature = "sdk-core"))]
+#[cfg(feature = "component")]
 impl From<&antikythera_core::config::schema::AgentConfig> for AgentConfig {
     fn from(core_config: &antikythera_core::config::schema::AgentConfig) -> Self {
         Self {

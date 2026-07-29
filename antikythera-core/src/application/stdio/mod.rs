@@ -264,25 +264,13 @@ async fn handle_command<P: ModelProvider>(
             let action = args.first().map(|v| v.to_ascii_lowercase());
             match action.as_deref() {
                 Some("edit") => {
-                    #[cfg(feature = "wizard")]
-                    {
-                        match crate::config::wizard::run_setup_menu().await {
-                            Ok(_) => {
-                                write_line(stdout, "\nKembali ke mode STDIO.").await?;
-                            }
-                            Err(e) => {
-                                write_line(stdout, &format!("Error dalam editor: {}", e)).await?;
-                            }
+                    match crate::config::wizard::run_setup_menu().await {
+                        Ok(_) => {
+                            write_line(stdout, "\nKembali ke mode STDIO.").await?;
                         }
-                    }
-
-                    #[cfg(not(feature = "wizard"))]
-                    {
-                        write_line(
-                            stdout,
-                            "Fitur wizard tidak aktif pada build ini. Gunakan --features wizard untuk mengedit config interaktif.",
-                        )
-                        .await?;
+                        Err(e) => {
+                            write_line(stdout, &format!("Error dalam editor: {}", e)).await?;
+                        }
                     }
                 }
                 _ => {

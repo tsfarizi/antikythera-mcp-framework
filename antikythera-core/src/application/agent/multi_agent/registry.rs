@@ -70,6 +70,64 @@ impl AgentRole {
 }
 
 impl AgentProfile {
+    /// Create a new agent profile with required fields.
+    pub fn new(id: impl Into<String>, name: impl Into<String>, role: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            name: name.into(),
+            role: role.into(),
+            system_prompt: None,
+            max_steps: None,
+        }
+    }
+
+    /// Set the system prompt for this agent.
+    pub fn with_system_prompt(mut self, prompt: impl Into<String>) -> Self {
+        self.system_prompt = Some(prompt.into());
+        self
+    }
+
+    /// Set the max reasoning steps for this agent.
+    pub fn with_max_steps(mut self, steps: usize) -> Self {
+        self.max_steps = Some(steps);
+        self
+    }
+
+    /// Create a profile with a built-in role template.
+    ///
+    /// Built-in roles: `"coder"`, `"reviewer"`, `"analyst"`, `"researcher"`.
+    /// Unknown roles fall back to a general-assistant template.
+    pub fn for_role(role: &str) -> Self {
+        let (id, name, prompt) = match role.to_lowercase().replace('-', "_").as_str() {
+            "coder" | "code_writer" => (
+                "coder",
+                "Code Writer",
+                "You are an expert software engineer. Write clean, efficient, and well-documented code. Follow best practices and handle edge cases.",
+            ),
+            "reviewer" | "code_reviewer" => (
+                "reviewer",
+                "Code Reviewer",
+                "You are an expert code reviewer. Analyze code for bugs, security issues, performance problems, and style violations. Provide constructive feedback with specific suggestions.",
+            ),
+            "analyst" | "data_analyst" => (
+                "analyst",
+                "Data Analyst",
+                "You are a data analyst. Analyze data, identify patterns, create visualizations, and provide actionable insights. Use statistical methods when appropriate.",
+            ),
+            "researcher" | "research" => (
+                "researcher",
+                "Researcher",
+                "You are a thorough researcher. Gather information from multiple sources, verify facts, synthesize findings, and present well-structured reports with citations.",
+            ),
+            _ => (
+                "assistant",
+                "General Assistant",
+                "You are a helpful assistant. Answer questions accurately and completely.",
+            ),
+        };
+        Self::new(id, name, role).with_system_prompt(prompt)
+    }
+
     /// Return the [`AgentRole`] enum value that corresponds to `self.role`.
     ///
     /// The string field is kept for backwards-compatible serialisation;

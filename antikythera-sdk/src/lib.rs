@@ -3,19 +3,16 @@
 //! Server-side WASM component framework for the MCP client.
 
 // Re-export core types
-#[cfg(feature = "sdk-core")]
 pub use antikythera_core::application::agent::{Agent, AgentOptions, AgentOutcome};
-#[cfg(feature = "sdk-core")]
 pub use antikythera_core::application::client::{ClientConfig, McpClient};
-#[cfg(feature = "sdk-core")]
 pub use antikythera_core::config::AppConfig;
 
-// Conditional exports based on features
-#[cfg(all(feature = "sdk-core", feature = "multi-agent"))]
+// Multi-agent orchestration types
 pub use antikythera_core::application::agent::multi_agent::{
     AgentProfile, AgentRegistry, AgentRole, AgentTask, BudgetSnapshot, CancellationToken,
-    ContextId, ErrorKind, MemoryConfig, OrchestratorBudget, PipelineResult, RetryCondition,
-    RoutingDecision, SyncMemoryProvider, TaskExecutionMetadata, TaskResult, TaskRetryPolicy,
+    ContextId, ErrorKind, ManagedSession, MemoryConfig, OrchestratorBudget,
+    OrchestratorSessionManager, PipelineResult, RetryCondition, RoutingDecision, SessionError,
+    SyncMemoryProvider, TaskExecutionMetadata, TaskResult, TaskRetryPolicy,
 };
 
 // ============================================================================
@@ -23,39 +20,31 @@ pub use antikythera_core::application::agent::multi_agent::{
 // ============================================================================
 
 /// Agent orchestration helpers
-#[cfg(feature = "multi-agent")]
 pub mod agents;
 
-#[cfg(feature = "multi-agent")]
 pub use agents::{
     OrchestratorContext, OrchestratorMonitorSnapshot, OrchestratorOptions, TaskResultDetail,
 };
 
 /// Prompt Management feature slice
-#[cfg(feature = "sdk-core")]
 pub mod prompts;
 
-#[cfg(feature = "sdk-core")]
 pub use prompts::{
     mcp_get_all_prompts, mcp_get_template, mcp_get_tool_guidance, mcp_reset_template,
     mcp_update_template, mcp_update_tool_guidance,
 };
 
 /// TOML Configuration feature slice
-#[cfg(feature = "sdk-core")]
 pub mod config;
 
-#[cfg(feature = "sdk-core")]
 pub use config::{
     CONFIG_PATH as TOML_CONFIG_PATH, config_from_toml, config_to_toml,
     load_config as load_toml_config, save_config as save_toml_config,
 };
 
 /// Session Management module
-#[cfg(feature = "sdk-core")]
 pub mod session;
 
-#[cfg(feature = "sdk-core")]
 pub use session::{
     BatchExport, BatchLogExport, Message, MessageRole, Session, SessionExport, SessionLogExport,
     SessionSummary,
@@ -66,11 +55,8 @@ pub mod sdk_logging;
 
 pub use sdk_logging::{
     ConfigFfiLogger, clear_sdk_loggers, clear_sdk_session_logs, get_latest_sdk_logs,
-    get_sdk_logger, get_sdk_logs_json, query_sdk_logs,
+    get_sdk_logger, get_sdk_logs_json, query_sdk_logs, subscribe_sdk_logs,
 };
-
-#[cfg(feature = "subscriber")]
-pub use sdk_logging::subscribe_sdk_logs;
 
 /// Shared FFI helper utilities
 pub mod ffi_helpers;
@@ -97,7 +83,6 @@ pub use wasm_agent::{
     validate_json_schema, validate_tool_call,
 };
 
-#[cfg(feature = "sdk-core")]
 pub use antikythera_core::infrastructure::model::{
     HostModelClient, HostModelResponse, HostModelTransport,
 };

@@ -17,4 +17,4 @@ serde.workspace = true
 serde_json.workspace = true
 async-trait.workspace = true
 thiserror.workspace = true
-antikythera-log = { path = "../antikythera-log", default-features = false, optional = true }
+antikythera-log = { path = "../../antikythera-log", default-features = false, optional = true }

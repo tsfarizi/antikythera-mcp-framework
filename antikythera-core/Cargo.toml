@@ -8,35 +8,9 @@ repository.workspace = true
 readme = "README.md"
 description = "Core MCP protocol, transport layers, and agent runtime"
 
-[features]
-default = ["native-transport"]
-
-# OS-level process management (Stdio transport)
-native-transport = ["tokio/process", "tokio/io-std", "dep:sysinfo"]
-
-# Interactive configuration wizard (terminal UI + Clap argument parsing).
-# ✅ STABLE: Component model is complete; suitable for production use.
-wizard = ["dep:crossterm", "dep:ratatui"]
-
-# Multi-Agent orchestration support.
-# ✅ STABLE: Full orchestration with scheduling, routing, and pipeline execution.
-# See `application::agent::multi_agent::orchestrator::MultiAgentOrchestrator`.
-# No external dependencies required for core orchestration.
-# NOTE: All persistent state storage (Redis, GCS, filesystem, etc.) is the
-# responsibility of the HOST that embeds this framework. The WASM component
-# exposes serializable state via WIT host imports (save-state / load-state);
-# how and where that state is persisted is entirely up to the host.
-multi-agent = []
-
-# Logged session store decorator (public API for external consumers)
-logged-session = []
-
-# Full-featured build for native runtime
-full = ["native-transport", "wizard", "multi-agent"]
-
 [dependencies]
 # Core async runtime
-tokio = { workspace = true, features = ["macros", "rt", "sync", "time", "io-util"] }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time", "io-util", "process", "io-std"] }
 tokio-stream.workspace = true
 futures.workspace = true
 async-trait.workspace = true
@@ -72,13 +46,13 @@ once_cell = "1.19"
 uuid.workspace = true
 base64.workspace = true
 chrono.workspace = true
-sysinfo = { workspace = true, optional = true }
+sysinfo.workspace = true
 dotenvy.workspace = true
 shellexpand.workspace = true
 regex = "1.10"
-# TUI and wizard (optional)
-crossterm = { workspace = true, optional = true }
-ratatui = { workspace = true, optional = true }
+# TUI and wizard
+crossterm.workspace = true
+ratatui.workspace = true
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 uuid = { workspace = true, features = ["js"] }

@@ -3,7 +3,6 @@
 //! Re-exports from `antikythera-config` crate.
 //! The wizard submodule remains in core for CLI integration.
 
-#[cfg(feature = "wizard")]
 pub mod wizard;
 
 // Re-export everything from the extracted config crate

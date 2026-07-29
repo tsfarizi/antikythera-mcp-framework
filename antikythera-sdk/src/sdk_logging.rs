@@ -148,7 +148,6 @@ pub fn get_sdk_logs_json(session_id: &str, filter: &LogFilter) -> Result<String,
 }
 
 /// Subscribe to real-time SDK log stream
-#[cfg(feature = "subscriber")]
 pub fn subscribe_sdk_logs(session_id: &str) -> Option<antikythera_log::LogSubscriber> {
     SDK_LOGGERS
         .lock()

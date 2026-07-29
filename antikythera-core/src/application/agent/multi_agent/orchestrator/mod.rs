@@ -46,6 +46,7 @@ use super::guardrails::GuardrailChain;
 use super::registry::{AgentProfile, AgentRegistry};
 use super::router::{AgentRouter, FirstAvailableRouter};
 use super::scheduler::TaskScheduler;
+use super::session::OrchestratorSessionManager;
 use super::task::{
     AgentTask, ErrorKind, PipelineResult, RetryCondition, RoutingDecision, TaskExecutionMetadata,
     TaskResult, TaskRetryPolicy,
@@ -195,6 +196,8 @@ pub struct MultiAgentOrchestrator<P: ModelProvider> {
     default_retry_condition: RetryCondition,
     /// Ordered guardrails evaluated around task execution.
     guardrails: GuardrailChain,
+    /// Tracks session lifecycle across dispatched tasks.
+    session_manager: OrchestratorSessionManager,
     log: OrchestratorLogger,
 }
 
@@ -215,6 +218,7 @@ impl<P: ModelProvider + 'static> MultiAgentOrchestrator<P> {
             concurrency_sem: None,
             default_retry_condition: RetryCondition::Always,
             guardrails: GuardrailChain::new(),
+            session_manager: OrchestratorSessionManager::new(),
             log: OrchestratorLogger::new(&SessionContext::default().into_session_id()),
         }
     }
@@ -286,9 +290,20 @@ impl<P: ModelProvider + 'static> MultiAgentOrchestrator<P> {
         self
     }
 
+    /// Set the session manager for this orchestrator.
+    pub fn with_session_manager(mut self, manager: OrchestratorSessionManager) -> Self {
+        self.session_manager = manager;
+        self
+    }
+
     // ----------------------------------------------------------------
     // Inspection
     // ----------------------------------------------------------------
+
+    /// Return a reference to the session manager.
+    pub fn sessions(&self) -> &OrchestratorSessionManager {
+        &self.session_manager
+    }
 
     /// Return the number of registered agent profiles.
     pub fn agent_count(&self) -> usize {
@@ -392,6 +407,11 @@ impl<P: ModelProvider + 'static> MultiAgentOrchestrator<P> {
             self.router.name()
         ));
 
+        // Track session if the task declares one.
+        if let Some(ref sid) = task.session_id {
+            let _ = self.session_manager.get_or_create(sid, &profile.id);
+        }
+
         let result = execute_task(
             self.client.clone(),
             task,
@@ -406,6 +426,11 @@ impl<P: ModelProvider + 'static> MultiAgentOrchestrator<P> {
             },
         )
         .await;
+
+        // Record message exchange for the session.
+        if !result.session_id.is_empty() {
+            self.session_manager.record_message(&result.session_id);
+        }
 
         self.log.info(format!(
             "Task execution finished | task_id={} agent={} success={} steps={}",

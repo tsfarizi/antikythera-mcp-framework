@@ -32,7 +32,6 @@ mod runner;
 mod runtime;
 mod tool_result_parser;
 
-#[cfg(feature = "multi-agent")]
 pub mod multi_agent;
 
 pub use context::{ServerGuidance, ToolContext, ToolDescriptor};

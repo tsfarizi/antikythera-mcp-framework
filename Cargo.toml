@@ -3,7 +3,6 @@ resolver = "2"
 members = [
     "antikythera-core",
     "antikythera-sdk",
-    "antikythera-wasm-bindgen",
     "antikythera-log",
     "antikythera-session",
     "antikythera-storage",
@@ -14,7 +13,8 @@ members = [
     "antikythera-security",
     "antikythera-observability",
     "antikythera-tooling",
-    "antikythera-toolrunner",
+    "plugin/antikythera-wasm-bindgen",
+    "plugin/antikythera-toolrunner",
     "tests",
 ]
 exclude = [

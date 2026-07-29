@@ -230,8 +230,8 @@ path = "observability_crate/telemetry_tests.rs"
 [dependencies]
 antikythera-log = { path = "../antikythera-log", features = ["subscriber"] }
 antikythera-session = { path = "../antikythera-session" }
-antikythera-core = { path = "../antikythera-core", features = ["full"] }
-antikythera-sdk = { path = "../antikythera-sdk", features = ["component", "multi-agent"] }
+antikythera-core = { path = "../antikythera-core" }
+antikythera-sdk = { path = "../antikythera-sdk", features = ["component"] }
 antikythera-storage = { path = "../antikythera-storage", features = ["filesystem"] }
 antikythera-security = { path = "../antikythera-security", features = ["full"] }
 antikythera-observability = { path = "../antikythera-observability", features = ["full"] }

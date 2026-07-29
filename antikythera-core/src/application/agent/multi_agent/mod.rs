@@ -45,6 +45,7 @@ pub mod orchestrator;
 pub mod registry;
 pub mod router;
 pub mod scheduler;
+pub mod session;
 pub mod task;
 
 // ============================================================================
@@ -64,6 +65,7 @@ pub use registry::{
 };
 pub use router::{AgentRouter, DirectRouter, FirstAvailableRouter, RoleRouter, RoundRobinRouter};
 pub use scheduler::TaskScheduler;
+pub use session::{ManagedSession, OrchestratorSessionManager, SessionError};
 pub use task::{
     AgentTask, ErrorKind, PipelineResult, RetryCondition, RoutingDecision, TaskExecutionMetadata,
     TaskResult, TaskRetryPolicy,

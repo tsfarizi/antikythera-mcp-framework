@@ -1,8 +1,6 @@
 //! Orchestrator options and monitoring
 
-#[cfg(feature = "multi-agent")]
 use crate::sdk_logging::get_sdk_logger;
-#[cfg(feature = "multi-agent")]
 use antikythera_log::LogLevel;
 use serde::{Deserialize, Serialize};
 
@@ -83,7 +81,6 @@ pub enum RetryConditionOption {
     Never,
 }
 
-#[cfg(feature = "multi-agent")]
 impl From<RetryConditionOption>
     for antikythera_core::application::agent::multi_agent::RetryCondition
 {
@@ -96,7 +93,6 @@ impl From<RetryConditionOption>
     }
 }
 
-#[cfg(feature = "multi-agent")]
 impl OrchestratorOptions {
     pub fn default_task_retry_policy(
         &self,
@@ -158,7 +154,6 @@ pub struct TaskResultDetail {
 
 /// Runtime context for the orchestrator hardening layer, holding
 /// current options, cancellation flag, and the latest budget snapshot.
-#[cfg(feature = "multi-agent")]
 #[derive(Debug, Clone, Default)]
 pub struct OrchestratorContext {
     pub options: OrchestratorOptions,
@@ -167,7 +162,6 @@ pub struct OrchestratorContext {
         Option<antikythera_core::application::agent::multi_agent::BudgetSnapshot>,
 }
 
-#[cfg(feature = "multi-agent")]
 impl OrchestratorContext {
     pub fn new(options: OrchestratorOptions) -> Self {
         Self {

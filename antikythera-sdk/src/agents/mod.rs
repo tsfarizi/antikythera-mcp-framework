@@ -5,5 +5,4 @@ pub use orchestrator::{
     RateLimitGuardrailOptions, RetryConditionOption, TaskResultDetail, TimeoutGuardrailOptions,
 };
 
-#[cfg(feature = "multi-agent")]
 pub use orchestrator::OrchestratorContext;
