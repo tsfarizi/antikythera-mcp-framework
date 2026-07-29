@@ -3,6 +3,7 @@
 //! Re-exports from `antikythera-config` crate.
 //! The wizard submodule remains in core for CLI integration.
 
+#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 pub mod wizard;
 
 // Re-export everything from the extracted config crate

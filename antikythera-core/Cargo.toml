@@ -50,13 +50,13 @@ sysinfo.workspace = true
 dotenvy.workspace = true
 shellexpand.workspace = true
 regex = "1.10"
-# TUI and wizard
-crossterm.workspace = true
-ratatui.workspace = true
 
 [target.'cfg(not(all(target_arch = "wasm32", target_os = "unknown")))'.dependencies]
 # Additional tokio features for native targets only
-tokio = { workspace = true, features = ["process", "io-std"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "process", "io-std"] }
+# TUI and wizard (native only)
+crossterm = { workspace = true }
+ratatui = { workspace = true }
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
 uuid = { workspace = true, features = ["js"] }

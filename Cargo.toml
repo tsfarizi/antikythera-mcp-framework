@@ -32,7 +32,7 @@ readme = "README.md"
 
 [workspace.dependencies]
 # Async runtime (base features for all targets)
-tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "sync", "time", "io-util"] }
+tokio = { version = "1.53.1", features = ["macros", "rt", "sync", "time", "io-util"] }
 tokio-stream = "0.1.19"
 async-trait = "0.1.91"
 futures = "0.3.33"

@@ -7,7 +7,8 @@ pub use antikythera_core::application::agent::{Agent, AgentOptions, AgentOutcome
 pub use antikythera_core::application::client::{ClientConfig, McpClient};
 pub use antikythera_core::config::AppConfig;
 
-// Multi-agent orchestration types
+// Multi-agent orchestration types (native only - requires Send futures)
+#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 pub use antikythera_core::application::agent::multi_agent::{
     AgentProfile, AgentRegistry, AgentRole, AgentTask, BudgetSnapshot, CancellationToken,
     ContextId, ErrorKind, ManagedSession, MemoryConfig, OrchestratorBudget,
@@ -19,9 +20,11 @@ pub use antikythera_core::application::agent::multi_agent::{
 // Vertical Slice Features
 // ============================================================================
 
-/// Agent orchestration helpers
+/// Agent orchestration helpers (native only)
+#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 pub mod agents;
 
+#[cfg(not(all(target_arch = "wasm32", target_os = "unknown")))]
 pub use agents::{
     OrchestratorContext, OrchestratorMonitorSnapshot, OrchestratorOptions, TaskResultDetail,
 };
