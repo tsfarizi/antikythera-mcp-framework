@@ -24,27 +24,9 @@ antikythera-core/src/security/
 └── config.rs   # SecurityConfig types
 ```
 
-### CLI Implementation (`example/antikythera-cli`)
+### Host Application Implementation
 
-Concrete security implementations live in the example CLI crate:
-
-```
-example/antikythera-cli/src/security/
-├── mod.rs
-├── rate_limit.rs
-├── validation/
-│   ├── mod.rs
-│   ├── json.rs
-│   ├── types.rs
-│   └── url.rs
-└── secrets/
-    ├── mod.rs
-    ├── crypto.rs
-    ├── error.rs
-    └── storage.rs
-```
-
-This separation ensures the core security ports are reusable by any embedding host, while the CLI provides the concrete implementations for its own use.
+Concrete security implementations live in host application crates:
 
 ## Input Validation
 
@@ -99,7 +81,7 @@ pub struct ValidationConfig {
 #### Rust API
 
 ```rust
-use antikythera_cli::security::validation::InputValidator;
+use antikythera_core::security::validation::InputValidator;
 
 // Create validator with default config
 let validator = InputValidator::from_config()?;
@@ -190,7 +172,7 @@ pub struct RateLimitConfig {
 #### Rust API
 
 ```rust
-use antikythera_cli::security::rate_limit::RateLimiter;
+use antikythera_core::security::rate_limit::RateLimiter;
 
 // Create rate limiter with default config
 let limiter = RateLimiter::from_config();
@@ -295,7 +277,7 @@ pub struct SecretsConfig {
 #### Rust API
 
 ```rust
-use antikythera_cli::security::secrets::SecretManager;
+use antikythera_core::security::secrets::SecretManager;
 
 // Create secret manager with default config
 let manager = SecretManager::from_config()?;
@@ -487,15 +469,15 @@ cargo test -p antikythera-tests --test security_config_tests
 - `tests/security/secrets_tests.rs`
 - `tests/security/config_tests.rs`
 
-## CLI vs Core Separation
+## Host vs Core Separation
 
 The security implementation follows the principle of separation of concerns:
 
 - **Core Module** (`antikythera-core`): Defines security configuration types and port traits. Contains no concrete implementations.
-- **Example CLI** (`example/antikythera-cli`): Provides concrete security implementations (validation, rate limiting, secrets management) as a reference for building host applications.
+- **Host Application**: Provides concrete security implementations (validation, rate limiting, secrets management) as needed.
 - **FFI Interface** (SDK): Provides a clean boundary for host languages to interact with security features.
 
-This ensures that the core security ports are reusable by any embedding host, while the example CLI provides the concrete implementations for its own use.
+This ensures that the core security ports are reusable by any embedding host, while host applications provide the concrete implementations for their own use.
 
 ## Security Considerations
 

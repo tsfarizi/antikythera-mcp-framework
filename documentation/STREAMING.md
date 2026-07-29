@@ -4,8 +4,7 @@ This document covers the currently implemented streaming behavior.
 
 ## Streaming Architecture
 
-Token streaming is built around a process-global event sink. The example CLI implementation lives in
-`example/antikythera-cli::infrastructure::llm::streaming`.
+Token streaming is built around a process-global event sink.
 
 ```mermaid
 flowchart LR
@@ -47,9 +46,6 @@ Host applications can implement streaming by:
 2. Emitting `StreamEvent` variants during response generation
 3. Installing a custom sink to route events to your UI layer
 
-See `example/antikythera-cli/src/infrastructure/llm/streaming.rs` for a reference implementation.
-
 ## Related documents
 
-- [`CLI.md`](CLI.md) — example CLI implementation
 - [`SERVERS_AND_AGENTS.md`](SERVERS_AND_AGENTS.md) — server and agent management

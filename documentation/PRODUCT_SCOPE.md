@@ -11,7 +11,7 @@ Antikythera is a **Rust-based MCP client framework** designed to:
 - run agent and tool-calling flows with structured step management
 - expose agent logic as a portable **server-side WASM component** (wasm32-wasip1)
 
-The framework is modular: domain types, ports, configuration, resilience, logging, session management, storage, tooling, core runtime, and SDK are separate crates. Host applications (CLI, web, embedded) consume the framework crates — they are not part of the framework itself.
+No browser WASM, no C FFI, and no embedded HTTP server are provided by the framework. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom).
 
 ## Deployment targets
 
@@ -19,7 +19,6 @@ The framework is modular: domain types, ports, configuration, resilience, loggin
 |:-------|:-------------|:-------|
 | **Framework crates** | `cargo build --workspace` | Library crates |
 | **Server-side WASM component** | `cargo component build -p antikythera-sdk --release --target wasm32-wasip1` | `.wasm` component |
-| **Example CLI** | `cargo build -p antikythera-cli --release` | `antikythera` binary |
 
 No browser WASM, no C FFI, and no embedded HTTP server are provided by the framework. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom).
 
@@ -36,17 +35,6 @@ The `antikythera-sdk` crate provides the stable integration surface:
 | Routing strategies | `DirectRouter`, `RoundRobinRouter`, `FirstAvailableRouter`, `RoleRouter` |
 | Logging | `AgentLogger`, `ChatLogger`, `ConfigLogger`, `DiscoveryLogger`, `OrchestratorLogger`, `ProviderLogger`, `ResilienceLogger`, `SecurityLogger`, `SessionLogger`, `StdioLogger`, `StreamingLogger`, `TransportLogger`, `WasmLogger` |
 | Session | Session history types, import/export |
-
-## Example applications
-
-The repository includes example applications under `example/` that demonstrate how to build host applications using the framework:
-
-| Example | Description |
-|:--------|:------------|
-| `example/antikythera-cli` | Interactive CLI client with TUI, multi-agent orchestration, and WASM harness |
-| `example/antikythera-web` | Web frontend (Vue.js/TypeScript) |
-
-These are **not** workspace members — they are standalone crates that consume framework crates via relative path dependencies. They serve as reference implementations for building your own host applications.
 
 ## Architecture philosophy
 
@@ -110,6 +98,5 @@ The WASM component handles agent reasoning, session continuity, history shaping,
 
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — crate relationships and request flow
 - [`BUILD.md`](BUILD.md) — build commands for each target
-- [`CLI.md`](CLI.md) — CLI client example
 - [`COMPONENT.md`](COMPONENT.md) — WASM component model details
 - [`WASM_AGENT.md`](WASM_AGENT.md) — agent logic inside the component

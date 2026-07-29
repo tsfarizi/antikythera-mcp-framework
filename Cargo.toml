@@ -18,12 +18,10 @@ members = [
     "scripts",
     "tests",
 ]
-exclude = [
-    "example/antikythera-cli",
-]
+
 
 [workspace.package]
-version = "1.7.8"
+version = "1.7.9"
 edition = "2024"
 authors = ["tsfarizi"]
 license = "MIT"

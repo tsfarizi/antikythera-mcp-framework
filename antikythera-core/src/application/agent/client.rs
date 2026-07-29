@@ -1,8 +1,7 @@
 //! Agent client trait and supporting types.
 //!
 //! The [`AgentClient`] trait abstracts the chat interface used by the agent
-//! runner. Concrete implementations live in peripheral crates (e.g.
-//! `antikythera-cli`).
+//! runner. Concrete implementations live in host application crates.
 
 use crate::application::config::{AppConfig, PromptsConfig, ServerConfig, ToolConfig};
 use crate::application::resilience::ContextWindowPolicy;

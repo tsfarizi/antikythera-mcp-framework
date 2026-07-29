@@ -5,7 +5,7 @@
 //! # Architecture Note
 //!
 //! This module is **periphery-bound**: terminal rendering is a presentation
-//! concern that belongs in `antikythera-cli`.
+//! concern that belongs in host application crates.
 
 mod stdio_render;
 mod tool_detection;

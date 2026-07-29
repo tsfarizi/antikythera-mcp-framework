@@ -82,7 +82,6 @@ sequenceDiagram
 10. `antikythera-sdk` — SDK/integration surface (FFI boundaries, WASM bindings).
 
 Example applications:
-- `example/antikythera-cli` — CLI client (reference implementation for building host applications).
 - `example/antikythera-web` — Web frontend (Vue.js/TypeScript).
 
 Supporting crates:

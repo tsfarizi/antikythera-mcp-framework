@@ -7,7 +7,6 @@ This guide covers the commands that match the current workspace layout and tooli
 ```mermaid
 flowchart TD
     SRC[Workspace source] --> CARGO[cargo build --workspace]
-    SRC --> CLI[cargo build -p antikythera-cli --release]
     SRC --> WIT[cargo run -p build-scripts --release -- validate]
     WIT --> COMPONENT[cargo component build -p antikythera-sdk --release --target wasm32-wasip1]
 ```
@@ -16,10 +15,8 @@ flowchart TD
 
 | Target | Status | Notes |
 |:-------|:------:|:------|
-| Workspace crates | ✅ | `cargo build --workspace` — all 11 framework crates + tests + scripts |
+| Workspace crates | ✅ | `cargo build --workspace` — all framework crates + tests + scripts |
 | `antikythera-sdk` component build | ✅ | Single WASM output via `cargo-component` + `wasm32-wasip1` |
-| `antikythera` native binary (example) | ✅ | stdio, setup, and multi-agent modes — standalone, not a workspace member |
-| `antikythera-config` native binary (example) | ✅ | Provider and server config management — standalone, not a workspace member |
 
 ## Prerequisites
 
@@ -41,21 +38,6 @@ cargo build --workspace
 ```bash
 cargo build --workspace --release
 ```
-
-### Build the example CLI crate
-
-The CLI is a standalone crate (not a workspace member). Build it explicitly:
-
-```bash
-cargo build -p antikythera-cli --release
-```
-
-### Native binaries
-
-| Binary | Command |
-|:-------|:--------|
-| `antikythera` | `cargo run -p antikythera-cli --bin antikythera` |
-| `antikythera-config` | `cargo run -p antikythera-cli --bin antikythera-config -- --help` |
 
 ## WASM component build
 
@@ -86,26 +68,6 @@ Canonical artifact name for CI/release packaging:
 
 ```text
 dist/antikythera-sdk.wasm
-```
-
-## CLI harness against WASM
-
-Use the example CLI to execute the generated WASM via host runtime bridge (`WasmAgentRunner`):
-
-```bash
-cargo run -p antikythera-cli --bin antikythera -- \
-    --mode wasm-harness \
-    --wasm target/wasm32-wasip1/release/antikythera_sdk.wasm \
-    --task "Smoke test"
-```
-
-Optional deterministic host callback payload:
-
-```bash
-cargo run -p antikythera-cli --bin antikythera -- \
-    --mode wasm-harness \
-    --wasm target/wasm32-wasip1/release/antikythera_sdk.wasm \
-    --wasm-llm-response '{"content":"ok","model":"stub"}'
 ```
 
 ## Docs site build
@@ -167,20 +129,10 @@ The repository includes `Taskfile.yml` for common flows.
 | Task | Purpose |
 |:-----|:--------|
 | `task build` | Build the WASM component |
-| `task build-wasm-harness` | Build WASM artifact for CLI harness |
+| `task build-wasm-harness` | Build WASM artifact for FFI host harness |
 | `task build-all` | Build all WASM artifacts |
-| `task build-web` | Build web frontend for production |
 | `task wit` | Validate WIT conformance |
-| `task run-cli` | Run interactive TUI CLI with auto-bootstrap config |
-| `task run-wasm` | Run CLI as WASM FFI host harness |
-| `task run-interactive` | Run interactive CLI (stdio mode) |
-| `task run-tui` | Alias for interactive TUI-friendly CLI |
-| `task run-web` | Run web frontend dev server (Vite) |
-| `task setup-config` | Setup app.toml with selectable provider |
 | `task test` | Run workspace tests |
-| `task test-unit` | Run all CLI unit tests (centralized in tests/) |
-| `task test-scenario` | Run hands-on CLI scenario test (real LLM) |
-| `task test-cli-wasm-host` | Run CLI host-FFI WASM smoke test |
 | `task test-sdk` | Run SDK tests |
 | `task test-ffi` | Run FFI tests |
 | `task test-component` | Run component tests |
@@ -196,5 +148,4 @@ The repository includes `Taskfile.yml` for common flows.
 ## Notes
 
 - The component build (`wasm32-wasip1`) is the WASM deployment target. Use it when embedding agent logic in a host application via wasmtime.
-- The example CLI is a standalone crate, not a workspace member. It consumes framework crates via relative path dependencies.
 - For browser or C FFI targets, implement those in the host application itself — the framework does not provide those bindings.

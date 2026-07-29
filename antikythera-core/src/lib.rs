@@ -8,7 +8,7 @@
 //! This crate defines the **domain model**, **application logic**, and **port
 //! traits** for an autonomous AI agent system. Concrete implementations of
 //! transport, model providers, and security live in peripheral crates
-//! (`antikythera-cli`, `antikythera-sdk`).
+//! (`antikythera-sdk`).
 //!
 //! ### Layer Structure
 //! - `domain/` — Canonical entity definitions (Message, ToolCall, AgentTask, etc.)

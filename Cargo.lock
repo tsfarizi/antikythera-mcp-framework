@@ -100,7 +100,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-config"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-domain",
  "dotenvy",
@@ -113,7 +113,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-core"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-config",
  "antikythera-domain",
@@ -146,7 +146,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-domain"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "chrono",
  "postcard",
@@ -158,7 +158,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-log"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "chrono",
  "crossbeam-channel",
@@ -172,7 +172,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-observability"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-domain",
  "antikythera-ports",
@@ -186,7 +186,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-ports"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-domain",
  "async-trait",
@@ -198,7 +198,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-resilience"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-domain",
  "chrono",
@@ -209,7 +209,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-sdk"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-core",
  "antikythera-log",
@@ -226,7 +226,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-security"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-domain",
  "antikythera-ports",
@@ -240,7 +240,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-session"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-domain",
  "antikythera-log",
@@ -253,7 +253,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-storage"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-domain",
  "async-trait",
@@ -276,7 +276,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-tests"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -300,7 +300,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-tooling"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-config",
  "antikythera-domain",
@@ -313,7 +313,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-toolrunner"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-log",
  "async-trait",
@@ -324,7 +324,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-wasm-bindgen"
-version = "1.7.8"
+version = "1.7.9"
 dependencies = [
  "antikythera-sdk",
  "serde",
@@ -553,7 +553,7 @@ dependencies = [
 
 [[package]]
 name = "build-scripts"
-version = "1.7.8"
+version = "1.7.9"
 
 [[package]]
 name = "bumpalo"

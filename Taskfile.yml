@@ -28,28 +28,17 @@ tasks:
     desc: Show available tasks
     cmds:
       - |
-        echo "Antikythera MCP Framework - Available Tasks"
+        echo "Antikythera Agent SDK - Available Tasks"
         echo ""
-        echo "  task run-cli       - Run interactive TUI (default mode, no flags needed)"
-        echo "  task run-wasm      - Run WASM FFI host harness"
-        echo "  task run-interactive - Alias for run-cli"
-        echo "  task run-tui       - Alias for run-cli"
-        # Not yet implemented — example/antikythera-web does not exist
-        # echo "  task run-web       - Run web frontend dev server (Vite)"
-        echo "  task setup-config  - Setup app.toml with selectable provider"
         echo "  task build         - Build WASM component"
         echo "  task build-wasm-harness - Build WASM artifact for FFI host harness"
         echo "  task build-all     - Build all WASM artifacts"
-        # echo "  task build-web     - Build web frontend for production"
         echo "  task wit           - Generate WIT from Rust code"
         echo "  task clean         - Clean all build artifacts"
         echo "  task clean-wasm    - Clean WASM build artifacts"
         echo "  task check         - Check code without building"
         echo "  task check-wasm    - Check WASM compilation"
         echo "  task test          - Run all tests"
-        echo "  task test-unit     - Run all CLI unit tests (centralized in tests/)"
-        echo "  task test-scenario - Run hands-on CLI scenario test (real LLM)"
-        echo "  task test-cli-wasm-host - Run CLI host-FFI WASM smoke test"
         echo "  task test-sdk      - Run SDK tests"
         echo "  task test-ffi      - Run FFI tests"
         echo "  task test-component - Run component tests"
@@ -101,66 +90,6 @@ tasks:
   # Run Tasks
   # ===========================================================================
 
-  ensure-config:
-    internal: true
-    desc: Ensure app.toml exists with seeded provider defaults
-    dir: example/antikythera-cli
-    cmds:
-      - |
-        if [ ! -f "../../{{.APP_CONFIG}}" ]; then
-          echo "Config {{.APP_CONFIG}} not found, creating default multi-provider config..."
-          cargo run --bin antikythera-config -- init
-        fi
-
-  run-cli:
-    desc: Run interactive TUI CLI with auto-bootstrap config
-    deps:
-      - ensure-config
-    dir: example/antikythera-cli
-    cmds:
-      - echo "Running interactive TUI CLI..."
-      - 'cargo run --bin antikythera -- {{.CLI_ARGS}}'
-
-  run-wasm:
-    desc: Run CLI as WASM FFI host harness
-    deps:
-      - build-wasm-harness
-    dir: example/antikythera-cli
-    vars:
-      WASM_TASK: '{{default "WASM harness smoke test" .WASM_TASK}}'
-    cmds:
-      - echo "Running CLI as WASM FFI host harness..."
-      - 'cargo run --bin antikythera -- wasm-harness --wasm ../../{{.WASM_BINARY}} --task "{{.WASM_TASK}}" --stream {{.CLI_ARGS}}'
-
-  run-interactive:
-    desc: Run interactive CLI (stdio mode)
-    deps:
-      - ensure-config
-    cmds:
-      - task: run-cli CLI_ARGS='{{.CLI_ARGS}}'
-
-  run-tui:
-    desc: Alias of run-interactive (TUI-friendly)
-    cmds:
-      - task: run-interactive
-
-  setup-config:
-    desc: Setup app.toml with selectable provider/model parameters
-    deps:
-      - wit
-    dir: example/antikythera-cli
-    cmds:
-      - echo "Setting up configuration..."
-      - cargo run --bin antikythera-config -- init || true
-      - |
-        if [ -n "{{.PROVIDER_API_KEY}}" ]; then
-          cargo run --bin antikythera-config -- add-provider {{.PROVIDER_ID}} {{.PROVIDER_TYPE}} {{.PROVIDER_ENDPOINT}} {{.PROVIDER_API_KEY}}
-        else
-          cargo run --bin antikythera-config -- add-provider {{.PROVIDER_ID}} {{.PROVIDER_TYPE}} {{.PROVIDER_ENDPOINT}}
-        fi
-      - cargo run --bin antikythera-config -- set-model {{.PROVIDER_ID}} {{.MODEL_NAME}}
-      - cargo run --bin antikythera-config -- status
-
   run-web:
     desc: Run web frontend dev server (Vite)
     dir: example/antikythera-web
@@ -187,20 +116,8 @@ tasks:
     cmds:
       - echo "Running all tests..."
       - cargo test --workspace
-      - task: test-cli-wasm-host
       - echo ""
       - echo "✓ All tests passed"
-
-  test-cli-wasm-host:
-    desc: Run CLI host-FFI integration smoke test against built WASM artifact
-    deps:
-      - build-wasm-harness
-    dir: example/antikythera-cli
-    cmds:
-      - echo "Running CLI host-FFI WASM smoke test..."
-      - 'cargo run --bin antikythera -- wasm-harness --wasm ../../{{.WASM_BINARY}} --task "CLI host-FFI smoke test" --wasm-llm-response "{\"content\":\"cli-ffi-ok\",\"model\":\"harness\"}" --stream'
-      - echo ""
-      - echo "CLI host-FFI WASM smoke test passed"
 
   test-sdk:
     desc: Run SDK tests
@@ -225,22 +142,6 @@ tasks:
       - cargo test -p antikythera-sdk --lib component
       - echo ""
       - echo "✓ Component tests passed"
-
-  test-scenario:
-    desc: Run hands-on CLI scenario test (real LLM, konfigurasi dari app.toml)
-    cmds:
-      - echo "Running CLI scenario test..."
-      - cargo test -p antikythera-tests --test cli_tests scenario -- --nocapture
-      - echo ""
-      - echo "✓ Scenario test passed — hasil di scenario.txt"
-
-  test-unit:
-    desc: Run all CLI unit tests (centralized in tests/cli/)
-    cmds:
-      - echo "Running CLI unit tests..."
-      - cargo test -p antikythera-tests --test cli_tests
-      - echo ""
-      - echo "✓ Unit tests passed"
 
   # ===========================================================================
   # Check Tasks

@@ -34,7 +34,3 @@
 - [Testing](documentation/TESTING.md)
 - [Migration](documentation/MIGRATION.md)
 - [Deprecation Policy](documentation/DEPRECATION_POLICY.md)
-
-# Example Implementations
-
-- [CLI](documentation/CLI.md) — CLI client reference implementation

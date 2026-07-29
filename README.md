@@ -7,10 +7,7 @@ Antikythera MCP Framework is a Rust workspace for building MCP-capable agent run
 ```mermaid
 flowchart TD
     Host[Host Application] --> SDK[antikythera-sdk]
-    Host --> CLI[example/antikythera-cli]
     SDK --> Core[antikythera-core]
-    CLI --> Core
-    CLI --> SDK
     Core --> Domain[antikythera-domain]
     Core --> Ports[antikythera-ports]
     Core --> Config[antikythera-config]
@@ -26,7 +23,6 @@ flowchart TD
 - Multi-agent orchestration with guardrails, resilience, and observability hooks.
 - Streaming support for token/event output and buffered delivery policies.
 - WASM component integration path for host-controlled execution.
-- Example applications under `example/` (CLI client, web client).
 - Consolidated documentation under `documentation/`.
 
 ## Workspace Layout
@@ -46,13 +42,6 @@ flowchart TD
 | `antikythera-core` | Core MCP protocol, transport layers, and agent runtime |
 | `antikythera-sdk` | High-level API wrapper with FFI and WASM bindings |
 | `antikythera-wasm-bindgen` | wasm-bindgen bindings for browser WASM targets |
-
-### Example applications (not workspace members)
-
-| Path | Role |
-|:-----|:-----|
-| `example/antikythera-cli` | Interactive CLI client — reference implementation for building CLI hosts |
-| `example/antikythera-web` | Web frontend (Vue.js/TypeScript) |
 
 ### Supporting directories
 
@@ -106,10 +95,6 @@ cargo clippy --workspace --lib --bins -- -D warnings -D deprecated
 
 - [WASM Agent](documentation/WASM_AGENT.md) — agent logic inside the component
 - [WASM Architecture](documentation/WASM_ARCHITECTURE.md) — WASM deployment architecture
-
-### Example Implementations
-
-- [CLI](documentation/CLI.md) — CLI client example (reference implementation)
 
 ### Process
 

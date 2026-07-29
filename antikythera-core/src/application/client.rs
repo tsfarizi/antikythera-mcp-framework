@@ -23,9 +23,9 @@
 //!
 //! # Architecture Note
 //!
-//! This module is **periphery-bound**: it will eventually migrate to `antikythera-cli`
-//! as a reference implementation. The core agent runner should depend on port traits
-//! from `ports::` instead of this concrete client.
+//! This module is **periphery-bound**: it will eventually migrate to a
+//! reference host application. The core agent runner should depend on port
+//! traits from `ports::` instead of this concrete client.
 
 mod client_chat;
 mod client_lifecycle;

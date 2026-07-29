@@ -42,13 +42,6 @@ flowchart TD
 | `antikythera-sdk/` | Public API layer for Rust and WASM component bindings — depends on core, log, session |
 | `antikythera-wasm-bindgen/` | wasm-bindgen bindings for browser WASM targets |
 
-### Example applications (not workspace members)
-
-| Path | Role |
-|:-----|:-----|
-| `example/antikythera-cli/` | Interactive CLI client — reference implementation for building host applications |
-| `example/antikythera-web/` | Web frontend (Vue.js/TypeScript) |
-
 ### Supporting directories
 
 | Path | Role |
@@ -98,5 +91,4 @@ flowchart LR
 2. Move to `antikythera-ports` to see the port/adapter trait definitions.
 3. Check `antikythera-core` to understand the runtime behavior.
 4. Move to `antikythera-sdk` to see the public API and bindings layer.
-5. Use `example/antikythera-cli` as a reference for building host applications.
-6. Use `tests/` to see how the repository is exercised end-to-end.
+5. Use `tests/` to see how the repository is exercised end-to-end.
