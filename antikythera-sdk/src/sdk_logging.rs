@@ -166,14 +166,17 @@ pub fn clear_sdk_session_logs(session_id: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
 
     #[test]
+    #[serial]
     fn get_sdk_logger_returns_logger_for_session() {
         let logger = get_sdk_logger("unique-test-session-1");
         assert_eq!(logger.session_id(), "unique-test-session-1");
     }
 
     #[test]
+    #[serial]
     fn get_sdk_logger_returns_same_instance_for_same_id() {
         let a = get_sdk_logger("unique-test-session-2");
         let b = get_sdk_logger("unique-test-session-2");
@@ -182,6 +185,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn clear_sdk_loggers_removes_all() {
         get_sdk_logger("unique-s1");
         get_sdk_logger("unique-s2");
@@ -192,6 +196,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn query_nonexistent_session_returns_empty() {
         let batch = query_sdk_logs("nonexistent-session-xyz", &LogFilter::new());
         assert_eq!(batch.total_count, 0);
@@ -199,6 +204,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn config_ffi_logger_logs_without_panic() {
         let logger = ConfigFfiLogger::new("unique-ffi-test");
         logger.ffi_call("test_fn", "{}");
