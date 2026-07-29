@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
-from antikythera_mcp.types import (
+from antikythera_agent.types import (
     AgentProfileConfig,
     OrchestratorConfig,
     PipelineResult,

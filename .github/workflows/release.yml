@@ -128,7 +128,7 @@ jobs:
           path: python/antikythera/
 
       - name: Rename WASM binary
-        run: mv python/antikythera_mcp/antikythera_sdk.wasm python/antikythera_mcp/antikythera.wasm
+        run: mv python/antikythera_agent/antikythera_sdk.wasm python/antikythera_agent/antikythera.wasm
 
       - name: Install build tools
         run: pip install build twine

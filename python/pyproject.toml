@@ -3,16 +3,16 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "antikythera-mcp"
+name = "antikythera-agent"
 version = "1.7.1"
-description = "Antikythera MCP Framework - Agent runtime with multi-agent orchestration"
+description = "Antikythera Agent Runtime - Multi-agent orchestration with MCP tool integration"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
 authors = [
     {name = "tsfarizi"}
 ]
-keywords = ["mcp", "agent", "llm", "wasm", "multi-agent", "orchestration"]
+keywords = ["agent", "runtime", "mcp", "llm", "wasm", "multi-agent", "orchestration"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -34,4 +34,4 @@ Issues = "https://github.com/tsfarizi/antikythera-mcp-framework/issues"
 where = ["."]
 
 [tool.setuptools.package-data]
-antikythera = ["*.pyi", "py.typed", "*.wasm"]
+antikythera_agent = ["*.pyi", "py.typed", "*.wasm"]

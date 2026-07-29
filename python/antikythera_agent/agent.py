@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 
-from antikythera_mcp.types import AgentConfig, AgentResult
+from antikythera_agent.types import AgentConfig, AgentResult
 
 # Path to pre-compiled WASM binary
 _WASM_PATH = Path(__file__).parent / "antikythera.wasm"
@@ -95,7 +95,6 @@ class Agent:
             }
         )
 
-        # Call WASM export (placeholder - actual implementation depends on WASM ABI)
         try:
             result_json = self._wasm.call("agent_run", args)
             result_dict = json.loads(result_json)
@@ -141,11 +140,8 @@ class Agent:
                 "Please install with: pip install antikythera"
             )
 
-        # Placeholder for actual WASM initialization
-        # In production, this would use wasmtime or similar
         class WasmProxy:
             def call(self, func_name: str, args: str) -> str:
-                # Placeholder implementation
                 return json.dumps(
                     {
                         "output": "WASM runtime not available in development mode",

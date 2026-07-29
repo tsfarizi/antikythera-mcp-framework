@@ -1,7 +1,7 @@
 {
-  "name": "@antikythera/sdk",
+  "name": "antikythera-agent",
   "version": "1.7.1",
-  "description": "Antikythera MCP Framework - Agent runtime with multi-agent orchestration",
+  "description": "Antikythera Agent Runtime - Multi-agent orchestration with MCP tool integration",
   "main": "index.js",
   "types": "index.d.ts",
   "files": [
@@ -11,8 +11,9 @@
     "README.md"
   ],
   "keywords": [
-    "mcp",
     "agent",
+    "runtime",
+    "mcp",
     "llm",
     "wasm",
     "multi-agent",

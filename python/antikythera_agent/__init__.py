@@ -1,22 +1,22 @@
 """
-Antikythera MCP Framework
+Antikythera Agent Runtime
 
-Agent runtime with multi-agent orchestration, session management,
-and MCP tool integration. Powered by WebAssembly.
+Multi-agent orchestration with MCP tool integration.
+Powered by WebAssembly.
 
 Example:
-    >>> from antikythera_mcp import Agent, PromptManager
+    >>> from antikythera_agent import Agent, PromptManager
     >>> prompts = PromptManager()
     >>> agent = Agent(provider="openai", model="gpt-4o", system_prompt=prompts.get_content("coder"))
     >>> result = agent.run("Write a sorting algorithm")
     >>> print(result.output)
 """
 
-from antikythera_mcp.agent import Agent
-from antikythera_mcp.orchestrator import Orchestrator
-from antikythera_mcp.session import SessionManager
-from antikythera_mcp.prompts import PromptManager, PromptConfig
-from antikythera_mcp.types import (
+from antikythera_agent.agent import Agent
+from antikythera_agent.orchestrator import Orchestrator
+from antikythera_agent.session import SessionManager
+from antikythera_agent.prompts import PromptManager, PromptConfig
+from antikythera_agent.types import (
     AgentConfig,
     AgentResult,
     AgentProfileConfig,
@@ -25,7 +25,7 @@ from antikythera_mcp.types import (
     OrchestratorConfig,
     SessionInfo,
 )
-from antikythera_mcp.utils import get_version
+from antikythera_agent.utils import get_version
 
 __version__ = "1.7.1"
 __all__ = [

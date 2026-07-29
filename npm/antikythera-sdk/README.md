@@ -1,11 +1,11 @@
-# @antikythera/sdk
+# antikythera-agent
 
-Agent runtime with multi-agent orchestration, session management, and MCP tool integration. Powered by WebAssembly.
+Multi-agent orchestration with MCP tool integration. Powered by WebAssembly.
 
 ## Installation
 
 ```bash
-npm install @antikythera/sdk
+npm install antikythera-agent
 ```
 
 ## Quick Start
@@ -13,12 +13,10 @@ npm install @antikythera/sdk
 ### Setup with PromptManager
 
 ```typescript
-import { PromptManager, Agent } from '@antikythera/sdk';
+import { PromptManager, Agent } from 'antikythera-agent';
 
-// Initialize with built-in prompts
 const prompts = new PromptManager();
 
-// Use a built-in prompt
 const agent = new Agent({
   provider: 'openai',
   model: 'gpt-4o',
@@ -29,114 +27,32 @@ const result = await agent.run('Write a sorting algorithm');
 console.log(result.output);
 ```
 
-### Custom Prompts
+### Multi-Agent Orchestration
 
 ```typescript
-import { PromptManager, Agent } from '@antikythera/sdk';
+import { PromptManager, Orchestrator } from 'antikythera-agent';
 
 const prompts = new PromptManager();
-
-// Register custom prompts
-prompts.register({
-  id: 'my-reviewer',
-  name: 'Security Reviewer',
-  content: 'You are a security-focused code reviewer. Identify vulnerabilities and security issues.',
-  tags: ['reviewer', 'security']
-});
-
-// Use custom prompt
-const agent = new Agent({
-  provider: 'openai',
-  model: 'gpt-4o',
-  systemPrompt: prompts.getContent('my-reviewer')
-});
-```
-
-### Multi-Agent with Centralized Prompts
-
-```typescript
-import { PromptManager, Orchestrator } from '@antikythera/sdk';
-
-const prompts = new PromptManager();
-
-// Register all agent prompts
-prompts.register({
-  id: 'backend-dev',
-  name: 'Backend Developer',
-  content: 'You are a backend developer specializing in APIs and databases.',
-  tags: ['developer', 'backend']
-});
-
-prompts.register({
-  id: 'frontend-dev',
-  name: 'Frontend Developer',
-  content: 'You are a frontend developer specializing in UI/UX.',
-  tags: ['developer', 'frontend']
-});
-
-// Create orchestrator with prompts
-const orchestrator = new Orchestrator();
+const orchestrator = new Orchestrator({ executionMode: 'auto' });
 
 orchestrator.registerAgent({
-  id: 'backend',
-  name: 'Backend Dev',
+  id: 'coder',
+  name: 'Code Writer',
   role: 'developer',
-  systemPrompt: prompts.getContent('backend-dev')
+  systemPrompt: prompts.getContent('coder')
 });
 
 orchestrator.registerAgent({
-  id: 'frontend',
-  name: 'Frontend Dev',
-  role: 'developer',
-  systemPrompt: prompts.getContent('frontend-dev')
+  id: 'reviewer',
+  name: 'Code Reviewer',
+  role: 'reviewer',
+  systemPrompt: prompts.getContent('reviewer')
 });
 
-// Dispatch tasks
-const result = await orchestrator.dispatch('Build a REST API');
+const result = await orchestrator.dispatch('Write and review code');
 ```
 
-### Export/Import Prompts
-
-```typescript
-import { PromptManager } from '@antikythera/sdk';
-
-const prompts = new PromptManager();
-
-// Export all prompts to JSON
-const json = prompts.export();
-
-// Save to file
-fs.writeFileSync('prompts.json', json);
-
-// Later, load from file
-const loaded = PromptManager.fromFile('prompts.json');
-```
-
-## API Reference
-
-### PromptManager
-
-Centralized prompt management.
-
-```typescript
-class PromptManager {
-  constructor(includeBuiltins?: boolean);
-  register(config: PromptConfig): void;
-  update(id: string, updates: Partial<PromptConfig>): void;
-  get(id: string): PromptConfig | undefined;
-  getByTag(tag: string): PromptConfig[];
-  list(): PromptConfig[];
-  has(id: string): boolean;
-  remove(id: string): boolean;
-  getContent(id: string): string | undefined;
-  export(): string;
-  import(json: string): void;
-  static fromFile(filePath: string): PromptManager;
-  static fromJSON(json: string): PromptManager;
-}
-```
-
-### Built-in Prompts
+## Built-in Prompts
 
 | ID | Name | Tags |
 |:---|:-----|:-----|

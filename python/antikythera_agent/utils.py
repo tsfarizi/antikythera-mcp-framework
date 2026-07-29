@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from antikythera_mcp.agent import Agent
-from antikythera_mcp.types import AgentConfig
+from antikythera_agent.agent import Agent
+from antikythera_agent.types import AgentConfig
 
 # Built-in role templates
 _ROLE_TEMPLATES = {
