@@ -234,7 +234,7 @@ fn transition_error_is_clone_and_copy() {
     };
     let err2 = err; // Copy
     assert_eq!(err, err2);
-    let err3 = err.clone();
+    let err3 = err; // Copy
     assert_eq!(err, err3);
 }
 
@@ -429,7 +429,7 @@ fn state_is_debug() {
 fn state_is_clone_and_copy() {
     let a = AgentFsmState::LlmStreaming;
     let b = a; // Copy
-    let c = a.clone();
+    let c = a; // Copy
     assert_eq!(a, b);
     assert_eq!(a, c);
 }

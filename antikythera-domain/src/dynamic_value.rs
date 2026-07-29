@@ -89,7 +89,7 @@ mod tests {
     #[test]
     fn accessors_return_correct_variants() {
         assert_eq!(DynamicValue::Bool(true).as_bool(), Some(true));
-        assert_eq!(DynamicValue::Number(3.14).as_f64(), Some(3.14));
+        assert_eq!(DynamicValue::Number(1.5).as_f64(), Some(1.5));
         assert_eq!(DynamicValue::String("hi".into()).as_str(), Some("hi"));
         let arr = DynamicValue::Array(vec![DynamicValue::Null]);
         assert!(arr.as_array().is_some());

@@ -3,7 +3,7 @@ use std::time::Duration;
 use antikythera_storage::StorageEngine;
 use antikythera_storage::backend::StorageBackend;
 use antikythera_storage::backend::filesystem::FilesystemBackend;
-use antikythera_storage::config::StorageConfig;
+use antikythera_storage::config::{BackupConfig, CacheConfig, StorageConfig};
 use tempfile::tempdir;
 
 #[tokio::test]
@@ -12,11 +12,11 @@ async fn test_storage_engine_save_load_delete() {
     let data_dir = dir.path().join("data");
     let backup_dir = dir.path().join("backups");
 
-    let mut config = StorageConfig::default();
-    config.data_dir = data_dir;
-    config.backup_dir = backup_dir;
-    // Disable backup so we don't need a full backup setup
-    config.backup.enabled = false;
+    let config = StorageConfig {
+        data_dir,
+        backup_dir,
+        ..StorageConfig::default()
+    };
 
     let mut engine = StorageEngine::new(config).await.unwrap();
 
@@ -52,13 +52,21 @@ async fn test_storage_engine_cache_behavior() {
     let data_dir = dir.path().join("data");
     let backup_dir = dir.path().join("backups");
 
-    let mut config = StorageConfig::default();
-    config.data_dir = data_dir;
-    config.backup_dir = backup_dir;
-    config.backup.enabled = false;
-    config.cache.enabled = true;
-    config.cache.max_sessions = 4;
-    config.cache.ttl_seconds = 3600;
+    let config = StorageConfig {
+        data_dir,
+        backup_dir,
+        backup: BackupConfig {
+            enabled: false,
+            ..BackupConfig::default()
+        },
+        cache: CacheConfig {
+            enabled: true,
+            max_sessions: 4,
+            ttl_seconds: 3600,
+            ..CacheConfig::default()
+        },
+        ..StorageConfig::default()
+    };
 
     let mut engine = StorageEngine::new(config).await.unwrap();
 
@@ -88,10 +96,15 @@ async fn test_storage_engine_multiple_sessions_lifecycle() {
     let data_dir = dir.path().join("data");
     let backup_dir = dir.path().join("backups");
 
-    let mut config = StorageConfig::default();
-    config.data_dir = data_dir;
-    config.backup_dir = backup_dir;
-    config.backup.enabled = false;
+    let config = StorageConfig {
+        data_dir,
+        backup_dir,
+        backup: BackupConfig {
+            enabled: false,
+            ..BackupConfig::default()
+        },
+        ..StorageConfig::default()
+    };
 
     let mut engine = StorageEngine::new(config).await.unwrap();
 
@@ -123,11 +136,19 @@ async fn test_storage_engine_sweep_cache() {
     let data_dir = dir.path().join("data");
     let backup_dir = dir.path().join("backups");
 
-    let mut config = StorageConfig::default();
-    config.data_dir = data_dir;
-    config.backup_dir = backup_dir;
-    config.backup.enabled = false;
-    config.cache.ttl_seconds = 0; // Immediate expiration
+    let config = StorageConfig {
+        data_dir,
+        backup_dir,
+        backup: BackupConfig {
+            enabled: false,
+            ..BackupConfig::default()
+        },
+        cache: CacheConfig {
+            ttl_seconds: 0,
+            ..CacheConfig::default()
+        },
+        ..StorageConfig::default()
+    };
 
     let mut engine = StorageEngine::new(config).await.unwrap();
 

@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "antikythera"
+version = "1.7.1"
+description = "Antikythera MCP Framework - Agent runtime with multi-agent orchestration"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+authors = [
+    {name = "tsfarizi"}
+]
+keywords = ["mcp", "agent", "llm", "wasm", "multi-agent", "orchestration"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+Homepage = "https://github.com/tsfarizi/antikythera-mcp-framework"
+Repository = "https://github.com/tsfarizi/antikythera-mcp-framework"
+Issues = "https://github.com/tsfarizi/antikythera-mcp-framework/issues"
+
+[tool.setuptools.package-data]
+antikythera = ["*.pyi", "py.typed", "*.wasm"]

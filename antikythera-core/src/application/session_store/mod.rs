@@ -1,6 +1,3 @@
-pub mod logged_store;
-pub use logged_store::LoggedSessionStore;
-
 use std::collections::VecDeque;
 
 use crate::domain::message_types::Message;

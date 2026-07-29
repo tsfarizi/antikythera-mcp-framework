@@ -122,9 +122,11 @@ async fn test_backup_coordinator_config_accessor() {
     let backup_dir = dir.path().join("backups");
     let backend = Arc::new(FilesystemBackend::new(&data_dir, &backup_dir).unwrap());
 
-    let mut config = BackupConfig::default();
-    config.mode = "interval".to_string();
-    config.sync_interval_seconds = 120;
+    let config = BackupConfig {
+        mode: "interval".to_string(),
+        sync_interval_seconds: 120,
+        ..BackupConfig::default()
+    };
 
     let coordinator = BackupCoordinator::new(backend, config.clone());
     assert_eq!(coordinator.config().mode, "interval");

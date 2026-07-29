@@ -1,0 +1,34 @@
+{
+  "name": "@antikythera/sdk",
+  "version": "1.7.1",
+  "description": "Antikythera MCP Framework - Agent runtime with multi-agent orchestration",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "antikythera.wasm",
+    "README.md"
+  ],
+  "scripts": {
+    "build:wasm": "cargo component build --release --target wasm32-wasip1 -p antikythera-sdk && cp target/wasm32-wasip1/release/antikythera_sdk.wasm antikythera.wasm",
+    "prepublishOnly": "npm run build:wasm"
+  },
+  "keywords": [
+    "mcp",
+    "agent",
+    "llm",
+    "wasm",
+    "multi-agent",
+    "orchestration"
+  ],
+  "author": "tsfarizi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tsfarizi/antikythera-mcp-framework"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

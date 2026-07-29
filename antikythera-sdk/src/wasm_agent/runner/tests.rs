@@ -1,3 +1,5 @@
+#![allow(clippy::module_inception)]
+
 use crate::wasm_agent::runner::AgentRunnerRuntime;
 
 #[cfg(test)]
