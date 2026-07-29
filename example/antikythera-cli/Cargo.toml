@@ -11,10 +11,10 @@ description = "CLI interface for Antikythera MCP client"
 [workspace]
 
 [features]
-default = ["multi-agent", "native-transport"]
-multi-agent = ["antikythera-core/multi-agent"]
-native-transport = ["antikythera-core/native-transport", "dep:sysinfo"]
-wizard = ["antikythera-core/wizard"]
+default = []
+multi-agent = []
+native-transport = ["dep:sysinfo"]
+wizard = []
 
 [[bin]]
 name = "antikythera"
