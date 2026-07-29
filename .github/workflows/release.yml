@@ -125,7 +125,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: wasm-component
-          path: python/antikythera/
+          path: python/antikythera_agent/
 
       - name: Rename WASM binary
         run: mv python/antikythera_agent/antikythera_sdk.wasm python/antikythera_agent/antikythera.wasm
