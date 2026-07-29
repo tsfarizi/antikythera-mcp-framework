@@ -27,7 +27,7 @@ version = "1.7.1"
 edition = "2024"
 authors = ["tsfarizi"]
 license = "MIT"
-repository = "https://github.com/tsfarizi/antikythera-mcp-framework"
+repository = "https://github.com/tsfarizi/antikythera-agent-sdk"
 readme = "README.md"
 
 [workspace.dependencies]

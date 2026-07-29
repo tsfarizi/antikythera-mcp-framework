@@ -89,7 +89,7 @@ interface ffi-server {
   stop() -> result<_, string>;
 }
 
-world antikythera-mcp {
+world antikythera-agent {
     import host-imports;
     export prompt-manager;
     export mcp-client;

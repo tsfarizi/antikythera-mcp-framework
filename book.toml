@@ -10,5 +10,5 @@ build-dir = "book"
 [output.html]
 default-theme = "ayu"
 preferred-dark-theme = "navy"
-git-repository-url = "https://github.com/tsfarizi/antikythera-mcp-framework"
-edit-url-template = "https://github.com/tsfarizi/antikythera-mcp-framework/edit/main/{path}"
+git-repository-url = "https://github.com/tsfarizi/antikythera-agent-sdk"
+edit-url-template = "https://github.com/tsfarizi/antikythera-agent-sdk/edit/main/{path}"

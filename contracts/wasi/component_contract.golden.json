@@ -1,5 +1,5 @@
 {
-  "world": "antikythera-mcp",
+  "world": "antikythera-agent",
   "package": "antikythera:mcp-framework@1.0.0",
   "imports": {
     "host-imports": {

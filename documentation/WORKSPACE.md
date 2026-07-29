@@ -6,7 +6,7 @@ This document explains how the repository is organized and how each crate relate
 
 ```mermaid
 flowchart TD
-    ROOT[antikythera-mcp-framework]
+    ROOT[antikythera-agent-sdk]
     ROOT --> DOMAIN[antikythera-domain]
     ROOT --> PORTS[antikythera-ports]
     ROOT --> CONFIG[antikythera-config]

@@ -26,9 +26,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/tsfarizi/antikythera-mcp-framework"
-Repository = "https://github.com/tsfarizi/antikythera-mcp-framework"
-Issues = "https://github.com/tsfarizi/antikythera-mcp-framework/issues"
+Homepage = "https://github.com/tsfarizi/antikythera-agent-sdk"
+Repository = "https://github.com/tsfarizi/antikythera-agent-sdk"
+Issues = "https://github.com/tsfarizi/antikythera-agent-sdk/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
