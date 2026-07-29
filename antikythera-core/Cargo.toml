@@ -9,8 +9,7 @@ readme = "README.md"
 description = "Core MCP protocol, transport layers, and agent runtime"
 
 [dependencies]
-# Core async runtime (non-wasm: all features; wasm: limited features)
-tokio = { workspace = true }
+# Core async runtime
 tokio-stream.workspace = true
 futures.workspace = true
 async-trait.workspace = true
@@ -52,13 +51,15 @@ shellexpand.workspace = true
 regex = "1.10"
 
 [target.'cfg(not(all(target_arch = "wasm32", target_os = "unknown")))'.dependencies]
-# Additional tokio features for native targets only
-tokio = { workspace = true, features = ["rt-multi-thread", "process", "io-std"] }
+# Tokio features for native targets
+tokio = { version = "1.53.1", features = ["macros", "rt-multi-thread", "sync", "time", "io-util", "process", "io-std"] }
 # TUI and wizard (native only)
 crossterm = { workspace = true }
 ratatui = { workspace = true }
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+# Tokio features for WASM targets (limited)
+tokio = { version = "1.53.1", features = ["macros", "rt", "sync", "time", "io-util"] }
 uuid = { workspace = true, features = ["js"] }
 
 [dev-dependencies]
