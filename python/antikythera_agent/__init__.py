@@ -27,7 +27,7 @@ from antikythera_agent.types import (
 )
 from antikythera_agent.utils import get_version
 
-__version__ = "1.7.1"
+__version__ = "1.7.9"
 __all__ = [
     # Core classes
     "Agent",
