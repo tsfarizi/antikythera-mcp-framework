@@ -1,14 +1,19 @@
 """
-Antikythera Agent Runtime
+Antikythera Agent SDK
 
-Multi-agent orchestration with MCP tool integration.
-Powered by WebAssembly.
+General-purpose agent runtime with multi-agent orchestration,
+MCP tool integration, and WebAssembly support.
 
 Example:
-    >>> from antikythera_agent import Agent, PromptManager
+    >>> from antikythera_agent import Agent, PromptManager, PromptConfig
     >>> prompts = PromptManager()
-    >>> agent = Agent(provider="openai", model="gpt-4o", system_prompt=prompts.get_content("coder"))
-    >>> result = agent.run("Write a sorting algorithm")
+    >>> prompts.register(PromptConfig(
+    ...     id="assistant",
+    ...     name="Assistant",
+    ...     content="You are a helpful assistant.",
+    ... ))
+    >>> agent = Agent(provider="openai", model="gpt-4o", system_prompt=prompts.get_content("assistant"))
+    >>> result = agent.run("Hello, how can you help me?")
     >>> print(result.output)
 """
 
@@ -27,7 +32,7 @@ from antikythera_agent.types import (
 )
 from antikythera_agent.utils import get_version
 
-__version__ = "1.7.9"
+__version__ = "1.7.10"
 __all__ = [
     # Core classes
     "Agent",

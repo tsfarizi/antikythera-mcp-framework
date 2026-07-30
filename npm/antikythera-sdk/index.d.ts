@@ -152,36 +152,30 @@ export interface PromptConfig {
 // ============================================================================
 
 /**
- * Centralized prompt management for all agents.
+ * Centralized prompt management for agents.
  *
- * Stores, organizes, and provides access to all prompts used by agents.
- * Supports built-in prompts, custom prompts, and prompt inheritance.
+ * Provides a registry for storing, organizing, and retrieving prompts.
+ * Start with an empty registry and register your own prompts.
  *
  * @example
  * ```typescript
  * const prompts = new PromptManager();
  *
- * // Use built-in prompts
- * const coderPrompt = prompts.get('coder');
- *
- * // Register custom prompts
  * prompts.register({
- *   id: 'my-reviewer',
- *   name: 'My Code Reviewer',
- *   content: 'You are a code reviewer specializing in security.',
- *   tags: ['reviewer', 'security']
+ *   id: 'my-agent',
+ *   name: 'My Agent',
+ *   content: 'You are a helpful assistant.',
+ *   tags: ['general']
  * });
  *
- * // Get all prompts for a category
- * const reviewerPrompts = prompts.getByTag('reviewer');
+ * const content = prompts.getContent('my-agent');
  * ```
  */
 export class PromptManager {
   /**
    * Create a new PromptManager.
-   * @param includeBuiltins - Include built-in prompt templates (default: true)
    */
-  constructor(includeBuiltins?: boolean);
+  constructor();
 
   /**
    * Register a prompt configuration.

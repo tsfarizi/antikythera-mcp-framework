@@ -1,8 +1,8 @@
 /**
- * @antikythera/sdk - Antikythera MCP Framework
+ * @antikythera/sdk - Antikythera Agent SDK
  *
- * Agent runtime with multi-agent orchestration, session management,
- * and MCP tool integration. Powered by WebAssembly.
+ * General-purpose agent runtime with multi-agent orchestration,
+ * session management, and MCP tool integration. Powered by WebAssembly.
  *
  * @packageDocumentation
  */
@@ -97,28 +97,23 @@ const path = require('path');
 // ============================================================================
 
 /**
- * Centralized prompt management for all agents.
+ * Centralized prompt management for agents.
  *
- * Stores, organizes, and provides access to all prompts used by agents.
- * Supports built-in prompts, custom prompts, and prompt inheritance.
+ * Provides a registry for storing, organizing, and retrieving prompts.
+ * Start with an empty registry and register your own prompts.
  *
  * @example
  * ```javascript
  * const prompts = new PromptManager();
  *
- * // Use built-in prompts
- * const coderPrompt = prompts.get('coder');
- *
- * // Register custom prompts
  * prompts.register({
- *   id: 'my-reviewer',
- *   name: 'My Code Reviewer',
- *   content: 'You are a code reviewer specializing in security.',
- *   tags: ['reviewer', 'security']
+ *   id: 'my-agent',
+ *   name: 'My Agent',
+ *   content: 'You are a helpful assistant.',
+ *   tags: ['general']
  * });
  *
- * // Get all prompts for a category
- * const reviewerPrompts = prompts.getByTag('reviewer');
+ * const content = prompts.getContent('my-agent');
  * ```
  */
 class PromptManager {
@@ -126,14 +121,9 @@ class PromptManager {
   #prompts = new Map();
 
   /**
-   * Create a new PromptManager with optional built-in prompts.
-   * @param {boolean} [includeBuiltins=true] - Include built-in prompt templates
+   * Create a new PromptManager.
    */
-  constructor(includeBuiltins = true) {
-    if (includeBuiltins) {
-      this.#registerBuiltins();
-    }
-  }
+  constructor() {}
 
   /**
    * Register a prompt configuration.
@@ -242,7 +232,7 @@ class PromptManager {
    * @returns {PromptManager} New PromptManager instance
    */
   static fromFile(filePath) {
-    const manager = new PromptManager(false);
+    const manager = new PromptManager();
     const content = fs.readFileSync(filePath, 'utf-8');
     manager.import(content);
     return manager;
@@ -254,89 +244,9 @@ class PromptManager {
    * @returns {PromptManager} New PromptManager instance
    */
   static fromJSON(json) {
-    const manager = new PromptManager(false);
+    const manager = new PromptManager();
     manager.import(json);
     return manager;
-  }
-
-  /** @private */
-  #registerBuiltins() {
-    const builtins = [
-      {
-        id: 'coder',
-        name: 'Code Writer',
-        content: 'You are an expert software engineer. Write clean, efficient, and well-documented code. Follow best practices and handle edge cases. Always consider error handling, performance implications, and code maintainability.',
-        description: 'General-purpose coding assistant',
-        tags: ['coder', 'engineering', 'default']
-      },
-      {
-        id: 'reviewer',
-        name: 'Code Reviewer',
-        content: 'You are an expert code reviewer. Analyze code for bugs, security issues, performance problems, and style violations. Provide constructive feedback with specific suggestions for improvement. Consider edge cases, error handling, and maintainability.',
-        description: 'Code review specialist',
-        tags: ['reviewer', 'quality', 'default']
-      },
-      {
-        id: 'analyst',
-        name: 'Data Analyst',
-        content: 'You are a data analyst. Analyze data, identify patterns, create visualizations, and provide actionable insights. Use statistical methods when appropriate. Present findings clearly with supporting evidence.',
-        description: 'Data analysis specialist',
-        tags: ['analyst', 'data', 'default']
-      },
-      {
-        id: 'researcher',
-        name: 'Researcher',
-        content: 'You are a thorough researcher. Gather information from multiple sources, verify facts, synthesize findings, and present well-structured reports with citations. Always cross-reference information and note any uncertainties.',
-        description: 'Research and analysis specialist',
-        tags: ['researcher', 'analysis', 'default']
-      },
-      {
-        id: 'architect',
-        name: 'Software Architect',
-        content: 'You are a software architect. Design scalable, maintainable, and robust systems. Consider trade-offs between complexity and simplicity, performance and readability. Provide clear diagrams and documentation for your designs.',
-        description: 'System design specialist',
-        tags: ['architect', 'design', 'default']
-      },
-      {
-        id: 'debugger',
-        name: 'Debugger',
-        content: 'You are an expert debugger. Systematically identify root causes of issues. Use logical deduction, check assumptions, and verify hypotheses. Provide clear explanations of the problem and step-by-step solutions.',
-        description: 'Debugging and troubleshooting specialist',
-        tags: ['debugger', 'troubleshooting', 'default']
-      },
-      {
-        id: 'documenter',
-        name: 'Technical Writer',
-        content: 'You are a technical writer. Create clear, concise, and well-organized documentation. Use appropriate formatting, include code examples where helpful, and ensure information is accurate and up-to-date.',
-        description: 'Documentation specialist',
-        tags: ['documentation', 'writing', 'default']
-      },
-      {
-        id: 'security',
-        name: 'Security Analyst',
-        content: 'You are a security analyst. Identify vulnerabilities, assess risks, and recommend security improvements. Follow security best practices and standards. Consider both technical and operational security aspects.',
-        description: 'Security analysis specialist',
-        tags: ['security', 'audit', 'default']
-      },
-      {
-        id: 'optimizer',
-        name: 'Performance Optimizer',
-        content: 'You are a performance optimization expert. Identify bottlenecks, suggest improvements, and measure impact. Consider both time and space complexity. Balance optimization with code readability.',
-        description: 'Performance optimization specialist',
-        tags: ['performance', 'optimization', 'default']
-      },
-      {
-        id: 'tester',
-        name: 'QA Engineer',
-        content: 'You are a QA engineer. Write comprehensive tests, identify edge cases, and ensure software quality. Consider unit tests, integration tests, and end-to-end scenarios. Think about both happy paths and error cases.',
-        description: 'Quality assurance specialist',
-        tags: ['testing', 'quality', 'default']
-      }
-    ];
-
-    for (const builtin of builtins) {
-      this.#prompts.set(builtin.id, builtin);
-    }
   }
 }
 

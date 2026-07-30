@@ -27,171 +27,28 @@ class PromptConfig:
     tags: list[str] = field(default_factory=list)
 
 
-# Built-in prompt templates
-_BUILTIN_PROMPTS: list[PromptConfig] = [
-    PromptConfig(
-        id="coder",
-        name="Code Writer",
-        content=(
-            "You are an expert software engineer. "
-            "Write clean, efficient, and well-documented code. "
-            "Follow best practices and handle edge cases. "
-            "Always consider error handling, performance implications, "
-            "and code maintainability."
-        ),
-        description="General-purpose coding assistant",
-        tags=["coder", "engineering", "default"],
-    ),
-    PromptConfig(
-        id="reviewer",
-        name="Code Reviewer",
-        content=(
-            "You are an expert code reviewer. "
-            "Analyze code for bugs, security issues, performance problems, "
-            "and style violations. Provide constructive feedback with specific "
-            "suggestions for improvement. Consider edge cases, error handling, "
-            "and maintainability."
-        ),
-        description="Code review specialist",
-        tags=["reviewer", "quality", "default"],
-    ),
-    PromptConfig(
-        id="analyst",
-        name="Data Analyst",
-        content=(
-            "You are a data analyst. "
-            "Analyze data, identify patterns, create visualizations, "
-            "and provide actionable insights. Use statistical methods "
-            "when appropriate. Present findings clearly with supporting evidence."
-        ),
-        description="Data analysis specialist",
-        tags=["analyst", "data", "default"],
-    ),
-    PromptConfig(
-        id="researcher",
-        name="Researcher",
-        content=(
-            "You are a thorough researcher. "
-            "Gather information from multiple sources, verify facts, "
-            "synthesize findings, and present well-structured reports "
-            "with citations. Always cross-reference information and "
-            "note any uncertainties."
-        ),
-        description="Research and analysis specialist",
-        tags=["researcher", "analysis", "default"],
-    ),
-    PromptConfig(
-        id="architect",
-        name="Software Architect",
-        content=(
-            "You are a software architect. "
-            "Design scalable, maintainable, and robust systems. "
-            "Consider trade-offs between complexity and simplicity, "
-            "performance and readability. Provide clear diagrams and "
-            "documentation for your designs."
-        ),
-        description="System design specialist",
-        tags=["architect", "design", "default"],
-    ),
-    PromptConfig(
-        id="debugger",
-        name="Debugger",
-        content=(
-            "You are an expert debugger. "
-            "Systematically identify root causes of issues. "
-            "Use logical deduction, check assumptions, and verify hypotheses. "
-            "Provide clear explanations of the problem and step-by-step solutions."
-        ),
-        description="Debugging and troubleshooting specialist",
-        tags=["debugger", "troubleshooting", "default"],
-    ),
-    PromptConfig(
-        id="documenter",
-        name="Technical Writer",
-        content=(
-            "You are a technical writer. "
-            "Create clear, concise, and well-organized documentation. "
-            "Use appropriate formatting, include code examples where helpful, "
-            "and ensure information is accurate and up-to-date."
-        ),
-        description="Documentation specialist",
-        tags=["documentation", "writing", "default"],
-    ),
-    PromptConfig(
-        id="security",
-        name="Security Analyst",
-        content=(
-            "You are a security analyst. "
-            "Identify vulnerabilities, assess risks, and recommend "
-            "security improvements. Follow security best practices "
-            "and standards. Consider both technical and operational "
-            "security aspects."
-        ),
-        description="Security analysis specialist",
-        tags=["security", "audit", "default"],
-    ),
-    PromptConfig(
-        id="optimizer",
-        name="Performance Optimizer",
-        content=(
-            "You are a performance optimization expert. "
-            "Identify bottlenecks, suggest improvements, and measure impact. "
-            "Consider both time and space complexity. Balance optimization "
-            "with code readability."
-        ),
-        description="Performance optimization specialist",
-        tags=["performance", "optimization", "default"],
-    ),
-    PromptConfig(
-        id="tester",
-        name="QA Engineer",
-        content=(
-            "You are a QA engineer. "
-            "Write comprehensive tests, identify edge cases, and ensure "
-            "software quality. Consider unit tests, integration tests, "
-            "and end-to-end scenarios. Think about both happy paths "
-            "and error cases."
-        ),
-        description="Quality assurance specialist",
-        tags=["testing", "quality", "default"],
-    ),
-]
-
-
 class PromptManager:
-    """Centralized prompt management for all agents.
+    """Centralized prompt management for agents.
 
-    Stores, organizes, and provides access to all prompts used by agents.
-    Supports built-in prompts, custom prompts, and prompt inheritance.
+    Provides a registry for storing, organizing, and retrieving prompts.
+    Start with an empty registry and register your own prompts.
 
     Example:
         >>> prompts = PromptManager()
-        >>> coder_prompt = prompts.get("coder")
         >>> prompts.register(PromptConfig(
-        ...     id="my-reviewer",
-        ...     name="My Code Reviewer",
-        ...     content="You are a code reviewer specializing in security.",
-        ...     tags=["reviewer", "security"]
+        ...     id="my-agent",
+        ...     name="My Agent",
+        ...     content="You are a helpful assistant.",
         ... ))
-        >>> reviewer_prompts = prompts.get_by_tag("reviewer")
+        >>> agent = Agent(
+        ...     provider="openai",
+        ...     model="gpt-4o",
+        ...     system_prompt=prompts.get_content("my-agent"),
+        ... )
     """
 
-    def __init__(self, include_builtins: bool = True):
-        """Create a new PromptManager.
-
-        Args:
-            include_builtins: Include built-in prompt templates.
-        """
+    def __init__(self) -> None:
         self._prompts: dict[str, PromptConfig] = {}
-        if include_builtins:
-            for prompt in _BUILTIN_PROMPTS:
-                self._prompts[prompt.id] = PromptConfig(
-                    id=prompt.id,
-                    name=prompt.name,
-                    content=prompt.content,
-                    description=prompt.description,
-                    tags=list(prompt.tags),
-                )
 
     def register(self, config: PromptConfig) -> None:
         """Register a prompt configuration.
@@ -346,7 +203,7 @@ class PromptManager:
         Returns:
             New PromptManager instance.
         """
-        manager = cls(include_builtins=False)
+        manager = cls()
         content = Path(file_path).read_text(encoding="utf-8")
         manager.import_json(content)
         return manager
@@ -361,6 +218,6 @@ class PromptManager:
         Returns:
             New PromptManager instance.
         """
-        manager = cls(include_builtins=False)
+        manager = cls()
         manager.import_json(json_str)
         return manager

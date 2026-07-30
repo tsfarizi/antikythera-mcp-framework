@@ -1,6 +1,6 @@
 # antikythera-agent
 
-Multi-agent orchestration with MCP tool integration. Powered by WebAssembly.
+General-purpose agent runtime with multi-agent orchestration, MCP tool integration, and WebAssembly support.
 
 ## Installation
 
@@ -10,41 +10,44 @@ npm install antikythera-agent
 
 ## Quick Start
 
-### Setup with PromptManager
+### Create an Agent
 
-```typescript
-import { PromptManager, Agent } from 'antikythera-agent';
+```javascript
+const { PromptManager } = require('antikythera-agent');
 
 const prompts = new PromptManager();
 
-const agent = new Agent({
-  provider: 'openai',
-  model: 'gpt-4o',
-  systemPrompt: prompts.getContent('coder')
+prompts.register({
+  id: 'assistant',
+  name: 'Assistant',
+  content: 'You are a helpful assistant.',
+  tags: ['general']
 });
 
-const result = await agent.run('Write a sorting algorithm');
-console.log(result.output);
+const content = prompts.getContent('assistant');
 ```
 
 ### Multi-Agent Orchestration
 
-```typescript
-import { PromptManager, Orchestrator } from 'antikythera-agent';
+```javascript
+const { PromptManager, Orchestrator } = require('antikythera-agent');
 
 const prompts = new PromptManager();
+prompts.register({ id: 'coder', name: 'Coder', content: 'You are a software engineer.' });
+prompts.register({ id: 'reviewer', name: 'Reviewer', content: 'You are a code reviewer.' });
+
 const orchestrator = new Orchestrator({ executionMode: 'auto' });
 
 orchestrator.registerAgent({
   id: 'coder',
-  name: 'Code Writer',
+  name: 'Coder',
   role: 'developer',
   systemPrompt: prompts.getContent('coder')
 });
 
 orchestrator.registerAgent({
   id: 'reviewer',
-  name: 'Code Reviewer',
+  name: 'Reviewer',
   role: 'reviewer',
   systemPrompt: prompts.getContent('reviewer')
 });
@@ -52,20 +55,17 @@ orchestrator.registerAgent({
 const result = await orchestrator.dispatch('Write and review code');
 ```
 
-## Built-in Prompts
+### Load Prompts from JSON
 
-| ID | Name | Tags |
-|:---|:-----|:-----|
-| `coder` | Code Writer | coder, engineering, default |
-| `reviewer` | Code Reviewer | reviewer, quality, default |
-| `analyst` | Data Analyst | analyst, data, default |
-| `researcher` | Researcher | researcher, analysis, default |
-| `architect` | Software Architect | architect, design, default |
-| `debugger` | Debugger | debugger, troubleshooting, default |
-| `documenter` | Technical Writer | documentation, writing, default |
-| `security` | Security Analyst | security, audit, default |
-| `optimizer` | Performance Optimizer | performance, optimization, default |
-| `tester` | QA Engineer | testing, quality, default |
+```javascript
+const { PromptManager } = require('antikythera-agent');
+
+// Load from file
+const prompts = PromptManager.fromFile('prompts.json');
+
+// Or load from string
+const prompts = PromptManager.fromJSON('[{"id":"agent","name":"Agent","content":"You are helpful."}]');
+```
 
 ## Requirements
 

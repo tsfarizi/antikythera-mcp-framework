@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "antikythera-agent"
-version = "1.7.9"
-description = "Antikythera Agent Runtime - Multi-agent orchestration with MCP tool integration"
+version = "1.7.10"
+description = "General-purpose agent runtime with multi-agent orchestration, MCP tool integration, and WebAssembly support"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.9"
