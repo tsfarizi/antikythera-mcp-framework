@@ -7,9 +7,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from antikythera_agent.types import AgentConfig, AgentResult
-
-# Path to pre-compiled WASM binary
-_WASM_PATH = Path(__file__).parent / "antikythera.wasm"
+from antikythera_agent.runtime import WasmRuntime, WasmRuntimeError
 
 
 class Agent:
@@ -48,7 +46,7 @@ class Agent:
             max_steps=max_steps,
             timeout=timeout,
         )
-        self._wasm = self._init_wasm()
+        self._runtime = WasmRuntime()
 
     @classmethod
     def from_config(cls, config: AgentConfig) -> Agent:
@@ -96,8 +94,7 @@ class Agent:
         )
 
         try:
-            result_json = self._wasm.call("agent_run", args)
-            result_dict = json.loads(result_json)
+            result_dict = self._runtime.call_checked("agent_run", args)
             return AgentResult(
                 output=result_dict.get("output", ""),
                 success=result_dict.get("success", False),
@@ -105,7 +102,7 @@ class Agent:
                 session_id=result_dict.get("session_id", ""),
                 error=result_dict.get("error"),
             )
-        except Exception as e:
+        except WasmRuntimeError as e:
             return AgentResult(
                 output="",
                 success=False,
@@ -127,27 +124,3 @@ class Agent:
             max_steps=self._config.max_steps,
             timeout=self._config.timeout,
         )
-
-    def _init_wasm(self) -> Any:
-        """Initialize WASM runtime.
-
-        Returns:
-            WASM instance with call method.
-        """
-        if not _WASM_PATH.exists():
-            raise RuntimeError(
-                f"WASM binary not found at {_WASM_PATH}. "
-                "Please install with: pip install antikythera"
-            )
-
-        class WasmProxy:
-            def call(self, func_name: str, args: str) -> str:
-                return json.dumps(
-                    {
-                        "output": "WASM runtime not available in development mode",
-                        "success": False,
-                        "error": "WASM binary not loaded",
-                    }
-                )
-
-        return WasmProxy()

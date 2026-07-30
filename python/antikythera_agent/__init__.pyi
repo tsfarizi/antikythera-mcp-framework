@@ -14,6 +14,8 @@ from antikythera_agent.orchestrator import Orchestrator as Orchestrator
 from antikythera_agent.session import SessionManager as SessionManager
 from antikythera_agent.prompts import PromptManager as PromptManager
 from antikythera_agent.prompts import PromptConfig as PromptConfig
+from antikythera_agent.runtime import WasmRuntime as WasmRuntime
+from antikythera_agent.runtime import WasmRuntimeError as WasmRuntimeError
 from antikythera_agent.utils import get_version as get_version
 
 __version__: str

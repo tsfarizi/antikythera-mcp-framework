@@ -12,9 +12,7 @@ from antikythera_agent.types import (
     PipelineResult,
     TaskResult,
 )
-
-# Path to pre-compiled WASM binary
-_WASM_PATH = Path(__file__).parent / "antikythera.wasm"
+from antikythera_agent.runtime import WasmRuntime, WasmRuntimeError
 
 
 class Orchestrator:
@@ -62,7 +60,7 @@ class Orchestrator:
             default_retry_condition=default_retry_condition,  # type: ignore
         )
         self._agents: list[AgentProfileConfig] = []
-        self._wasm = self._init_wasm()
+        self._runtime = WasmRuntime()
 
     @classmethod
     def from_config(cls, config: OrchestratorConfig) -> Orchestrator:
@@ -135,8 +133,7 @@ class Orchestrator:
         )
 
         try:
-            result_json = self._wasm.call("orchestrator_dispatch", args)
-            result_dict = json.loads(result_json)
+            result_dict = self._runtime.call_checked("orchestrator_dispatch", args)
             return TaskResult(
                 task_id=result_dict.get("task_id", ""),
                 agent_id=result_dict.get("agent_id", ""),
@@ -148,7 +145,7 @@ class Orchestrator:
                 error_kind=result_dict.get("error_kind"),
                 duration_ms=result_dict.get("duration_ms", 0),
             )
-        except Exception as e:
+        except WasmRuntimeError as e:
             return TaskResult(
                 task_id="",
                 agent_id="",
@@ -216,8 +213,8 @@ class Orchestrator:
     def cancel(self) -> None:
         """Cancel all running tasks."""
         try:
-            self._wasm.call("orchestrator_cancel", "{}")
-        except Exception:
+            self._runtime.call("orchestrator_cancel", "{}")
+        except WasmRuntimeError:
             pass
 
     def get_budget(self) -> dict[str, Any]:
@@ -240,26 +237,3 @@ class Orchestrator:
             List of agent profiles.
         """
         return list(self._agents)
-
-    def _init_wasm(self) -> Any:
-        """Initialize WASM runtime.
-
-        Returns:
-            WASM instance with call method.
-        """
-        if not _WASM_PATH.exists():
-            raise RuntimeError(
-                f"WASM binary not found at {_WASM_PATH}. "
-                "Please install with: pip install antikythera"
-            )
-
-        class WasmProxy:
-            def call(self, func_name: str, args: str) -> str:
-                return json.dumps(
-                    {
-                        "success": False,
-                        "error": "WASM runtime not available in development mode",
-                    }
-                )
-
-        return WasmProxy()

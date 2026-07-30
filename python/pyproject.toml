@@ -25,6 +25,10 @@ classifiers = [
     "Topic :: Software Development :: Libraries",
 ]
 
+[project.optional-dependencies]
+wasm = ["wasmtime>=28.0"]
+dev = ["pytest>=7.0", "wasmtime>=28.0"]
+
 [project.urls]
 Homepage = "https://github.com/tsfarizi/antikythera-agent-sdk"
 Repository = "https://github.com/tsfarizi/antikythera-agent-sdk"

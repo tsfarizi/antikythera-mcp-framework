@@ -8,6 +8,12 @@ General-purpose agent runtime with multi-agent orchestration, MCP tool integrati
 pip install antikythera-agent
 ```
 
+For WASM execution support:
+
+```bash
+pip install antikythera-agent[wasm]
+```
+
 ## Quick Start
 
 ### Create an Agent
@@ -70,6 +76,16 @@ orchestrator.register_agent(AgentProfileConfig(
 result = orchestrator.dispatch("Write and review code")
 ```
 
+### WASM Runtime (Server-Side)
+
+```python
+from antikythera_agent import WasmRuntime
+
+runtime = WasmRuntime()
+result = runtime.call_checked("init", '{"max_steps": 10}')
+print(result)
+```
+
 ### Load Prompts from JSON
 
 ```python
@@ -85,6 +101,7 @@ prompts = PromptManager.from_json('[{"id":"agent","name":"Agent","content":"You 
 ## Requirements
 
 - Python >= 3.9
+- wasmtime >= 28.0 (optional, for WASM execution)
 
 ## License
 

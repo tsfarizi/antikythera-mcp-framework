@@ -10,10 +10,10 @@ npm install antikythera-agent
 
 ## Quick Start
 
-### Create an Agent
+### Browser Usage
 
 ```javascript
-const { PromptManager } = require('antikythera-agent');
+import { PromptManager } from 'antikythera-agent';
 
 const prompts = new PromptManager();
 
@@ -25,6 +25,15 @@ prompts.register({
 });
 
 const content = prompts.getContent('assistant');
+```
+
+### WASM Initialization (Browser)
+
+```javascript
+import init from 'antikythera-agent/antikythera_wasm_bindgen';
+
+// Initialize WASM with browser binary
+await init();
 ```
 
 ### Multi-Agent Orchestration
@@ -66,6 +75,14 @@ const prompts = PromptManager.fromFile('prompts.json');
 // Or load from string
 const prompts = PromptManager.fromJSON('[{"id":"agent","name":"Agent","content":"You are helpful."}]');
 ```
+
+## Package Contents
+
+| File | Description |
+|:-----|:------------|
+| `index.js` | Main exports (PromptManager, SessionManager) |
+| `antikythera_wasm_bindgen.js` | WASM glue code for browser |
+| `antikythera_wasm_bindgen_bg.wasm` | Browser WASM binary |
 
 ## Requirements
 

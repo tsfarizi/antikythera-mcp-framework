@@ -21,6 +21,7 @@ from antikythera_agent.agent import Agent
 from antikythera_agent.orchestrator import Orchestrator
 from antikythera_agent.session import SessionManager
 from antikythera_agent.prompts import PromptManager, PromptConfig
+from antikythera_agent.runtime import WasmRuntime, WasmRuntimeError
 from antikythera_agent.types import (
     AgentConfig,
     AgentResult,
@@ -39,6 +40,7 @@ __all__ = [
     "Orchestrator",
     "SessionManager",
     "PromptManager",
+    "WasmRuntime",
     # Types
     "AgentConfig",
     "AgentResult",
@@ -48,6 +50,8 @@ __all__ = [
     "OrchestratorConfig",
     "SessionInfo",
     "PromptConfig",
+    # Errors
+    "WasmRuntimeError",
     # Utilities
     "get_version",
 ]
