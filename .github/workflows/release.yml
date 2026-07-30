@@ -10,8 +10,56 @@ permissions:
   packages: write
 
 jobs:
+  sync-version:
+    name: Sync Version from Tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: extract
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          echo "version=$TAG" >> $GITHUB_OUTPUT
+          echo "Releasing version: $TAG"
+
+      - name: Update Cargo.toml version
+        run: |
+          VERSION="${{ steps.extract.outputs.version }}"
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+          echo "Updated Cargo.toml to $VERSION"
+
+      - name: Update pyproject.toml version
+        run: |
+          VERSION="${{ steps.extract.outputs.version }}"
+          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" python/pyproject.toml
+          echo "Updated python/pyproject.toml to $VERSION"
+
+      - name: Update package.json version
+        run: |
+          VERSION="${{ steps.extract.outputs.version }}"
+          sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" npm/antikythera-sdk/package.json
+          echo "Updated npm/antikythera-sdk/package.json to $VERSION"
+
+      - name: Update __init__.py version
+        run: |
+          VERSION="${{ steps.extract.outputs.version }}"
+          sed -i "s/__version__ = \".*\"/__version__ = \"$VERSION\"/" python/antikythera_agent/__init__.py
+          echo "Updated python/antikythera_agent/__init__.py to $VERSION"
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Cargo.toml python/pyproject.toml npm/antikythera-sdk/package.json python/antikythera_agent/__init__.py
+          git commit -m "chore: release v${{ steps.extract.outputs.version }}" || echo "No changes to commit"
+          git push
+
   build-wasm-browser:
     name: Build Browser WASM
+    needs: [sync-version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,6 +86,7 @@ jobs:
 
   build-wasm-server:
     name: Build Server WASM (WASI)
+    needs: [sync-version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +125,7 @@ jobs:
 
   publish-npm:
     name: Publish npm Package
-    needs: [build-wasm-browser]
+    needs: [sync-version, build-wasm-browser]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -101,7 +150,7 @@ jobs:
 
   publish-pypi:
     name: Publish Python Package
-    needs: [build-wasm-server]
+    needs: [sync-version, build-wasm-server]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -136,7 +185,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [publish-npm, publish-pypi]
+    needs: [sync-version, publish-npm, publish-pypi]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
