@@ -31,7 +31,7 @@ jobs:
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Build browser WASM
-        run: wasm-pack build --target web --release --out-dir pkg-web -p antikythera-wasm-bindgen
+        run: wasm-pack build --target web --release --out-dir pkg-web --manifest-path plugin/antikythera-wasm-bindgen/Cargo.toml
 
       - name: Upload browser WASM artifact
         uses: actions/upload-artifact@v4
