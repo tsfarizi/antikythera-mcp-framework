@@ -1,4 +1,4 @@
-import __wbg_init from './pkg/antikythera_wasm_bindgen'
+import __wbg_init from 'antikythera-agent/antikythera_wasm_bindgen'
 import {
   init as initSession,
   prepare_user_turn,
@@ -13,7 +13,7 @@ import {
   process_llm_response_for_session,
   process_tool_result_for_session,
   set_context_policy,
-} from './pkg/antikythera_wasm_bindgen'
+} from 'antikythera-agent/antikythera_wasm_bindgen'
 
 let initialized = false
 
@@ -22,11 +22,11 @@ export async function initWasm(): Promise<void> {
     console.log('[WASM] Already initialized, skipping')
     return
   }
-  console.log('[WASM] Starting initialization...')
+  console.log('[WASM] Starting initialization from npm package...')
   try {
     await __wbg_init()
     initialized = true
-    console.log('[WASM] Initialization successful')
+    console.log('[WASM] Initialization successful (using npm package)')
   } catch (e) {
     console.error('[WASM] Initialization FAILED:', e)
     throw e
