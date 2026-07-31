@@ -1,0 +1,33 @@
+[package]
+name = "antikythera-facade"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "High-level API for Antikythera MCP Framework — native-first, WASM-optional"
+
+[features]
+default = ["ollama"]
+openai = ["dep:antikythera-provider-openai"]
+ollama = ["dep:antikythera-provider-ollama"]
+gemini = ["dep:antikythera-provider-gemini"]
+full = ["openai", "ollama", "gemini"]
+
+[dependencies]
+# Core framework
+antikythera-core = { path = "../antikythera-core" }
+antikythera-domain = { path = "../antikythera-domain" }
+antikythera-log = { path = "../antikythera-log", features = ["subscriber"] }
+
+# Providers (feature-gated)
+antikythera-provider-openai = { path = "../antikythera-provider-openai", optional = true }
+antikythera-provider-ollama = { path = "../antikythera-provider-ollama", optional = true }
+antikythera-provider-gemini = { path = "../antikythera-provider-gemini", optional = true }
+
+# Deps
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror.workspace = true
+tracing.workspace = true

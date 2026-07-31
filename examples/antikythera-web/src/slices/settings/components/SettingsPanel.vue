@@ -6,7 +6,7 @@ const isOpen = ref(false)
 const model = ref(getOllamaModel())
 
 const popularModels = [
-  'llama3.2',
+  'gpt-oss:120b-cloud',
   'llama3.1',
   'llama3',
   'mistral',

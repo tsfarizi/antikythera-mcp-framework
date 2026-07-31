@@ -82,7 +82,7 @@ sequenceDiagram
 10. `antikythera-sdk` — SDK/integration surface (FFI boundaries, WASM bindings).
 
 Example applications:
-- `example/antikythera-web` — Web frontend (Vue.js/TypeScript).
+- `examples/antikythera-web` — Web frontend (Vue.js/TypeScript).
 
 Supporting crates:
 - `antikythera-wasm-bindgen` — wasm-bindgen bindings for browser targets.

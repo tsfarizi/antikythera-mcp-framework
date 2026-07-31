@@ -5,6 +5,7 @@
 use super::app::AppConfig;
 use super::error::ConfigError;
 use super::toml_config;
+#[cfg(not(target_arch = "wasm32"))]
 use dotenvy::from_filename;
 use std::path::Path;
 use std::sync::Once;
@@ -13,6 +14,7 @@ static ENV_LOADER: Once = Once::new();
 
 /// Load and validate configuration from TOML
 pub fn load_config(path: Option<&Path>) -> Result<AppConfig, ConfigError> {
+    #[cfg(not(target_arch = "wasm32"))]
     ENV_LOADER.call_once(|| {
         let _ = from_filename(super::toml_config::ENV_PATH);
     });

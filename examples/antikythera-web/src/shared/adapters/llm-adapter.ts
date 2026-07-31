@@ -120,7 +120,7 @@ export async function callOllama(
 }
 
 export function getOllamaModel(): string {
-  const model = localStorage.getItem('ollama_model') || 'llama3.2'
+  const model = localStorage.getItem('ollama_model') || 'gpt-oss:120b-cloud'
   console.log('[Ollama] getOllamaModel:', model)
   return model
 }

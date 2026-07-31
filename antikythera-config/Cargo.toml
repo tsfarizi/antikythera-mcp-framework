@@ -12,6 +12,8 @@ antikythera-domain = { path = "../antikythera-domain" }
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
+thiserror.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 dotenvy.workspace = true
 shellexpand.workspace = true
-thiserror.workspace = true

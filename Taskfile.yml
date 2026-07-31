@@ -17,7 +17,7 @@ vars:
   PROVIDER_TYPE: '{{default "ollama" .PROVIDER_TYPE}}'
   PROVIDER_ENDPOINT: '{{default "http://127.0.0.1:11434" .PROVIDER_ENDPOINT}}'
   PROVIDER_API_KEY: '{{default "" .PROVIDER_API_KEY}}'
-  MODEL_NAME: '{{default "llama3.2" .MODEL_NAME}}'
+  MODEL_NAME: '{{default "gpt-oss:120b-cloud" .MODEL_NAME}}'
 
 tasks:
 
@@ -30,22 +30,28 @@ tasks:
       - |
         echo "Antikythera Agent SDK - Available Tasks"
         echo ""
-        echo "  task build         - Build WASM component"
+        echo "  === Native Development (No WASM Required) ==="
+        echo "  task run             - Run chat agent (Ollama, default model)"
+        echo "  task run-model       - Run chat agent with custom model (MODEL_NAME=xxx)"
+        echo "  task run-chat        - Run chat example from examples/chat"
+        echo "  task check-native    - Check code (native target only)"
+        echo "  task test-native     - Run tests (native target only)"
+        echo ""
+        echo "  === WASM Development (Optional) ==="
+        echo "  task build           - Build WASM component"
         echo "  task build-wasm-harness - Build WASM artifact for FFI host harness"
-        echo "  task build-all     - Build all WASM artifacts"
-        echo "  task wit           - Generate WIT from Rust code"
-        echo "  task clean         - Clean all build artifacts"
-        echo "  task clean-wasm    - Clean WASM build artifacts"
-        echo "  task check         - Check code without building"
-        echo "  task check-wasm    - Check WASM compilation"
-        echo "  task test          - Run all tests"
-        echo "  task test-sdk      - Run SDK tests"
-        echo "  task test-ffi      - Run FFI tests"
-        echo "  task test-component - Run component tests"
-        echo "  task lint          - Run clippy linter"
-        echo "  task format        - Format code with rustfmt"
-        echo "  task inspect       - Inspect WASM component"
-        echo "  task size          - Show binary sizes"
+        echo "  task build-all       - Build all WASM artifacts"
+        echo "  task check-wasm      - Check WASM compilation"
+        echo ""
+        echo "  === Examples ==="
+        echo "  task run-web         - Run web frontend dev server"
+        echo "  task build-web       - Build web frontend for production"
+        echo ""
+        echo "  === Quality ==="
+        echo "  task check           - Check all code"
+        echo "  task test            - Run all tests"
+        echo "  task lint            - Run clippy linter"
+        echo "  task format          - Format code with rustfmt"
         echo ""
 
   # ===========================================================================
@@ -90,20 +96,39 @@ tasks:
   # Run Tasks
   # ===========================================================================
 
+  run:
+    desc: Run chat agent (Ollama, default model)
+    cmds:
+      - echo "Starting chat agent..."
+      - cargo run -p chat-example --release
+
+  run-model:
+    desc: Run chat agent with custom model
+    cmds:
+      - 'echo "Starting chat agent with model: {{.MODEL_NAME}}"'
+      - cargo run -p chat-example --release -- {{.MODEL_NAME}}
+
+  run-chat:
+    desc: Run chat example from examples/chat
+    dir: examples/chat
+    cmds:
+      - echo "Starting chat example..."
+      - cargo run --release
+
   run-web:
     desc: Run web frontend dev server (Vite)
-    dir: example/antikythera-web
+    dir: examples/antikythera-web
     cmds:
       - echo "Starting web frontend dev server..."
       - npm run dev
 
   build-web:
     desc: Build web frontend for production
-    dir: example/antikythera-web
+    dir: examples/antikythera-web
     cmds:
       - echo "Building web frontend..."
       - npm run build
-      - echo "✓ Web frontend built to example/antikythera-web/dist/"
+      - echo "✓ Web frontend built to examples/antikythera-web/dist/"
 
   # ===========================================================================
   # Test Tasks
@@ -111,13 +136,19 @@ tasks:
 
   test:
     desc: Run all tests
-    deps:
-      - wit
     cmds:
       - echo "Running all tests..."
       - cargo test --workspace
       - echo ""
       - echo "✓ All tests passed"
+
+  test-native:
+    desc: Run tests (native target only)
+    cmds:
+      - echo "Running native tests..."
+      - cargo test --workspace
+      - echo ""
+      - echo "✓ Native tests passed"
 
   test-sdk:
     desc: Run SDK tests
@@ -148,19 +179,23 @@ tasks:
   # ===========================================================================
 
   check:
-    desc: Check code without building
-    deps:
-      - wit
+    desc: Check all code
     cmds:
-      - echo "Checking code..."
+      - echo "Checking all code..."
       - cargo check --workspace
       - echo ""
       - echo "✓ Code check passed"
 
+  check-native:
+    desc: Check code (native target only)
+    cmds:
+      - echo "Checking native code..."
+      - cargo check --workspace
+      - echo ""
+      - echo "✓ Native code check passed"
+
   check-wasm:
     desc: Check WASM compilation
-    deps:
-      - wit
     cmds:
       - echo "Checking WASM compilation..."
       - cargo check -p antikythera-sdk --target {{.WASM_TARGET}}

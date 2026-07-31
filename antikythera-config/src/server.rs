@@ -32,11 +32,14 @@ pub struct RawServer {
 
 impl From<RawServer> for ServerConfig {
     fn from(raw: RawServer) -> Self {
+        #[cfg(not(target_arch = "wasm32"))]
         let expand = |s: &str| -> String {
             shellexpand::full(s)
                 .map(|cow| cow.into_owned())
                 .unwrap_or_else(|_| s.to_string())
         };
+        #[cfg(target_arch = "wasm32")]
+        let expand = |s: &str| -> String { s.to_string() };
 
         // Determine transport type based on provided fields
         let (transport, command, url) = if let Some(url_str) = raw.url {

@@ -1,27 +1,47 @@
 [workspace]
 resolver = "2"
 members = [
-    "antikythera-core",
-    "antikythera-sdk",
-    "antikythera-log",
-    "antikythera-session",
-    "antikythera-storage",
+    # Layer 0: Types
     "antikythera-domain",
     "antikythera-ports",
+
+    # Layer 1: Implementations
     "antikythera-config",
+    "antikythera-log",
     "antikythera-resilience",
-    "antikythera-security",
-    "antikythera-observability",
     "antikythera-tooling",
+    "antikythera-observability",
+    "antikythera-security",
+    "antikythera-storage",
+
+    # Layer 2: Core
+    "antikythera-core",
+    "antikythera-session",
+
+    # Layer 3: Providers
+    "antikythera-provider-ollama",
+    "antikythera-provider-openai",
+    "antikythera-provider-gemini",
+
+    # Layer 4: SDK & Facade
+    "antikythera-sdk",
+    "antikythera-facade",
+
+    # Layer 5: Deployment
     "plugin/antikythera-wasm-bindgen",
     "plugin/antikythera-toolrunner",
+
+    # Infra
     "scripts",
     "tests",
+
+    # Examples
+    "examples/chat",
 ]
 
 
 [workspace.package]
-version = "1.7.10"
+version = "1.7.11"
 edition = "2024"
 authors = ["tsfarizi"]
 license = "MIT"

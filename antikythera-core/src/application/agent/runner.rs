@@ -11,6 +11,7 @@ use crate::application::ports::security::RateLimiter as RateLimiterTrait;
 use crate::logging::{AgentLogger, SessionContext};
 use serde_json::{Value, json};
 use std::sync::Arc;
+#[cfg(not(target_arch = "wasm32"))]
 use sysinfo::System;
 
 pub struct Agent<P: ModelProvider> {
@@ -104,13 +105,17 @@ impl<P: ModelProvider> Agent<P> {
 
         let mut remaining_steps = options.max_steps;
         let mut system_prompt_to_send = Some(system_prompt);
+        #[cfg(not(target_arch = "wasm32"))]
         let mut system = System::new();
+        #[cfg(not(target_arch = "wasm32"))]
         let mut last_resource_check: std::time::Instant = std::time::Instant::now();
+        #[cfg(not(target_arch = "wasm32"))]
         const RESOURCE_CHECK_INTERVAL: std::time::Duration = std::time::Duration::from_secs(30);
         let mut first_call = true;
         let initial_attachments = std::mem::take(&mut options.attachments);
 
         loop {
+            #[cfg(not(target_arch = "wasm32"))]
             if last_resource_check.elapsed() >= RESOURCE_CHECK_INTERVAL {
                 system.refresh_cpu_all();
                 system.refresh_memory();
