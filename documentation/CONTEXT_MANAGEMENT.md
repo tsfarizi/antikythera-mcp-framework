@@ -28,7 +28,7 @@ flowchart TD
 - **Unified Data Model**: Multi-part messages (`Text`, `Image`, `File`), ensuring robust LLM input structures align with the persisted history format.
 - **Runtime Policies**: Policy configuration through context management APIs (e.g., token-budget aware pruning and max history messages).
 - **Stat Tracking**: Auto-syncs token consumption and tool usage into the active session instance.
-- **Snapshot Export/Import**: Fast, binary (`Postcard`) based FFI session state serialization, easily hydrated during warm starts.
+- **Snapshot Export/Import**: Fast, JSON-based FFI session state serialization, easily hydrated during warm starts.
 
 ## Operational Notes
 

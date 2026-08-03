@@ -100,7 +100,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-config"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-domain",
  "dotenvy",
@@ -113,7 +113,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-core"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-config",
  "antikythera-domain",
@@ -129,7 +129,6 @@ dependencies = [
  "dotenvy",
  "futures",
  "once_cell",
- "postcard",
  "ratatui",
  "regex",
  "serde",
@@ -146,10 +145,9 @@ dependencies = [
 
 [[package]]
 name = "antikythera-domain"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "chrono",
- "postcard",
  "serde",
  "serde_json",
  "thiserror 2.0.19",
@@ -158,7 +156,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-facade"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -175,12 +173,11 @@ dependencies = [
 
 [[package]]
 name = "antikythera-log"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "chrono",
  "crossbeam-channel",
  "js-sys",
- "postcard",
  "serde",
  "serde_json",
  "tokio",
@@ -189,7 +186,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-observability"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-domain",
  "antikythera-ports",
@@ -203,7 +200,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-ports"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-domain",
  "async-trait",
@@ -215,7 +212,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-provider-gemini"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -229,7 +226,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-provider-ollama"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -243,7 +240,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-provider-openai"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -257,7 +254,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-resilience"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-domain",
  "chrono",
@@ -268,7 +265,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-sdk"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-core",
  "antikythera-log",
@@ -285,7 +282,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-security"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-domain",
  "antikythera-ports",
@@ -299,7 +296,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-session"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-domain",
  "antikythera-log",
@@ -312,7 +309,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-storage"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-domain",
  "async-trait",
@@ -335,7 +332,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-tests"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -359,7 +356,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-tooling"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-config",
  "antikythera-domain",
@@ -372,7 +369,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-toolrunner"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-log",
  "async-trait",
@@ -383,7 +380,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-wasm-bindgen"
-version = "1.7.11"
+version = "1.8.0"
 dependencies = [
  "antikythera-sdk",
  "serde",
@@ -440,15 +437,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a89cbf775b137e9b968e67227ef7f775587cde3fd31b0d8599dbd0f598a48340"
 dependencies = [
  "bytemuck",
-]
-
-[[package]]
-name = "atomic-polyfill"
-version = "1.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8cf2bce30dfe09ef0bfaef228b9d414faaf7e563035494d7fe092dba54b300f4"
-dependencies = [
- "critical-section",
 ]
 
 [[package]]
@@ -635,7 +623,7 @@ dependencies = [
 
 [[package]]
 name = "build-scripts"
-version = "1.7.11"
+version = "1.8.0"
 
 [[package]]
 name = "bumpalo"
@@ -1823,15 +1811,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hash32"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0c35f58762feb77d74ebe43bdbc3210f09be9fe6742234d573bacc26ed92b67"
-dependencies = [
- "byteorder",
-]
-
-[[package]]
 name = "hashbrown"
 version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1872,20 +1851,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7382cf6263419f2d8df38c55d7da83da5c18aef87fc7a7fc1fb1e344edfe14c1"
 dependencies = [
  "hashbrown 0.15.5",
-]
-
-[[package]]
-name = "heapless"
-version = "0.7.17"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdc6457c0eb62c71aac4bc17216026d8410337c4126773b9c5daba343f17964f"
-dependencies = [
- "atomic-polyfill",
- "hash32",
- "rustc_version",
- "serde",
- "spin",
- "stable_deref_trait",
 ]
 
 [[package]]
@@ -3218,7 +3183,6 @@ dependencies = [
  "cobs",
  "embedded-io 0.4.0",
  "embedded-io 0.6.1",
- "heapless",
  "serde",
 ]
 

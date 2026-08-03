@@ -58,7 +58,7 @@ flowchart TD
 - **Provider Abstraction:** LLM providers (Ollama, OpenAI, Gemini) implement the `ModelProvider` port trait from `antikythera-ports`. The `antikythera-facade` crate provides a unified API with feature-gated provider selection.
 - **Security Layer:** `antikythera-security` provides input validation, rate limiting, and secrets management. Port traits are defined in `antikythera-ports`, with concrete implementations in the security crate.
 - **Observability Layer:** `antikythera-observability` provides in-memory metrics, audit trails, and tracing hooks. Port traits are defined in `antikythera-ports`, with concrete implementations in the observability crate.
-- **FFI & Portability:** `SDK` exposes `SESSION` and `LOG` components over safe FFI boundaries, allowing host languages (e.g. Node.js, Python) to import/export chat histories easily using the `Postcard` binary format.
+- **FFI & Portability:** `SDK` exposes `SESSION` and `LOG` components over safe FFI boundaries, allowing host languages (e.g. Node.js, Python) to import/export chat histories easily using JSON format.
 
 ## Request flow
 

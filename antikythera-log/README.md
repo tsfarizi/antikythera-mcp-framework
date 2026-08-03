@@ -5,10 +5,9 @@ Structured logging foundation for the Antikythera MCP Framework.
 ## Features
 
 - Thread-safe ring-buffer logger (`Logger`, `LogBuffer`)
-- 16 convenience macros: `alog_debug!`, `alog_info!`, `alog_warn!`, `alog_error!`, plus source/context variants, `cli_print!`, `cli_eprint!`
+- Convenience macros: `alog_debug!`, `alog_info!`, `alog_warn!`, `alog_error!`, plus source/context variants, `cli_print!`, `cli_eprint!`
 - Filtering, pagination, JSON export, batch/session log export
 - Real-time log subscription (`LogSubscriber`)
-- Postcard binary serialization (`PostcardSerde` trait)
 - Compile-time lint to ban raw `println!`/`dbg!`/`tracing!` usage (feature: `lint`)
 
 ## Feature Flags

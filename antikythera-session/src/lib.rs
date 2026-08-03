@@ -9,7 +9,7 @@
 //! - **Persistent state** - Export/import sessions with consistent format
 //! - **Chat history** - Full tracking of user, assistant, and tool interactions
 //! - **Typed consistency** - Rust type system ensures valid session data
-//! - **Postcard serialization** - Efficient binary format for persistence
+//! - **JSON serialization** - Human-readable format for persistence
 //!
 //! ## Architecture
 //!
@@ -17,7 +17,7 @@
 //! antikythera-session/
 //! ├── session.rs       # Session entity with chat history
 //! ├── manager.rs       # Session manager (concurrent access)
-//! └── export.rs        # Export/import with Postcard serialization
+//! └── export.rs        # Export/import with JSON serialization
 //! ```
 //!
 //! ## Usage
@@ -48,13 +48,13 @@
 //! let manager = SessionManager::new();
 //! let session_id = manager.create_session("user-123", "gpt-4").unwrap();
 //!
-//! // Export session to binary
+//! // Export session to JSON
 //! let session = manager.get_session(&session_id).unwrap().unwrap();
 //! let export = SessionExport::from_session(session);
-//! let data = export.to_postcard().unwrap();
+//! let data = export.to_json().unwrap();
 //!
 //! // Import session later
-//! let export = SessionExport::from_postcard(&data).unwrap();
+//! let export = SessionExport::from_json(&data).unwrap();
 //! manager.import_session(export.into_session()).unwrap();
 //! ```
 
@@ -144,9 +144,9 @@ mod tests {
         session.add_message(Message::user("hello"));
 
         let export = SessionExport::from_session(session.clone());
-        let data = export.to_postcard().unwrap();
+        let data = export.to_json().unwrap();
 
-        let restored_export = SessionExport::from_postcard(&data).unwrap();
+        let restored_export = SessionExport::from_json(&data).unwrap();
         let restored = restored_export.into_session();
 
         assert_eq!(restored.id, session.id);

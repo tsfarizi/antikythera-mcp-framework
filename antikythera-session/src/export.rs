@@ -1,9 +1,9 @@
 //! Session Export/Import
 //!
-//! Export and import sessions with consistent Postcard binary format.
+//! Export and import sessions with consistent JSON format.
 
 use crate::session::Session;
-use antikythera_log::{PostcardSerde, SessionLogger};
+use antikythera_log::SessionLogger;
 use serde::{Deserialize, Serialize};
 
 // ============================================================================
@@ -42,18 +42,18 @@ impl SessionExport {
         self.session
     }
 
-    /// Serialize to Postcard binary
-    pub fn to_postcard(&self) -> Result<Vec<u8>, String> {
-        PostcardSerde::to_postcard(self).map_err(|e| {
+    /// Serialize to JSON string
+    pub fn to_json(&self) -> Result<String, String> {
+        serde_json::to_string_pretty(self).map_err(|e| {
             SessionLogger::new(&self.session.id)
                 .error(format!("Session export serialize error: {}", e));
             format!("Serialize error: {}", e)
         })
     }
 
-    /// Deserialize from Postcard binary
-    pub fn from_postcard(data: &[u8]) -> Result<Self, String> {
-        let export: SessionExport = PostcardSerde::from_postcard(data).map_err(|e| {
+    /// Deserialize from JSON string
+    pub fn from_json(json: &str) -> Result<Self, String> {
+        let export: SessionExport = serde_json::from_str(json).map_err(|e| {
             SessionLogger::new("export").error(format!("Session export deserialize error: {}", e));
             format!("Deserialize error: {}", e)
         })?;
@@ -123,17 +123,17 @@ impl BatchExport {
             .collect()
     }
 
-    /// Serialize to Postcard binary
-    pub fn to_postcard(&self) -> Result<Vec<u8>, String> {
-        PostcardSerde::to_postcard(self).map_err(|e| {
+    /// Serialize to JSON string
+    pub fn to_json(&self) -> Result<String, String> {
+        serde_json::to_string_pretty(self).map_err(|e| {
             SessionLogger::new("export").error(format!("Batch export serialize error: {}", e));
             format!("Serialize error: {}", e)
         })
     }
 
-    /// Deserialize from Postcard binary
-    pub fn from_postcard(data: &[u8]) -> Result<Self, String> {
-        let export: BatchExport = PostcardSerde::from_postcard(data).map_err(|e| {
+    /// Deserialize from JSON string
+    pub fn from_json(json: &str) -> Result<Self, String> {
+        let export: BatchExport = serde_json::from_str(json).map_err(|e| {
             SessionLogger::new("export").error(format!("Batch export deserialize error: {}", e));
             format!("Deserialize error: {}", e)
         })?;
@@ -146,7 +146,7 @@ impl BatchExport {
                 Self::VERSION
             ));
             return Err(format!(
-                "Unsupported export version: {}. Expected: {}",
+                "Unsupported batch export version: {}. Expected: {}",
                 export.version,
                 Self::VERSION
             ));
@@ -155,7 +155,3 @@ impl BatchExport {
         Ok(export)
     }
 }
-
-impl PostcardSerde for SessionExport {}
-
-impl PostcardSerde for BatchExport {}

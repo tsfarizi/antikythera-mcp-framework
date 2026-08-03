@@ -259,10 +259,10 @@ The SDK exposes four C-ABI functions in `antikythera-sdk/src/session/ffi/session
 | FFI Function | Purpose |
 |:-------------|:--------|
 | `mcp_session_get_logs(session_id)` | Returns JSON array of merged core + SDK `LogEntry` objects (sorted by sequence) |
-| `mcp_session_export_logs(session_id)` | Binary export via Postcard hex-encoding; returns JSON with `session_id`, `export_data` (hex), `log_count`, `size` |
-| `mcp_session_import_logs(export_data)` | Deserializes a Postcard-encoded `SessionLogExport`; returns confirmation JSON |
-| `mcp_session_batch_export_logs()` | Exports all session logs as a `BatchLogExport`; returns JSON with `session_count`, `total_log_count`, `export_data` (hex), `size` |
-| `mcp_session_batch_import_logs(export_data)` | Imports a `BatchLogExport` from Postcard; returns confirmation JSON |
+| `mcp_session_export_logs(session_id)` | JSON export of `SessionLogExport`; returns JSON with `session_id`, `export_data` (JSON), `log_count`, `size` |
+| `mcp_session_import_logs(export_data)` | Deserializes a JSON-encoded `SessionLogExport`; returns confirmation JSON |
+| `mcp_session_batch_export_logs()` | Exports all session logs as a `BatchLogExport`; returns JSON with `session_count`, `total_log_count`, `export_data` (JSON), `size` |
+| `mcp_session_batch_import_logs(export_data)` | Imports a `BatchLogExport` from JSON; returns confirmation JSON |
 
 All export functions merge logs from both the core `LOGGERS` and SDK `SDK_LOGGERS` registries.
 

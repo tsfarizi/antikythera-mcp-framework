@@ -91,8 +91,8 @@ fn session_and_batch_exports_roundtrip() {
     assert_eq!(decoded_export.log_count(), 2);
 
     let batch = BatchLogExport::from_session_logs(vec![decoded_export.clone()]).with_notes("batch");
-    let batch_bytes = batch.to_postcard().expect("batch postcard");
-    let decoded_batch = BatchLogExport::from_postcard(&batch_bytes).expect("decode batch");
+    let batch_json = batch.to_json().expect("batch json");
+    let decoded_batch = BatchLogExport::from_json(&batch_json).expect("decode batch");
     assert_eq!(decoded_batch.session_count(), 1);
     assert_eq!(decoded_batch.total_log_count(), 2);
 }

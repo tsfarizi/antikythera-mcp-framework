@@ -19,10 +19,10 @@ fn test_batch_export_import() {
     let batch = BatchExport::from_sessions(sessions);
     assert_eq!(batch.session_count(), 2);
 
-    let postcard_data = batch.to_postcard().unwrap();
+    let json_data = batch.to_json().unwrap();
 
     // Import batch
-    let imported = BatchExport::from_postcard(&postcard_data).unwrap();
+    let imported = BatchExport::from_json(&json_data).unwrap();
     assert_eq!(imported.session_count(), 2);
 }
 

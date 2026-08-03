@@ -30,8 +30,6 @@ antikythera-observability = { path = "../antikythera-observability" }
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
-postcard.workspace = true
-
 # Error handling and logging
 thiserror.workspace = true
 once_cell = "1.19"

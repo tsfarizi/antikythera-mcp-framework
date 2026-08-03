@@ -15,7 +15,7 @@ Import and export support makes it easier to:
 ```mermaid
 flowchart LR
     ACTIVE[Active config] --> EXPORT[Export or backup]
-    EXPORT --> FILE[Saved .pc or JSON artifact]
+    EXPORT --> FILE[Saved JSON artifact]
     FILE --> IMPORT[Import or restore]
     IMPORT --> TARGET[Recovered or reused config]
 ```

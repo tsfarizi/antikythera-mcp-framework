@@ -1,5 +1,5 @@
 #[path = "multi_agent/agent_tests/agent_postcard_serialization.rs"]
-mod agent_postcard_serialization;
+mod agent_json_serialization;
 
 #[path = "multi_agent/guardrails_tests/guardrail_chain_budget_types.rs"]
 mod guardrail_chain_budget_types;

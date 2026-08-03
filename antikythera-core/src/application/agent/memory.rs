@@ -18,13 +18,12 @@
 //!
 //! ## What lives here
 //!
-//! - `AgentStateSnapshot` — serializable state blob (Postcard binary format)
+//! - `AgentStateSnapshot` — serializable state blob (JSON format)
 //! - `ConversationTurn` / `Attachment` / `StateMetadata` — sub-types
 //! - `MemoryProvider` — async trait that a host-side adapter can implement
 //! - `MemoryError` — error variants shared by the trait and snapshot types
 
 use async_trait::async_trait;
-use postcard::{from_bytes, to_allocvec};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -93,32 +92,32 @@ impl AgentStateSnapshot {
         self.schema_version == STATE_SCHEMA_VERSION
     }
 
-    /// Serialize to Postcard binary format (uses default session context).
-    pub fn to_postcard(&self) -> Result<Vec<u8>, MemoryError> {
+    /// Serialize to JSON string (uses default session context).
+    pub fn to_json(&self) -> Result<String, MemoryError> {
         let ctx = SessionContext::default();
-        self.to_postcard_ctx(&ctx)
+        self.to_json_ctx(&ctx)
     }
 
-    /// Serialize to Postcard binary format with explicit session context.
-    pub fn to_postcard_ctx(&self, ctx: &SessionContext) -> Result<Vec<u8>, MemoryError> {
+    /// Serialize to JSON string with explicit session context.
+    pub fn to_json_ctx(&self, ctx: &SessionContext) -> Result<String, MemoryError> {
         let log = AgentLogger::from_context(ctx);
         log.debug(format!(
             "Saving state | agent_id={} context_id={}",
             self.agent_id, self.context_id
         ));
-        to_allocvec(self).map_err(|e| MemoryError::Serialization(e.to_string()))
+        serde_json::to_string(self).map_err(|e| MemoryError::Serialization(e.to_string()))
     }
 
-    /// Deserialize from Postcard binary format (uses default session context).
-    pub fn from_postcard(bytes: &[u8]) -> Result<Self, MemoryError> {
+    /// Deserialize from JSON string (uses default session context).
+    pub fn from_json(json: &str) -> Result<Self, MemoryError> {
         let ctx = SessionContext::default();
-        Self::from_postcard_ctx(bytes, &ctx)
+        Self::from_json_ctx(json, &ctx)
     }
 
-    /// Deserialize from Postcard binary format with explicit session context.
-    pub fn from_postcard_ctx(bytes: &[u8], ctx: &SessionContext) -> Result<Self, MemoryError> {
+    /// Deserialize from JSON string with explicit session context.
+    pub fn from_json_ctx(json: &str, ctx: &SessionContext) -> Result<Self, MemoryError> {
         let state: Self =
-            from_bytes(bytes).map_err(|e| MemoryError::Serialization(e.to_string()))?;
+            serde_json::from_str(json).map_err(|e| MemoryError::Serialization(e.to_string()))?;
         let log = AgentLogger::from_context(ctx);
         log.debug(format!(
             "Loading state | agent_id={} context_id={}",
