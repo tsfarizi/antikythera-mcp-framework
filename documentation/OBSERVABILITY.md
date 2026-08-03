@@ -14,12 +14,40 @@ flowchart TD
     Trace --> Export
 ```
 
+## Crate Structure
+
+### Port Traits (`antikythera-ports`)
+
+```
+antikythera-ports/src/observability/
+├── mod.rs      # Port trait definitions
+```
+
+### Concrete Implementations (`antikythera-observability`)
+
+```
+antikythera-observability/src/
+├── facade.rs           # ObservabilityFacade combining all subsystems
+├── metrics/            # In-memory metrics exporter
+├── audit/              # Audit trail records
+├── tracing/            # Tracing hooks
+├── telemetry.rs        # Telemetry events
+└── error.rs            # Error types
+```
+
 ## Current Signals
 
-- Latency summaries and operational counters.
-- Structured audit trail records for policy and tool decisions.
-- Correlation-ID aware event propagation.
-- Host-facing export points for external telemetry systems.
+- Latency summaries and operational counters (`LatencySummary`, `MetricRecord`).
+- Structured audit trail records for policy and tool decisions (`AuditRecord`, `AuditTrail`).
+- Correlation-ID aware event propagation (`TelemetryEvent`).
+- Host-facing export points for external telemetry systems (`MetricsExporter`, `TracingHook`).
+
+## Feature Flags
+
+| Flag | Purpose | Status |
+|:-----|:--------|:-------|
+| `memory` | In-memory metrics and audit (default) | Stable |
+| `full` | Alias for `memory` | Stable |
 
 ## Validation
 

@@ -1,6 +1,6 @@
 # Product Scope
 
-This document defines what the Antikythera MCP Framework is, what deployment targets it supports, and what surfaces its public API exposes.
+This document defines what the Antikythera Agent SDK is, what deployment targets it supports, and what surfaces its public API exposes.
 
 ## What it is
 
@@ -10,6 +10,7 @@ Antikythera is a **Rust-based MCP client framework** designed to:
 - connect to MCP tool servers over STDIO and HTTP transports
 - run agent and tool-calling flows with structured step management
 - expose agent logic as a portable **server-side WASM component** (wasm32-wasip1)
+- support multiple LLM providers (Ollama, OpenAI, Gemini) via feature-gated facade
 
 No browser WASM, no C FFI, and no embedded HTTP server are provided by the framework. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom).
 
@@ -36,6 +37,15 @@ The `antikythera-sdk` crate provides the stable integration surface:
 | Logging | `AgentLogger`, `ChatLogger`, `ConfigLogger`, `DiscoveryLogger`, `OrchestratorLogger`, `ProviderLogger`, `ResilienceLogger`, `SecurityLogger`, `SessionLogger`, `StdioLogger`, `StreamingLogger`, `TransportLogger`, `WasmLogger` |
 | Session | Session history types, import/export |
 
+## Public Facade surface
+
+The `antikythera-facade` crate provides a high-level API with provider selection:
+
+| Area | Key types |
+|:-----|:---------|
+| Simple API | `SimpleAgent`, `SimpleConfig` |
+| Provider selection | Feature-gated: `ollama` (default), `openai`, `gemini`, `full` |
+
 ## Architecture philosophy
 
 The framework is designed around one principle: **the host owns the interface layer**.
@@ -57,23 +67,19 @@ The WASM component handles agent reasoning, session continuity, history shaping,
 
 | Flag | Purpose | Status |
 |:-----|:--------|:-------|
-| `sdk-core` | Re-exports core types (Agent, McpClient, AppConfig) | Stable |
-| `single-agent` | Single-agent support | Stable |
-| `multi-agent` | Multi-agent orchestration runtime | Stable |
-| `component` | Server-side WASM component bindings | Active development |
-| `wasm` | Browser WASM support (wasm32-unknown-unknown) | Active development |
-| `wasm-sandbox` | Wasmtime host for running WASM agents | Active development |
-| `subscriber` | Real-time log streaming via tokio channels | Stable |
-| `full` | Enables all features | Stable |
+| `component` | Server-side WASM Component Model support (wasm32-wasip1 WASI) | Active |
+| `wasm` | Browser WASM support (wasm32-unknown-unknown), enables `antikythera-log/wasm` | Active |
+| `toolrunner` | In-process tool execution via `antikythera-toolrunner` | Active |
+| `wasm-sandbox` | Wasmtime-based sandbox execution | Active |
 
-### `antikythera-core`
+### `antikythera-facade`
 
 | Flag | Purpose | Status |
 |:-----|:--------|:-------|
-| `native-transport` | OS process and stdio transport support | Stable |
-| `wizard` | Interactive setup and wizard-related dependencies | Stable |
-| `multi-agent` | Multi-agent orchestration support | Stable |
-| `full` | Enables the full capability set | Stable |
+| `ollama` | Ollama LLM provider (default) | Stable |
+| `openai` | OpenAI LLM provider | Stable |
+| `gemini` | Google Gemini LLM provider | Stable |
+| `full` | Enables all three providers | Stable |
 
 ### `antikythera-log`
 
@@ -93,6 +99,33 @@ The WASM component handles agent reasoning, session continuity, history shaping,
 | `standalone` | REST API server mode | Stable |
 | `sse` | SSE backup service | Stable |
 | `wasm` | WASM component integration | Stable |
+
+### `antikythera-observability`
+
+| Flag | Purpose | Status |
+|:-----|:--------|:-------|
+| `memory` | In-memory metrics and audit (default) | Stable |
+| `full` | Alias for `memory` | Stable |
+
+### `antikythera-security`
+
+| Flag | Purpose | Status |
+|:-----|:--------|:-------|
+| `validation` | Input validation with regex (default) | Stable |
+| `rate-limit` | Rate limiting (default) | Stable |
+| `memory` | In-memory secrets storage (default) | Stable |
+| `full` | Enables all three features | Stable |
+
+### `antikythera-toolrunner`
+
+| Flag | Purpose | Status |
+|:-----|:--------|:-------|
+| `log` | Enables `antikythera-log` integration | Stable |
+| `wasm` | WASM target support | Stable |
+
+### `antikythera-core`
+
+`antikythera-core` has no feature flags. Platform-specific functionality is handled via `cfg(target_arch)` blocks.
 
 ## Related documents
 

@@ -1,6 +1,6 @@
 # antikythera-sdk
 
-High-level SDK and WASM component surface for the Antikythera MCP Framework.
+High-level SDK and WASM component surface for the Antikythera Agent SDK.
 
 ## Features
 
@@ -13,9 +13,9 @@ High-level SDK and WASM component surface for the Antikythera MCP Framework.
 
 ## Feature Flags
 
-- `sdk-core` — re-exports core types (`Agent`, `McpClient`, `AppConfig`, etc.)
-- `component` — WASM agent types, processor, and runner
-- `multi-agent` — multi-agent orchestration SDK
-- `single-agent` — single-agent operations
-- `wasm-sandbox` — WASM sandboxing support
-- `full` — enables all features
+| Flag | Purpose | Status |
+|:-----|:--------|:-------|
+| `component` | Server-side WASM Component Model support (wasm32-wasip1 WASI) | Active |
+| `wasm` | Browser WASM support (wasm32-unknown-unknown), enables `antikythera-log/wasm` | Active |
+| `toolrunner` | In-process tool execution via `antikythera-toolrunner` | Active |
+| `wasm-sandbox` | Wasmtime-based sandbox execution | Active |

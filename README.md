@@ -1,54 +1,104 @@
-﻿# Antikythera MCP Framework
+﻿# Antikythera Agent SDK
 
-Antikythera MCP Framework is a Rust workspace for building MCP-capable agent runtimes, host-integrated orchestration flows, and portable WASM agent components.
+Antikythera Agent SDK is a Rust workspace for building MCP-capable agent runtimes, host-integrated orchestration flows, and portable WASM agent components.
+
+## Packages
+
+| Platform | Package | Link |
+|:---------|:--------|:-----|
+| **npm** | `antikythera-agent` | [npmjs.com/package/antikythera-agent](https://www.npmjs.com/package/antikythera-agent) |
+| **PyPI** | `antikythera-agent` | [pypi.org/project/antikythera-agent](https://pypi.org/project/antikythera-agent/) |
 
 ## System Overview
 
 ```mermaid
 flowchart TD
-    Host[Host Application] --> SDK[antikythera-sdk]
-    SDK --> Core[antikythera-core]
+    Host[Host Application] --> Facade[antikythera-facade]
+    Host --> SDK[antikythera-sdk]
+    Facade --> Core[antikythera-core]
+    SDK --> Core
     Core --> Domain[antikythera-domain]
     Core --> Ports[antikythera-ports]
     Core --> Config[antikythera-config]
     Core --> Session[antikythera-session]
     Core --> Log[antikythera-log]
-    Core --> MCP[MCP Servers]
-    Core --> LLM[LLM Providers via Host]
+    Core --> Resilience[antikythera-resilience]
+    Core --> Tooling[antikythera-tooling]
+    Core --> Observability[antikythera-observability]
+    Core --> Security[antikythera-security]
+    Facade --> Providers[LLM Providers]
+    Providers --> Ollama[antikythera-provider-ollama]
+    Providers --> OpenAI[antikythera-provider-openai]
+    Providers --> Gemini[antikythera-provider-gemini]
 ```
 
 ## What Is Included
 
-- Modular workspace crates: domain, ports, config, resilience, log, session, storage, tooling, core, and SDK.
+- Modular workspace crates organized in 6 layers (types → implementations → core → providers → SDK/facade → deployment).
+- Multi-provider LLM support: Ollama (default), OpenAI, and Gemini via feature-gated facade.
 - Multi-agent orchestration with guardrails, resilience, and observability hooks.
 - Streaming support for token/event output and buffered delivery policies.
-- WASM component integration path for host-controlled execution.
+- WASM component integration path for host-controlled execution (browser WASM, WASI Component Model, Wasmtime sandbox).
 - Consolidated documentation under `documentation/`.
 
 ## Workspace Layout
 
-### Framework crates (workspace members)
+### Layer 0: Types
 
 | Crate | Role |
 |:------|:-----|
-| `antikythera-domain` | Canonical domain types (entities, sessions, FSM, validation) |
-| `antikythera-ports` | Port trait definitions (hexagonal architecture) |
-| `antikythera-config` | Configuration schema and loading |
-| `antikythera-resilience` | Retry, timeout, context window, and health tracking |
-| `antikythera-log` | Unified logging system and subscriber support |
-| `antikythera-session` | Session management with persistent chat history |
-| `antikythera-storage` | Session persistence with pluggable backends |
-| `antikythera-tooling` | MCP tool server management |
-| `antikythera-core` | Core MCP protocol, transport layers, and agent runtime |
-| `antikythera-sdk` | High-level API wrapper with FFI and WASM bindings |
-| `antikythera-wasm-bindgen` | wasm-bindgen bindings for browser WASM targets |
+| `antikythera-domain` | Canonical domain types (entities, sessions, FSM, validation) — zero internal deps |
+| `antikythera-ports` | Port trait definitions (hexagonal architecture) — depends on domain |
+
+### Layer 1: Implementations
+
+| Crate | Role |
+|:------|:-----|
+| `antikythera-config` | Configuration schema and loading — depends on domain |
+| `antikythera-log` | Structured logging and subscriptions — standalone |
+| `antikythera-resilience` | Retry, timeout, context window, and health tracking — depends on domain |
+| `antikythera-tooling` | MCP tool server management — depends on domain, config |
+| `antikythera-observability` | In-memory observability implementations — depends on domain, ports |
+| `antikythera-security` | Validation, rate limiting, secrets management — depends on domain, ports |
+| `antikythera-storage` | Session persistence with pluggable backends — depends on domain |
+
+### Layer 2: Core
+
+| Crate | Role |
+|:------|:-----|
+| `antikythera-core` | Core MCP runtime, agent logic, transports — depends on domain, ports, config, log, resilience, tooling, observability |
+| `antikythera-session` | Session management with persistent chat history — depends on domain, log |
+
+### Layer 3: Providers
+
+| Crate | Role |
+|:------|:-----|
+| `antikythera-provider-ollama` | Ollama LLM provider — depends on domain, core |
+| `antikythera-provider-openai` | OpenAI LLM provider — depends on domain, core |
+| `antikythera-provider-gemini` | Google Gemini LLM provider — depends on domain, core |
+
+### Layer 4: SDK & Facade
+
+| Crate | Role |
+|:------|:-----|
+| `antikythera-sdk` | Public API layer for Rust and WASM component bindings — depends on core, log, session |
+| `antikythera-facade` | High-level API with provider selection (Ollama/OpenAI/Gemini) — depends on core, domain, log |
+
+### Layer 5: Deployment
+
+| Crate | Role |
+|:------|:-----|
+| `plugin/antikythera-wasm-bindgen` | wasm-bindgen bindings for browser WASM targets — depends on SDK |
+| `plugin/antikythera-toolrunner` | In-process tool execution — standalone |
 
 ### Supporting directories
 
 | Path | Role |
 |:-----|:-----|
 | `tests/` | Workspace integration tests and scenario coverage |
-| `scripts/` | Build scripts for WIT validation and WASM component tooling |
+| `scripts/` | WIT generation and component build helpers |
+| `examples/chat` | Rust chat example using antikythera-facade |
+| `examples/antikythera-web` | TypeScript/Vite web frontend (not a workspace member) |
 | `documentation/` | Focused guides and references |
 
 ## Build and Validate

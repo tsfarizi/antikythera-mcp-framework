@@ -14,19 +14,27 @@ All security parameters are configurable via FFI, allowing hosts to customize se
 
 ## Architecture
 
-### Core Module (`antikythera-core`)
+### Port Traits (`antikythera-ports`)
 
-The `antikythera-core` crate defines the security configuration types and port traits:
+The `antikythera-ports` crate defines the security port traits:
 
 ```
-antikythera-core/src/security/
-├── mod.rs      # Module root (port traits only)
-└── config.rs   # SecurityConfig types
+antikythera-ports/src/security/
+├── mod.rs      # Port trait definitions
 ```
 
-### Host Application Implementation
+### Concrete Implementations (`antikythera-security`)
 
-Concrete security implementations live in host application crates:
+The `antikythera-security` crate provides concrete implementations:
+
+```
+antikythera-security/src/
+├── facade.rs           # SecurityFacade combining all security subsystems
+├── validation/         # Input validation
+├── rate_limit/         # Rate limiting
+├── secrets/            # Secrets management
+└── error.rs            # Error types
+```
 
 ## Input Validation
 
@@ -81,7 +89,7 @@ pub struct ValidationConfig {
 #### Rust API
 
 ```rust
-use antikythera_core::security::validation::InputValidator;
+use antikythera_security::InputValidator;
 
 // Create validator with default config
 let validator = InputValidator::from_config()?;
@@ -172,7 +180,7 @@ pub struct RateLimitConfig {
 #### Rust API
 
 ```rust
-use antikythera_core::security::rate_limit::RateLimiter;
+use antikythera_security::RateLimiter;
 
 // Create rate limiter with default config
 let limiter = RateLimiter::from_config();
@@ -277,7 +285,7 @@ pub struct SecretsConfig {
 #### Rust API
 
 ```rust
-use antikythera_core::security::secrets::SecretManager;
+use antikythera_security::SecretManager;
 
 // Create secret manager with default config
 let manager = SecretManager::from_config()?;
@@ -437,7 +445,7 @@ All security parameters can be configured dynamically via FFI:
 
 ## Security Logging
 
-The `SecurityLogger` (in `antikythera_core::logging`) provides structured logging for security events:
+The `SecurityFacade` (in `antikythera-security`) provides structured logging for security events:
 
 ### Methods
 
@@ -473,11 +481,11 @@ cargo test -p antikythera-tests --test security_config_tests
 
 The security implementation follows the principle of separation of concerns:
 
-- **Core Module** (`antikythera-core`): Defines security configuration types and port traits. Contains no concrete implementations.
-- **Host Application**: Provides concrete security implementations (validation, rate limiting, secrets management) as needed.
+- **Port Traits** (`antikythera-ports`): Defines security port traits for validation, rate limiting, and secrets management.
+- **Concrete Implementations** (`antikythera-security`): Provides concrete implementations of security subsystems.
 - **FFI Interface** (SDK): Provides a clean boundary for host languages to interact with security features.
 
-This ensures that the core security ports are reusable by any embedding host, while host applications provide the concrete implementations for their own use.
+This ensures that the security ports are reusable by any embedding host, while host applications can use the provided implementations or provide their own.
 
 ## Security Considerations
 

@@ -28,24 +28,7 @@ flowchart TD
 
 ## Multi-Agent Orchestration
 
-Multi-agent is **enabled by default** in both `antikythera-core` and `antikythera-sdk`.
-
-### Feature Flags
-
-| Crate | Default Features | Multi-Agent |
-|:------|:----------------|:------------|
-| `antikythera-core` | `native-transport`, `multi-agent` | ✅ Default |
-| `antikythera-sdk` | `multi-agent` | ✅ Default |
-
-To disable multi-agent:
-
-```toml
-# core
-antikythera-core = { default-features = false, features = ["native-transport"] }
-
-# sdk
-antikythera-sdk = { default-features = false, features = ["single-agent"] }
-```
+Multi-agent orchestration is available via `antikythera-sdk`'s `agents` module.
 
 ### Agent Setup with Prompts
 
@@ -211,7 +194,7 @@ stdout output (for JSON or automation consumers). The example CLI enables the te
 
 ## Related documents
 
-- [`CLI.md`](CLI.md)
 - [`STREAMING.md`](STREAMING.md)
 - [`WASM_AGENT.md`](WASM_AGENT.md)
 - [`COMPONENT.md`](COMPONENT.md)
+- [`HOOKS.md`](HOOKS.md)
