@@ -1,4 +1,4 @@
-package antikythera:mcp-framework@1.0.0;
+package antikythera:agent-sdk@1.0.0;
 
 /// LlmRequest
 record llm-request {
@@ -89,7 +89,7 @@ interface ffi-server {
   stop() -> result<_, string>;
 }
 
-world antikythera-agent {
+world antikythera-agent-sdk {
     import host-imports;
     export prompt-manager;
     export mcp-client;

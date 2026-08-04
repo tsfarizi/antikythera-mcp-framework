@@ -6,7 +6,7 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "README.md"
-description = "Session management for Antikythera MCP Framework with persistent chat history"
+description = "Session management for Antikythera Agent SDK with persistent chat history"
 
 [features]
 default = []

@@ -1,6 +1,6 @@
 # antikythera-session
 
-Session management and conversational data models for the Antikythera MCP Framework.
+Session management and conversational data models for the Antikythera Agent SDK.
 
 ## Features
 

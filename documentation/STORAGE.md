@@ -1,6 +1,6 @@
 # Storage
 
-This document describes the `antikythera-storage` crate — the session persistence layer for the Antikythera MCP Framework.
+This document describes the `antikythera-storage` crate — the session persistence layer for the Antikythera Agent SDK.
 
 ## Overview
 

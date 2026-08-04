@@ -5,7 +5,7 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Port trait definitions for Antikythera MCP Framework"
+description = "Port trait definitions for Antikythera Agent SDK"
 
 [dependencies]
 antikythera-domain = { path = "../antikythera-domain" }

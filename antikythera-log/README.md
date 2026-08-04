@@ -1,6 +1,6 @@
 # antikythera-log
 
-Structured logging foundation for the Antikythera MCP Framework.
+Structured logging foundation for the Antikythera Agent SDK.
 
 ## Features
 

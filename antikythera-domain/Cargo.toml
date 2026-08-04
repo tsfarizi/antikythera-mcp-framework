@@ -5,7 +5,7 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Canonical domain types for Antikythera MCP Framework"
+description = "Canonical domain types for Antikythera Agent SDK"
 
 [dependencies]
 serde.workspace = true

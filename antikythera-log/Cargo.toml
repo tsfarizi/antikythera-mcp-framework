@@ -6,7 +6,7 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "README.md"
-description = "Unified logging system for Antikythera MCP Framework"
+description = "Unified logging system for Antikythera Agent SDK"
 
 [features]
 wasm = ["dep:wasm-bindgen", "dep:js-sys"]

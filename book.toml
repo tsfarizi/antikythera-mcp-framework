@@ -1,5 +1,5 @@
 [book]
-title = "Antikythera MCP Framework"
+title = "Antikythera Agent SDK"
 authors = ["tsfarizi"]
 language = "en"
 src = "."

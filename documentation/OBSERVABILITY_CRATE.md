@@ -1,6 +1,6 @@
 # Observability Crate
 
-Concrete observability implementations for the Antikythera MCP Framework.
+Concrete observability implementations for the Antikythera Agent SDK.
 
 ## Overview
 

@@ -1,6 +1,6 @@
 //! # Antikythera Session
 //!
-//! Session management for Antikythera MCP Framework with persistent chat history.
+//! Session management for Antikythera Agent SDK with persistent chat history.
 //!
 //! ## Features
 //!

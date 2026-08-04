@@ -1,6 +1,6 @@
 # antikythera-security
 
-Security implementations for the Antikythera MCP Framework: input validation, rate limiting, and secrets management.
+Security implementations for the Antikythera Agent SDK: input validation, rate limiting, and secrets management.
 
 ## Features
 

@@ -1,4 +1,4 @@
-//! Security implementations for the Antikythera MCP Framework.
+//! Security implementations for the Antikythera Agent SDK.
 //!
 //! Concrete implementations of the security port traits defined in
 //! `antikythera_ports::security`, plus richer APIs for each subsystem.

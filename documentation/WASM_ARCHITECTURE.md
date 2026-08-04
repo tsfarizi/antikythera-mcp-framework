@@ -1,6 +1,6 @@
 # WASM Architecture
 
-This document describes the three WASM integration paths in the Antikythera MCP Framework, their target platforms, feature flags, contracts, and common pitfalls.
+This document describes the three WASM integration paths in the Antikythera Agent SDK, their target platforms, feature flags, contracts, and common pitfalls.
 
 ## Three WASM Paths
 

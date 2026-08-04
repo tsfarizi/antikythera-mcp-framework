@@ -1,6 +1,6 @@
 # Security Crate
 
-Concrete security implementations for the Antikythera MCP Framework.
+Concrete security implementations for the Antikythera Agent SDK.
 
 ## Overview
 

@@ -1,5 +1,5 @@
 /**
- * @antikythera/sdk - Antikythera MCP Framework
+ * @antikythera/sdk - Antikythera Agent SDK
  *
  * Agent runtime with multi-agent orchestration, session management,
  * and MCP tool integration. Powered by WebAssembly.

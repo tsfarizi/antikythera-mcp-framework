@@ -5,7 +5,7 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "High-level API for Antikythera MCP Framework — native-first, WASM-optional"
+description = "High-level API for Antikythera Agent SDK — native-first, WASM-optional"
 
 [features]
 default = ["ollama"]

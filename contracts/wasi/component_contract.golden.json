@@ -1,6 +1,6 @@
 {
   "world": "antikythera-agent",
-  "package": "antikythera:mcp-framework@1.0.0",
+  "package": "antikythera:agent-sdk@1.0.0",
   "imports": {
     "host-imports": {
       "description": "Host-provided functions that the WASM component imports",

@@ -6,7 +6,7 @@ authors.workspace = true
 license.workspace = true
 repository.workspace = true
 readme = "README.md"
-description = "Security implementations for Antikythera MCP Framework: validation, rate limiting, secrets management"
+description = "Security implementations for Antikythera Agent SDK: validation, rate limiting, secrets management"
 
 [features]
 default = ["validation", "rate-limit", "memory"]

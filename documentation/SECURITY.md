@@ -1,6 +1,6 @@
 # Security Features
 
-This document describes the comprehensive security features implemented in the Antikythera MCP Framework, including input validation, rate limiting, and secrets management.
+This document describes the comprehensive security features implemented in the Antikythera Agent SDK, including input validation, rate limiting, and secrets management.
 
 ## Overview
 

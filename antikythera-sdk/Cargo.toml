@@ -15,7 +15,7 @@ description = "High-level API wrapper with FFI and WASM bindings"
 crate-type = ["rlib", "cdylib"]
 
 [package.metadata.component]
-package = "antikythera:mcp-framework"
+package = "antikythera:agent-sdk"
 
 [package.metadata.component.dependencies]
 

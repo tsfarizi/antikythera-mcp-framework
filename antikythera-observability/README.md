@@ -1,6 +1,6 @@
 # antikythera-observability
 
-In-memory observability implementations for the Antikythera MCP Framework.
+In-memory observability implementations for the Antikythera Agent SDK.
 
 Migrated from `antikythera-core` to provide a standalone crate for metrics, tracing, and audit implementations.
 

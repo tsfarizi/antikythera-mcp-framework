@@ -1,6 +1,6 @@
 //! # Antikythera Storage
 //!
-//! Session persistence layer for the Antikythera MCP Framework.
+//! Session persistence layer for the Antikythera Agent SDK.
 //!
 //! ## Architecture
 //!

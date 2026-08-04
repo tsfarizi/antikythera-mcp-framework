@@ -1,6 +1,6 @@
 //! # Antikythera Log
 //!
-//! Unified logging system for the Antikythera MCP Framework.
+//! Unified logging system for the Antikythera Agent SDK.
 //!
 //! ## Features
 //!
