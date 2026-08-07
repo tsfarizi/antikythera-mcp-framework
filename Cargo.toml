@@ -37,6 +37,9 @@ members = [
 
     # Examples
     "examples/chat",
+
+    # Build-time: Proc macros
+    "antikythera-macros",
 ]
 
 

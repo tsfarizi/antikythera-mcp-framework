@@ -224,6 +224,42 @@ name = "observability_crate_telemetry_tests"
 path = "observability_crate/telemetry_tests.rs"
 
 # ============================================================================
+# Macro Tests (consolidated from antikythera-macros, antikythera-domain, antikythera-ports)
+# ============================================================================
+
+[[test]]
+name = "macros_tool_def"
+path = "macros/tool_def.rs"
+
+[[test]]
+name = "macros_wasm_bridge"
+path = "macros/wasm_bridge.rs"
+
+[[test]]
+name = "macros_json_schema"
+path = "macros/json_schema.rs"
+
+[[test]]
+name = "macros_fsm_complete"
+path = "macros/fsm_complete.rs"
+
+[[test]]
+name = "macros_port_validate"
+path = "macros/port_validate.rs"
+
+[[test]]
+name = "macros_domain_integration"
+path = "macros/domain_integration.rs"
+
+[[test]]
+name = "macros_ports_integration"
+path = "macros/ports_integration.rs"
+
+[[test]]
+name = "macros_end_to_end"
+path = "macros/end_to_end.rs"
+
+# ============================================================================
 # Dependencies
 # ============================================================================
 
@@ -237,6 +273,8 @@ antikythera-security = { path = "../antikythera-security", features = ["full"] }
 antikythera-observability = { path = "../antikythera-observability", features = ["full"] }
 antikythera-ports = { path = "../antikythera-ports" }
 antikythera-domain = { path = "../antikythera-domain" }
+antikythera-macros = { path = "../antikythera-macros" }
+serde.workspace = true
 serde_json.workspace = true
 base64.workspace = true
 chrono.workspace = true

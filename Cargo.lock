@@ -185,6 +185,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "antikythera-macros"
+version = "1.8.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_json",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "antikythera-observability"
 version = "1.8.0"
 dependencies = [
@@ -337,6 +348,7 @@ dependencies = [
  "antikythera-core",
  "antikythera-domain",
  "antikythera-log",
+ "antikythera-macros",
  "antikythera-observability",
  "antikythera-ports",
  "antikythera-sdk",
@@ -348,6 +360,7 @@ dependencies = [
  "chrono",
  "clap",
  "ratatui",
+ "serde",
  "serde_json",
  "serial_test",
  "tempfile",
