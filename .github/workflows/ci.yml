@@ -68,3 +68,88 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo install mdbook
       - run: mdbook build
+
+  web-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: examples/antikythera-web/package-lock.json
+      - name: Install dependencies
+        working-directory: examples/antikythera-web
+        run: npm ci
+      - name: Build web example
+        working-directory: examples/antikythera-web
+        run: npm run build
+
+  wasm-nodejs-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build Node.js WASM package
+        working-directory: plugin/antikythera-wasm-bindgen
+        run: wasm-pack build --target nodejs --release --out-dir pkg-nodejs
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Smoke test Node.js WASM package
+        run: |
+          node - <<'EOF'
+          (async () => {
+            const path = require('path');
+            const mod = require(path.join(process.cwd(), 'plugin/antikythera-wasm-bindgen/pkg-nodejs/antikythera_wasm_bindgen.js'));
+            const initFn = mod.init || mod.default?.init || mod.default;
+            if (typeof initFn !== 'function') throw new Error('init not found, keys: ' + Object.keys(mod));
+            // wasm-pack >= 0.13 (--target nodejs) instantiates the wasm synchronously at
+            // require time; `init` is then this crate's Rust session-init export (needs a
+            // config JSON string), not the module initializer. Only legacy wasm-pack
+            // output exposes the async loader as the `default` export (or the module
+            // itself). Verified empirically: invoking the bare Rust `init` throws
+            // TypeError, while the module's other exports work immediately after require.
+            const loader =
+              (typeof mod.default === 'function' && mod.default) ||
+              (typeof mod === 'function' && mod) ||
+              null;
+            if (loader) {
+              await loader();
+            }
+            let called = null;
+            const candidates = [
+              ['get_tools_prompt', () => mod.get_tools_prompt()],
+              ['sweep_idle_sessions', () => mod.sweep_idle_sessions()],
+              ['reset_session', () => mod.reset_session('__smoke__')],
+              ['register_tools', () => mod.register_tools('[]')],
+            ];
+            for (const [name, fn] of candidates) {
+              if (typeof mod[name] !== 'function') continue;
+              try {
+                const result = fn();
+                console.log('NODE_WASM_SMOKE invoked ' + name + ' -> ' + JSON.stringify(result));
+                called = name;
+                break;
+              } catch (e) {
+                console.log('NODE_WASM_SMOKE candidate ' + name + ' failed: ' + e.message);
+              }
+            }
+            if (!called) throw new Error('no wasm function could be invoked, keys: ' + Object.keys(mod).join(','));
+            console.log('NODE_WASM_SMOKE_OK');
+          })().catch((e) => {
+            console.error('NODE_WASM_SMOKE_FAILED:', e && e.stack ? e.stack : e);
+            process.exit(1);
+          });
+          EOF

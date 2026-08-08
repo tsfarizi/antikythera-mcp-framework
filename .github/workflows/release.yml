@@ -43,6 +43,33 @@ jobs:
             plugin/antikythera-wasm-bindgen/pkg-web/antikythera_wasm_bindgen.js
             plugin/antikythera-wasm-bindgen/pkg-web/antikythera_wasm_bindgen.d.ts
 
+  build-wasm-nodejs:
+    name: Build Node.js WASM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build Node.js WASM
+        working-directory: plugin/antikythera-wasm-bindgen
+        run: wasm-pack build --target nodejs --release --out-dir pkg-nodejs
+
+      - name: Upload Node.js WASM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wasm-nodejs
+          path: |
+            plugin/antikythera-wasm-bindgen/pkg-nodejs/antikythera_wasm_bindgen_bg.wasm
+            plugin/antikythera-wasm-bindgen/pkg-nodejs/antikythera_wasm_bindgen.js
+            plugin/antikythera-wasm-bindgen/pkg-nodejs/antikythera_wasm_bindgen.d.ts
+
   build-wasm-server:
     name: Build Server WASM (WASI)
     runs-on: ubuntu-latest
@@ -83,7 +110,7 @@ jobs:
 
   publish-npm:
     name: Publish npm Package
-    needs: [build-wasm-browser]
+    needs: [build-wasm-browser, build-wasm-nodejs]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -99,6 +126,12 @@ jobs:
         with:
           name: wasm-browser
           path: npm/antikythera-sdk/
+
+      - name: Download Node.js WASM artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wasm-nodejs
+          path: npm/antikythera-sdk/pkg-nodejs/
 
       - name: Set version from tag
         run: |

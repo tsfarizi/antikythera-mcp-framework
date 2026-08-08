@@ -19,19 +19,17 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
-      "antikythera-agent/antikythera_wasm_bindgen": resolve(
-        __dirname,
-        "node_modules/antikythera-agent/antikythera_wasm_bindgen.js"
-      ),
     },
   },
   server: {
     fs: {
       allow: [
         resolve(__dirname, ".."),
-        resolve(__dirname, "../../npm"),
       ],
     },
   },
   assetsInclude: ["**/*.wasm"],
+  optimizeDeps: {
+    exclude: ['antikythera-agent'],
+  },
 });
