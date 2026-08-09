@@ -100,7 +100,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-config"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-domain",
  "dotenvy",
@@ -113,7 +113,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-core"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-config",
  "antikythera-domain",
@@ -145,8 +145,9 @@ dependencies = [
 
 [[package]]
 name = "antikythera-domain"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
+ "antikythera-macros",
  "chrono",
  "serde",
  "serde_json",
@@ -156,7 +157,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-facade"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -173,7 +174,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-log"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "chrono",
  "crossbeam-channel",
@@ -186,7 +187,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-macros"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -197,7 +198,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-observability"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-domain",
  "antikythera-ports",
@@ -211,7 +212,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-ports"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-domain",
  "async-trait",
@@ -223,10 +224,11 @@ dependencies = [
 
 [[package]]
 name = "antikythera-provider-gemini"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
+ "antikythera-macros",
  "async-trait",
  "reqwest",
  "serde",
@@ -237,10 +239,11 @@ dependencies = [
 
 [[package]]
 name = "antikythera-provider-ollama"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
+ "antikythera-macros",
  "async-trait",
  "reqwest",
  "serde",
@@ -251,10 +254,11 @@ dependencies = [
 
 [[package]]
 name = "antikythera-provider-openai"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
+ "antikythera-macros",
  "async-trait",
  "reqwest",
  "serde",
@@ -265,7 +269,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-resilience"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-domain",
  "chrono",
@@ -276,10 +280,11 @@ dependencies = [
 
 [[package]]
 name = "antikythera-sdk"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-core",
  "antikythera-log",
+ "antikythera-macros",
  "antikythera-session",
  "antikythera-toolrunner",
  "anyhow",
@@ -293,7 +298,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-security"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-domain",
  "antikythera-ports",
@@ -307,7 +312,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-session"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-domain",
  "antikythera-log",
@@ -320,9 +325,10 @@ dependencies = [
 
 [[package]]
 name = "antikythera-storage"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-domain",
+ "antikythera-macros",
  "async-trait",
  "axum",
  "chrono",
@@ -343,7 +349,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-tests"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -369,7 +375,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-tooling"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-config",
  "antikythera-domain",
@@ -382,9 +388,10 @@ dependencies = [
 
 [[package]]
 name = "antikythera-toolrunner"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-log",
+ "antikythera-macros",
  "async-trait",
  "serde",
  "serde_json",
@@ -393,7 +400,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-wasm-bindgen"
-version = "1.8.0"
+version = "1.8.1"
 dependencies = [
  "antikythera-sdk",
  "serde",
@@ -636,7 +643,7 @@ dependencies = [
 
 [[package]]
 name = "build-scripts"
-version = "1.8.0"
+version = "1.8.1"
 
 [[package]]
 name = "bumpalo"

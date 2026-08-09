@@ -1,0 +1,59 @@
+name: Auto Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Cargo.toml'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  auto-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read version from workspace Cargo.toml
+        id: version
+        run: |
+          VERSION=$(awk -F' = ' '/^\[workspace.package\]/{f=1} f && /^version/{gsub(/"/,"",$2); print $2; exit}' Cargo.toml)
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not read version from [workspace.package] in Cargo.toml"
+            exit 1
+          fi
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Check if release tag already exists
+        id: check
+        run: |
+          if git rev-parse -q --verify "refs/tags/v${{ steps.version.outputs.value }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip — already released
+        if: steps.check.outputs.exists == 'true'
+        run: echo "Tag v${{ steps.version.outputs.value }} already exists — nothing to release."
+
+      - name: Create and push release tag
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.version.outputs.value }}"
+          git push origin "v${{ steps.version.outputs.value }}"
+
+      - name: Trigger release pipeline
+        if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run release.yml --ref main \
+            -f version=${{ steps.version.outputs.value }}
+          echo "Triggered release.yml for v${{ steps.version.outputs.value }}"

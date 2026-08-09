@@ -44,6 +44,9 @@ antikythera-log = { path = "../antikythera-log", version = "1.0.0", features = [
 # Session management
 antikythera-session = { path = "../antikythera-session", version = "1.0.0" }
 
+# Proc-macro derives (FsmComplete transition matrix generation)
+antikythera-macros = { path = "../antikythera-macros" }
+
 # In-process tool execution (optional)
 antikythera-toolrunner = { path = "../plugin/antikythera-toolrunner", version = "1.5.1", optional = true }
 

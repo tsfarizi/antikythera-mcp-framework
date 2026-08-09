@@ -41,5 +41,8 @@ pub use application::agent::client::{
 
 pub use config::AppConfig;
 
+// Re-export WASM boundary bridge trait for ergonomic `antikythera_core::WasmBridge`
+pub use infrastructure::wasm_bridge::WasmBridge;
+
 /// Crate version
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

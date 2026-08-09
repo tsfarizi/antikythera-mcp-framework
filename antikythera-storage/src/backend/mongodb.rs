@@ -12,12 +12,16 @@ use mongodb::bson::{Binary, Document, doc, spec::BinarySubtype};
 use mongodb::options::{ClientOptions, IndexOptions};
 use mongodb::{Client, Collection, IndexModel};
 
+use antikythera_macros::PortValidate;
+
 use crate::config::MongodbConfig;
 use crate::error::StorageError;
 
 use super::StorageBackend;
 
 /// MongoDB storage backend for session persistence.
+#[derive(PortValidate)]
+#[implements(crate::backend::StorageBackend)]
 pub struct MongoBackend {
     client: Client,
     database: String,

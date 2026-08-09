@@ -206,6 +206,31 @@ fn test_option_of_nested() {
     assert!(defs.contains_key("ServerConfig"));
 }
 
+// === Option of Vec of nested type (Option transparency) ===
+
+#[derive(JsonSchema)]
+struct WithOptionalNestedVec {
+    items: Option<Vec<WithOptionalNested>>,
+}
+
+#[test]
+fn test_option_of_vec_of_nested() {
+    let schema = WithOptionalNestedVec::json_schema();
+
+    // Option<Vec<T>> resolves to an array whose items carry the $ref.
+    assert_eq!(schema["properties"]["items"]["type"], "array");
+    assert_eq!(
+        schema["properties"]["items"]["items"]["$ref"],
+        "#/definitions/WithOptionalNested"
+    );
+
+    // The only field is optional, so the required list is omitted entirely.
+    assert!(schema.get("required").is_none());
+
+    let defs = schema["definitions"].as_object().unwrap();
+    assert!(defs.contains_key("WithOptionalNested"));
+}
+
 // === Integer type variants ===
 
 #[derive(JsonSchema)]

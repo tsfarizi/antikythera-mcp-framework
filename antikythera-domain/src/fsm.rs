@@ -7,6 +7,7 @@
 
 use std::fmt;
 
+use antikythera_macros::FsmComplete;
 use serde::{Deserialize, Serialize};
 
 /// Typed FSM states for the agent loop.
@@ -25,8 +26,17 @@ use serde::{Deserialize, Serialize};
 ///   → ToolResultProcessed → Idle (retry)
 ///   → Final → Idle (new turn)
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, FsmComplete)]
 #[serde(rename_all = "snake_case")]
+#[fsm_transitions(
+    Idle => [UserTurnPrepared],
+    UserTurnPrepared => [LlmStreaming],
+    LlmStreaming => [LlmCommitted],
+    LlmCommitted => [ToolRequested, Final, Idle],
+    ToolRequested => [ToolResultProcessed],
+    ToolResultProcessed => [LlmStreaming, Final, Idle],
+    Final => [Idle]
+)]
 pub enum AgentFsmState {
     Idle,
     UserTurnPrepared,

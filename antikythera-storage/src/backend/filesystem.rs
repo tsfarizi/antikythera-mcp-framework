@@ -5,6 +5,7 @@
 
 use std::path::PathBuf;
 
+use antikythera_macros::PortValidate;
 use async_trait::async_trait;
 
 use crate::error::StorageError;
@@ -15,6 +16,8 @@ use super::StorageBackend;
 ///
 /// Sessions are stored as JSON files at `{data_dir}/{session_id}.json`.
 /// Backups are stored at `{backup_dir}/{session_id}.backup.json`.
+#[derive(PortValidate)]
+#[implements(crate::backend::StorageBackend)]
 pub struct FilesystemBackend {
     data_dir: PathBuf,
     backup_dir: PathBuf,

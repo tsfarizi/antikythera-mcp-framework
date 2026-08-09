@@ -12,6 +12,8 @@ use sqlx::types::Json;
 
 use antikythera_domain::session::Session;
 
+use antikythera_macros::PortValidate;
+
 use crate::config::PostgresConfig;
 use crate::error::StorageError;
 
@@ -21,6 +23,8 @@ use super::StorageBackend;
 ///
 /// Sessions are stored in a `sessions` table with JSONB data.
 /// Backups use the local filesystem as intermediate storage.
+#[derive(PortValidate)]
+#[implements(crate::backend::StorageBackend)]
 pub struct PostgresBackend {
     pool: PgPool,
     backup_dir: PathBuf,

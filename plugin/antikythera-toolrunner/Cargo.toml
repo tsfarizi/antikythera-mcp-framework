@@ -18,3 +18,6 @@ serde_json.workspace = true
 async-trait.workspace = true
 thiserror.workspace = true
 antikythera-log = { path = "../../antikythera-log", default-features = false, optional = true }
+
+[dev-dependencies]
+antikythera-macros = { path = "../../antikythera-macros" }

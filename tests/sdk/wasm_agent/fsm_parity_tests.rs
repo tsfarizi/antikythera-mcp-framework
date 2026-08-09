@@ -10,6 +10,7 @@
 //! If either crate changes its transition logic, the mismatch surfaces here.
 
 use antikythera_core::domain::fsm::AgentFsmState as CoreFsmState;
+use antikythera_domain::fsm::AgentFsmState as DomainFsmState;
 use antikythera_sdk::wasm_agent::types::AgentFsmState as WasmFsmState;
 
 // ===========================================================================
@@ -57,6 +58,32 @@ fn state_at_wasm(idx: usize) -> WasmFsmState {
 
 fn state_at_core(idx: usize) -> CoreFsmState {
     ALL_STATES_CORE[idx]
+}
+
+/// Collect all (source, target) pairs from an FsmComplete-generated matrix.
+fn matrix_pairs(
+    matrix: &'static [(&'static str, &'static [&'static str])],
+) -> std::collections::HashSet<(&'static str, &'static str)> {
+    let mut pairs = std::collections::HashSet::new();
+    for (source, targets) in matrix {
+        for target in *targets {
+            pairs.insert((*source, *target));
+        }
+    }
+    pairs
+}
+
+/// Map a domain FSM state to its variant name as emitted in TRANSITION_MATRIX.
+fn domain_state_name(state: DomainFsmState) -> &'static str {
+    match state {
+        DomainFsmState::Idle => "Idle",
+        DomainFsmState::UserTurnPrepared => "UserTurnPrepared",
+        DomainFsmState::LlmStreaming => "LlmStreaming",
+        DomainFsmState::LlmCommitted => "LlmCommitted",
+        DomainFsmState::ToolRequested => "ToolRequested",
+        DomainFsmState::ToolResultProcessed => "ToolResultProcessed",
+        DomainFsmState::Final => "Final",
+    }
 }
 
 fn is_valid_wasm(from: WasmFsmState, to: WasmFsmState) -> bool {
@@ -326,4 +353,52 @@ fn transition_error_display_format_matches() {
         core_err.to_string(),
         "Error display format must match"
     );
+}
+
+// ===========================================================================
+// 10. Generated TRANSITION_MATRIX: cross-crate parity
+// ===========================================================================
+
+#[test]
+fn generated_transition_matrices_match() {
+    let domain_matrix = DomainFsmState::TRANSITION_MATRIX;
+    let wasm_matrix = WasmFsmState::TRANSITION_MATRIX;
+
+    assert_eq!(
+        domain_matrix, wasm_matrix,
+        "FsmComplete-generated TRANSITION_MATRIX must be identical across domain and WASM mirror"
+    );
+}
+
+// ===========================================================================
+// 11. Generated TRANSITION_MATRIX: consistency with hand-written can_transition_to
+// ===========================================================================
+
+#[test]
+fn generated_transition_matrix_matches_domain_can_transition_to() {
+    let matrix = DomainFsmState::TRANSITION_MATRIX;
+    let pairs = matrix_pairs(matrix);
+
+    // The matrix must contain exactly the 11 valid transitions that the
+    // hand-written implementation (and the hardcoded EXPECTED_VALID list) accept.
+    let total_transitions: usize = matrix.iter().map(|(_, targets)| targets.len()).sum();
+    assert_eq!(
+        total_transitions,
+        EXPECTED_VALID.len(),
+        "TRANSITION_MATRIX must contain exactly the same transition count as the manual matrix"
+    );
+
+    // For every (source, target) pair: membership in the matrix must agree with
+    // the hand-written can_transition_to — in both directions.
+    for &from in ALL_STATES_CORE {
+        for &to in ALL_STATES_CORE {
+            let in_matrix = pairs.contains(&(domain_state_name(from), domain_state_name(to)));
+            let can_transition = from.can_transition_to(&to);
+            assert_eq!(
+                in_matrix, can_transition,
+                "TRANSITION_MATRIX and can_transition_to disagree for {:?} -> {:?}: matrix={}, can_transition_to={}",
+                from, to, in_matrix, can_transition
+            );
+        }
+    }
 }

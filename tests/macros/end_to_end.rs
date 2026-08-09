@@ -59,7 +59,7 @@ fn e2e_tool_def_definition() {
     let def = E2eTestTool::definition();
     assert_eq!(def["name"], "e2e_test_tool");
     assert_eq!(def["description"], "End-to-end test tool");
-    assert!(def["inputSchema"].is_object());
+    assert!(def["input_schema"].is_object());
 }
 
 // ============================================================================
@@ -237,4 +237,45 @@ fn e2e_multi_derive_serialization() {
     let restored: E2eMultiDerive = serde_json::from_value(json).unwrap();
     assert_eq!(restored.key, "test");
     assert_eq!(restored.value, Some(42));
+}
+
+// ============================================================================
+// ToolDefinition contract: definition() must deserialize into the real
+// consumer type used by the WASM agent tool registry.
+// ============================================================================
+
+#[derive(ToolDef)]
+#[tool(name = "contract_weather", description = "Get weather for a city")]
+struct ContractWeatherTool {
+    #[tool_param(description = "City name")]
+    city: String,
+    #[tool_param(description = "Units (metric/imperial)")]
+    units: Option<String>,
+}
+
+#[test]
+fn tool_definition_parses_as_consumer_type() {
+    let def = ContractWeatherTool::definition();
+
+    // The canonical output must deserialize into the consumer's ToolDefinition
+    // without any field loss: name + description are required, everything else
+    // (title, parameters, input_schema, output_schema, annotations, execution)
+    // carries #[serde(default)].
+    let tool: antikythera_sdk::wasm_agent::types::tool_registry::ToolDefinition =
+        serde_json::from_value(def)
+            .expect("definition() must parse as consumer ToolDefinition");
+
+    assert_eq!(tool.name, "contract_weather");
+    assert_eq!(tool.description, "Get weather for a city");
+    assert!(tool.parameters.is_empty());
+
+    // required_params() is derived from input_schema["required"].
+    let required = tool.required_params();
+    assert!(required.contains(&"city"));
+    assert!(!required.contains(&"units"));
+
+    // to_prompt_line() renders a reasonable prompt line with required markers.
+    let line = tool.to_prompt_line();
+    assert!(line.contains("contract_weather"));
+    assert!(line.contains("city*"));
 }

@@ -12,6 +12,8 @@
 //! Conversion between core and WASM types is provided via `From` implementations
 //! when the `sdk-core` feature is enabled.
 
+use antikythera_core::WasmBridge;
+use antikythera_macros::{FsmComplete, WasmBridge};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -31,7 +33,7 @@ pub use tool_registry::*;
 // ============================================================================
 
 /// Action the agent wants to take
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, WasmBridge)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub enum AgentAction {
     /// Call a tool
@@ -55,8 +57,17 @@ pub enum AgentAction {
 // See: tests/sdk/wasm_agent/fsm_parity_tests.rs for parity verification.
 
 /// Typed FSM states for the agent loop (WASM mirror of core::domain::fsm::AgentFsmState).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize, FsmComplete)]
 #[serde(rename_all = "snake_case")]
+#[fsm_transitions(
+    Idle => [UserTurnPrepared],
+    UserTurnPrepared => [LlmStreaming],
+    LlmStreaming => [LlmCommitted],
+    LlmCommitted => [ToolRequested, Final, Idle],
+    ToolRequested => [ToolResultProcessed],
+    ToolResultProcessed => [LlmStreaming, Final, Idle],
+    Final => [Idle]
+)]
 pub enum AgentFsmState {
     #[default]
     Idle,
@@ -231,7 +242,7 @@ impl AgentState {
 // ============================================================================
 
 /// Message in conversation (for WASM agent)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, WasmBridge)]
 pub struct AgentMessage {
     /// Role (user, assistant, system, tool)
     pub role: String,

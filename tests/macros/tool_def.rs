@@ -46,5 +46,86 @@ fn test_tool_definition() {
     let def = TestTool::definition();
     assert_eq!(def["name"], "test_tool");
     assert_eq!(def["description"], "A test tool");
-    assert!(def["inputSchema"].is_object());
+    assert!(def["input_schema"].is_object());
+    assert!(def["parameters"].as_array().unwrap().is_empty());
+}
+
+// === Custom struct field maps to $ref (not "string") ===
+
+#[derive(Serialize)]
+#[allow(dead_code)]
+struct ToolTargetConfig {
+    host: String,
+}
+
+#[derive(ToolDef, Serialize)]
+#[tool(name = "custom_ref_tool", description = "Tool with a custom nested type")]
+struct CustomRefTool {
+    #[tool_param(description = "Target configuration")]
+    target: ToolTargetConfig,
+    #[tool_param(description = "Optional overrides")]
+    overrides: Option<ToolTargetConfig>,
+}
+
+#[test]
+fn test_custom_type_field_is_ref() {
+    let schema = CustomRefTool::json_schema();
+
+    // Custom struct type maps to $ref, not the old "string" default.
+    assert_eq!(
+        schema["properties"]["target"]["$ref"],
+        "#/definitions/ToolTargetConfig"
+    );
+    // Option<Custom> resolves through the same mapping.
+    assert_eq!(
+        schema["properties"]["overrides"]["$ref"],
+        "#/definitions/ToolTargetConfig"
+    );
+
+    // Placeholder definition is emitted alongside the $ref.
+    let defs = schema["definitions"].as_object().unwrap();
+    assert_eq!(defs["ToolTargetConfig"]["type"], "object");
+
+    // target is required; overrides (Option) is not.
+    let required = schema["required"].as_array().unwrap();
+    assert!(required.contains(&serde_json::json!("target")));
+    assert!(!required.contains(&serde_json::json!("overrides")));
+}
+
+// === #[serde(default)] non-Option field is not required ===
+
+#[derive(ToolDef, Serialize)]
+#[tool(name = "default_tool", description = "Tool with a serde default field")]
+struct DefaultTool {
+    #[tool_param(description = "Name")]
+    name: String,
+    #[tool_param(description = "Timeout in seconds")]
+    #[serde(default)]
+    timeout: u32,
+}
+
+#[test]
+fn test_serde_default_not_required() {
+    let schema = DefaultTool::json_schema();
+    let required = schema["required"].as_array().unwrap();
+    assert!(required.contains(&serde_json::json!("name")));
+    assert!(!required.contains(&serde_json::json!("timeout")));
+    assert_eq!(schema["properties"]["timeout"]["type"], "integer");
+}
+
+// === Explicit required = true overrides #[serde(default)] ===
+
+#[derive(ToolDef, Serialize)]
+#[tool(name = "override_tool", description = "Tool with explicit required override")]
+struct OverrideTool {
+    #[tool_param(description = "Retry limit", required = true)]
+    #[serde(default)]
+    retries: u32,
+}
+
+#[test]
+fn test_explicit_required_overrides_serde_default() {
+    let schema = OverrideTool::json_schema();
+    let required = schema["required"].as_array().unwrap();
+    assert!(required.contains(&serde_json::json!("retries")));
 }

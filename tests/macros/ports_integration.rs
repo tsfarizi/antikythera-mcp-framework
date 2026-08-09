@@ -63,7 +63,50 @@ fn tool_def_cross_crate_schema() {
 fn tool_def_cross_crate_definition() {
     let def = PortsTestTool::definition();
     assert_eq!(def["name"], "ports_test_tool");
-    assert!(def["inputSchema"].is_object());
+    assert!(def["input_schema"].is_object());
+}
+
+// ToolDef struct with a cross-crate custom field type: maps to $ref.
+#[derive(ToolDef)]
+#[tool(name = "ports_custom_tool", description = "Tool with a cross-crate custom field")]
+struct PortsCustomTool {
+    #[tool_param(description = "Log filter to apply")]
+    filter: LogFilter,
+}
+
+#[test]
+fn tool_def_custom_type_is_ref() {
+    let schema = PortsCustomTool::json_schema();
+    assert_eq!(
+        schema["properties"]["filter"]["$ref"],
+        "#/definitions/LogFilter"
+    );
+
+    let defs = schema["definitions"].as_object().unwrap();
+    assert_eq!(defs["LogFilter"]["type"], "object");
+
+    let required = schema["required"].as_array().unwrap();
+    assert!(required.contains(&serde_json::json!("filter")));
+}
+
+// ToolDef struct with a #[serde(default)] non-Option field: not required.
+#[derive(ToolDef, serde::Serialize)]
+#[tool(name = "ports_default_tool", description = "Tool with a serde default field")]
+struct PortsDefaultTool {
+    #[tool_param(description = "Query string")]
+    query: String,
+    #[tool_param(description = "Limit")]
+    #[serde(default)]
+    limit: u32,
+}
+
+#[test]
+fn tool_def_serde_default_not_required() {
+    let schema = PortsDefaultTool::json_schema();
+    let required = schema["required"].as_array().unwrap();
+    assert!(required.contains(&serde_json::json!("query")));
+    assert!(!required.contains(&serde_json::json!("limit")));
+    assert_eq!(schema["properties"]["limit"]["type"], "integer");
 }
 
 // ============================================================================
