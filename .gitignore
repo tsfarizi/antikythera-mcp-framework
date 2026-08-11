@@ -12,3 +12,4 @@ graphify-out/
 node_modules/
 dist/
 app.toml
+antikythera-sdk/src/bindings.rs

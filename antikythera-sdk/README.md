@@ -15,7 +15,7 @@ High-level SDK and WASM component surface for the Antikythera Agent SDK.
 
 | Flag | Purpose | Status |
 |:-----|:--------|:-------|
-| `component` | Server-side WASM Component Model support (wasm32-wasip1 WASI) | Active |
-| `wasm` | Browser WASM support (wasm32-unknown-unknown), enables `antikythera-log/wasm` | Active |
+| `component` | Server-side WASM Component Model support (wasm32-wasip1 WASI) — basis untuk server dan browser-via-jco | Active |
+| `wasm` | Browser WASM support (wasm32-unknown-unknown), enables `antikythera-log/wasm` — **legacy**, digantikan jalur component + jco | Deprecated |
 | `toolrunner` | In-process tool execution via `antikythera-toolrunner` | Active |
 | `wasm-sandbox` | Wasmtime-based sandbox execution | Active |

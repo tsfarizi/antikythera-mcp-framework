@@ -16,8 +16,8 @@ permissions:
   packages: write
 
 jobs:
-  build-wasm-browser:
-    name: Build Browser WASM
+  build-wasm-component:
+    name: Build WASM Component + jco Transpile
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.value }}
@@ -36,50 +36,77 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown
+          targets: wasm32-wasip1
 
-      - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Install cargo-component
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-component
 
-      - name: Build browser WASM
-        working-directory: plugin/antikythera-wasm-bindgen
-        run: wasm-pack build --target web --release --out-dir pkg-web
+      - name: Install wasm-tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-tools
 
-      - name: Upload browser WASM artifact
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install npm dependencies
+        run: npm install
+
+      - name: Build SDK component
+        run: cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component
+
+      - name: Build toolrunner component
+        run: cargo component build -p antikythera-toolrunner --release --target wasm32-wasip1 --no-default-features --features component
+
+      - name: Compose SDK + toolrunner into dist composite
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          # wasm-tools compose rejects underscore crate names; use kebab-case copy.
+          cp target/wasm32-wasip1/release/antikythera_toolrunner.wasm \
+            target/wasm32-wasip1/release/antikythera-toolrunner.wasm
+          wasm-tools compose target/wasm32-wasip1/release/antikythera_sdk.wasm \
+            -d target/wasm32-wasip1/release/antikythera-toolrunner.wasm \
+            -o dist/antikythera-sdk.wasm
+
+      - name: Transpile composite WASM component to JS with jco
+        run: |
+          npx jco transpile dist/antikythera-sdk.wasm \
+            --out-dir npm/antikythera-sdk/component \
+            -M "wasi:cli/environment@0.2.3=./wasi-stubs/environment.js" \
+            -M "wasi:cli/exit@0.2.3=./wasi-stubs/exit.js" \
+            -M "wasi:cli/stderr@0.2.3=./wasi-stubs/stderr.js" \
+            -M "wasi:cli/stdin@0.2.3=./wasi-stubs/stdin.js" \
+            -M "wasi:cli/stdout@0.2.3=./wasi-stubs/stdout.js" \
+            -M "wasi:clocks/monotonic-clock@0.2.3=./wasi-stubs/monotonic-clock.js" \
+            -M "wasi:clocks/wall-clock@0.2.3=./wasi-stubs/wall-clock.js" \
+            -M "wasi:filesystem/preopens@0.2.3=./wasi-stubs/preopens.js" \
+            -M "wasi:filesystem/types@0.2.3=./wasi-stubs/types.js" \
+            -M "wasi:io/error@0.2.3=./wasi-stubs/error.js" \
+            -M "wasi:io/streams@0.2.3=./wasi-stubs/streams.js" \
+            -M "wasi:random/random@0.2.3=./wasi-stubs/random.js"
+
+      - name: Stage release artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf staging
+          mkdir -p staging/component
+          cp -r npm/antikythera-sdk/component/. staging/component/
+          cp dist/antikythera-sdk.wasm staging/antikythera-sdk.wasm
+          cp wit/antikythera.wit staging/antikythera.wit
+
+      - name: Upload WASM component artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wasm-browser
-          path: |
-            plugin/antikythera-wasm-bindgen/pkg-web/antikythera_wasm_bindgen_bg.wasm
-            plugin/antikythera-wasm-bindgen/pkg-web/antikythera_wasm_bindgen.js
-            plugin/antikythera-wasm-bindgen/pkg-web/antikythera_wasm_bindgen.d.ts
-
-  build-wasm-nodejs:
-    name: Build Node.js WASM
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-
-      - name: Install wasm-pack
-        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
-
-      - name: Build Node.js WASM
-        working-directory: plugin/antikythera-wasm-bindgen
-        run: wasm-pack build --target nodejs --release --out-dir pkg-nodejs
-
-      - name: Upload Node.js WASM artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: wasm-nodejs
-          path: |
-            plugin/antikythera-wasm-bindgen/pkg-nodejs/antikythera_wasm_bindgen_bg.wasm
-            plugin/antikythera-wasm-bindgen/pkg-nodejs/antikythera_wasm_bindgen.js
-            plugin/antikythera-wasm-bindgen/pkg-nodejs/antikythera_wasm_bindgen.d.ts
+          name: wasm-component
+          path: staging/
+          if-no-files-found: error
 
   build-wasm-server:
     name: Build Server WASM (WASI)
@@ -110,18 +137,41 @@ jobs:
       - name: Install cargo-component
         run: cargo install cargo-component
 
-      - name: Build WASM component
-        run: cargo component build --release --target wasm32-wasip1 -p antikythera-sdk
+      - name: Install wasm-tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-tools
+
+      - name: Build SDK component
+        run: cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component
+
+      - name: Build toolrunner component
+        run: cargo component build -p antikythera-toolrunner --release --target wasm32-wasip1 --no-default-features --features component
+
+      - name: Compose SDK + toolrunner into dist composite
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist staging
+          # wasm-tools compose rejects underscore crate names; use kebab-case copy.
+          cp target/wasm32-wasip1/release/antikythera_toolrunner.wasm \
+            target/wasm32-wasip1/release/antikythera-toolrunner.wasm
+          wasm-tools compose target/wasm32-wasip1/release/antikythera_sdk.wasm \
+            -d target/wasm32-wasip1/release/antikythera-toolrunner.wasm \
+            -o dist/antikythera-sdk.wasm
+          # wasm-server consumers (publish-pypi rename, create-release attach)
+          # expect the underscore-crate filename; stage a copy for the artifact.
+          cp dist/antikythera-sdk.wasm staging/antikythera_sdk.wasm
 
       - name: Upload server WASM artifact
         uses: actions/upload-artifact@v4
         with:
           name: wasm-server
-          path: target/wasm32-wasip1/release/antikythera_sdk.wasm
+          path: staging/antikythera_sdk.wasm
 
   publish-npm:
     name: Publish npm Package
-    needs: [build-wasm-browser, build-wasm-nodejs]
+    needs: [build-wasm-component]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -132,21 +182,15 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Download browser WASM artifact
+      - name: Download WASM component artifact
         uses: actions/download-artifact@v4
         with:
-          name: wasm-browser
+          name: wasm-component
           path: npm/antikythera-sdk/
-
-      - name: Download Node.js WASM artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: wasm-nodejs
-          path: npm/antikythera-sdk/pkg-nodejs/
 
       - name: Set version from tag
         run: |
-          VERSION="${{ needs.build-wasm-browser.outputs.version }}"
+          VERSION="${{ needs.build-wasm-component.outputs.version }}"
           sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" npm/antikythera-sdk/package.json
           echo "npm version set to $VERSION"
 
@@ -158,7 +202,7 @@ jobs:
 
   publish-pypi:
     name: Publish Python Package
-    needs: [build-wasm-browser, build-wasm-server]
+    needs: [build-wasm-component, build-wasm-server]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -179,7 +223,7 @@ jobs:
 
       - name: Set version from tag
         run: |
-          VERSION="${{ needs.build-wasm-browser.outputs.version }}"
+          VERSION="${{ needs.build-wasm-component.outputs.version }}"
           sed -i "s/^version = \".*\"/version = \"$VERSION\"/" python/pyproject.toml
           sed -i "s/__version__ = \".*\"/__version__ = \"$VERSION\"/" python/antikythera_agent/__init__.py
           echo "Python version set to $VERSION"
@@ -200,7 +244,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [build-wasm-browser, publish-npm, publish-pypi]
+    needs: [build-wasm-component, publish-npm, publish-pypi]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -213,8 +257,8 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ needs.build-wasm-browser.outputs.version }}
-          name: v${{ needs.build-wasm-browser.outputs.version }}
+          tag_name: v${{ needs.build-wasm-component.outputs.version }}
+          name: v${{ needs.build-wasm-component.outputs.version }}
           generate_release_notes: true
           files: wasm-server/antikythera_sdk.wasm
         env:

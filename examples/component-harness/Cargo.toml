@@ -1,0 +1,16 @@
+[package]
+name = "component-harness"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Wasmtime server harness proving the composed antikythera-sdk + toolrunner composite"
+
+[[bin]]
+name = "component-harness"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+serde_json = "1"
+wasmtime = "=36.0.13"
+wasmtime-wasi = "=36.0.13"

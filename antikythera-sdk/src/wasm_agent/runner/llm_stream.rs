@@ -489,6 +489,90 @@ impl AgentRunnerRuntime {
             }
         }
 
+        // Component path: execute builtin tools through the imported
+        // `tool-registry` interface. `wasm-tools compose` supplies the
+        // implementation when the composite is assembled; until then the
+        // import is unresolved, which is the sanctioned intermediate state.
+        //
+        // Native builds with `feature = "component"` (e.g. the native test
+        // suites) compile the wit-bindgen shims but have no wired host for
+        // the `tool-registry` import; calling them aborts via `unreachable!()`.
+        // The import only exists on wasm targets, so the block is gated on
+        // the target family as well: native tool calls are delegated to the
+        // host (pre-component behavior), wasm components execute builtins.
+        #[cfg(all(feature = "component", target_family = "wasm"))]
+        {
+            if result.action == "call_tool" {
+                let tool = result.tool_name.as_deref().unwrap_or("");
+                let input_val = result
+                    .tool_input
+                    .as_ref()
+                    .cloned()
+                    .unwrap_or(serde_json::Value::Null);
+                let arguments_json = input_val.to_string();
+                let step_id = result.step;
+                match crate::wasm_exports::antikythera::agent_sdk::tool_registry::execute_builtin(
+                    tool,
+                    &arguments_json,
+                    step_id,
+                ) {
+                    Ok(tool_result_json) => {
+                        match serde_json::from_str::<crate::wasm_agent::types::ToolResult>(
+                            &tool_result_json,
+                        ) {
+                            Ok(tr) => {
+                                wasm_log(
+                                    &prepared.session_id,
+                                    LogLevel::Debug,
+                                    &format!(
+                                        "Tool '{}' executed by tool-registry component",
+                                        tool
+                                    ),
+                                );
+                                self.emit_pending_event(
+                                    &prepared.session_id,
+                                    StreamEventKind::ToolResult,
+                                    prepared.correlation_id.clone(),
+                                    serde_json::json!({
+                                        "tool": tr.name,
+                                        "success": tr.success,
+                                    }),
+                                );
+                            }
+                            Err(e) => {
+                                wasm_log(
+                                    &prepared.session_id,
+                                    LogLevel::Error,
+                                    &format!(
+                                        "Tool '{}' returned malformed result from tool-registry: {e}",
+                                        tool
+                                    ),
+                                );
+                                return Err(AgentRunnerError::ToolFailed(format!(
+                                    "Tool '{tool}' returned malformed result from tool-registry: {e}"
+                                )));
+                            }
+                        }
+                    }
+                    Err(msg) if msg.contains("requires host execution") => {
+                        wasm_log(
+                            &prepared.session_id,
+                            LogLevel::Debug,
+                            &format!("Tool '{}' delegated to host (not builtin)", tool),
+                        );
+                    }
+                    Err(msg) => {
+                        wasm_log(
+                            &prepared.session_id,
+                            LogLevel::Error,
+                            &format!("Tool '{}' rejected by tool-registry: {msg}", tool),
+                        );
+                        return Err(AgentRunnerError::ToolFailed(msg));
+                    }
+                }
+            }
+        }
+
         serde_json::to_string(&result)
             .map_err(|e| AgentRunnerError::Internal(format!("Failed to encode commit result: {e}")))
     }

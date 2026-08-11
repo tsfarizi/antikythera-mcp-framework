@@ -1,19 +1,21 @@
-import __wbg_init from 'antikythera-agent/antikythera_wasm_bindgen'
-import {
-  init as initSession,
-  prepare_user_turn,
-  commit_llm_response,
-  commit_llm_stream,
-  drain_events,
-  get_state,
-  register_tools,
-  get_tools_prompt,
-  reset_session,
-  append_llm_chunk,
-  process_llm_response_for_session,
-  process_tool_result_for_session,
-  set_context_policy,
-} from 'antikythera-agent/antikythera_wasm_bindgen'
+import { runner } from 'antikythera-agent/component'
+
+// The jco-transpiled component exposes one namespace `runner` with camelCase
+// functions. Keep the module's historical snake_case surface intact for its
+// consumers (App.vue, slices/chat/flow/send-message.ts) via these aliases.
+const initSession = runner.init
+const prepare_user_turn = runner.prepareUserTurn
+const commit_llm_response = runner.commitLlmResponse
+const commit_llm_stream = runner.commitLlmStream
+const drain_events = runner.drainEvents
+const get_state = runner.getState
+const register_tools = runner.registerTools
+const get_tools_prompt = runner.getToolsPrompt
+const reset_session = runner.resetSession
+const append_llm_chunk = runner.appendLlmChunk
+const process_llm_response_for_session = runner.processLlmResponseForSession
+const process_tool_result_for_session = runner.processToolResultForSession
+const set_context_policy = runner.setContextPolicy
 
 let initialized = false
 
@@ -24,7 +26,10 @@ export async function initWasm(): Promise<void> {
   }
   console.log('[WASM] Starting initialization from npm package...')
   try {
-    await __wbg_init()
+    // The static import above already evaluates the jco module, whose top-level
+    // await instantiates the component exactly once (ESM module cache). This
+    // dynamic import resolves the same cached module record — no double-instantiation.
+    await import('antikythera-agent/component')
     initialized = true
     console.log('[WASM] Initialization successful (using npm package)')
   } catch (e) {

@@ -27,7 +27,27 @@ prompts.register({
 const content = prompts.getContent('assistant');
 ```
 
-### WASM Initialization (Browser)
+### WASM via jco component (recommended)
+
+The browser WASM path is a **composite** WASI component (`wasm32-wasip1`) transpiled with `@bytecodealliance/jco`: the `antikythera-sdk` runner component is composed with the embedded `antikythera-toolrunner` component (`wasm-tools compose`), so builtin tools execute inside the module without host round-trip. Import the `runner` namespace from `antikythera-agent/component`:
+
+```javascript
+import { runner } from 'antikythera-agent/component';
+
+// Initialize the agent runner — returns the raw session id (plain string, not JSON)
+const sessionId = runner.init(JSON.stringify({ session_id: 's1' }));
+
+// Get the agent state for a session
+const state = runner.getState(sessionId);
+```
+
+The `runner` namespace exposes 16 camelCase functions (all payloads are JSON strings): `init`, `prepareUserTurn`, `commitLlmResponse`, `commitLlmStream`, `processLlmResponseForSession`, `processToolResultForSession`, `appendLlmChunk`, `drainEvents`, `getState`, `resetSession`, `sweepIdleSessions`, `registerTools`, `getToolsPrompt`, `setContextPolicy`, `getTelemetrySnapshot`, `getSloSnapshot`.
+
+> Note: the transpiled module uses top-level await — set your bundler build target to ES2022 (e.g. Vite `build.target: 'es2022'`).
+
+### WASM Initialization (legacy wasm-bindgen, deprecated)
+
+The `antikythera_wasm_bindgen` export is the **legacy** wasm-bindgen browser path (`wasm32-unknown-unknown`). It is deprecated and kept only for compatibility during the transition to the WASI component + jco path above.
 
 ```javascript
 import init from 'antikythera-agent/antikythera_wasm_bindgen';
@@ -81,12 +101,13 @@ const prompts = PromptManager.fromJSON('[{"id":"agent","name":"Agent","content":
 | File | Description |
 |:-----|:------------|
 | `index.js` | Main exports (PromptManager, SessionManager) |
-| `antikythera_wasm_bindgen.js` | WASM glue code for browser |
-| `antikythera_wasm_bindgen_bg.wasm` | Browser WASM binary |
+| `component/` | Composite WASI component (SDK runner + embedded toolrunner) transpiled with jco — ESM bindings, namespace `runner` (camelCase), WASI stubs under `wasi-stubs/` |
+| `antikythera_wasm_bindgen.js` | **Legacy** wasm-bindgen WASM glue code for browser (deprecated) |
+| `antikythera_wasm_bindgen_bg.wasm` | **Legacy** browser WASM binary (deprecated) |
 
 ## Requirements
 
-- Node.js >= 18.0.0
+- Node.js with ESM support
 
 ## License
 

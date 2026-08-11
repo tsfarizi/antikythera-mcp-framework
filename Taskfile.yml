@@ -12,6 +12,11 @@ dotenv:
 vars:
   WASM_TARGET: wasm32-wasip1
   WASM_BINARY: target/{{.WASM_TARGET}}/release/antikythera_sdk.wasm
+  TOOLRUNNER_BINARY: target/{{.WASM_TARGET}}/release/antikythera_toolrunner.wasm
+  # wasm-tools compose rejects crate names with underscores; the toolrunner
+  # component must be copied to a kebab-case name before composing.
+  TOOLRUNNER_KEBAB: target/{{.WASM_TARGET}}/release/antikythera-toolrunner.wasm
+  DIST_SDK: dist/antikythera-sdk.wasm
   APP_CONFIG: app.toml
   PROVIDER_ID: '{{default "local-ollama" .PROVIDER_ID}}'
   PROVIDER_TYPE: '{{default "ollama" .PROVIDER_TYPE}}'
@@ -38,10 +43,14 @@ tasks:
         echo "  task test-native     - Run tests (native target only)"
         echo ""
         echo "  === WASM Development (Optional) ==="
-        echo "  task build           - Build WASM component"
-        echo "  task build-wasm-harness - Build WASM artifact for FFI host harness"
-        echo "  task build-all       - Build all WASM artifacts"
+        echo "  task build           - Build composite WASM component (SDK + toolrunner -> dist/antikythera-sdk.wasm)"
+        echo "  task build-wasm-harness - Build standalone SDK WASM artifact (for FFI host harness)"
+        echo "  task build-toolrunner - Build standalone toolrunner WASM artifact"
+        echo "  task compose         - Compose SDK + toolrunner into dist/antikythera-sdk.wasm"
+        echo "  task build-all       - Build all WASM artifacts (standalone SDK + toolrunner + composite)"
         echo "  task check-wasm      - Check WASM compilation"
+        echo "  task transpile       - Transpile composite (dist) to JS bindings with jco"
+        echo "  task inspect         - Inspect composite component with wasm-tools"
         echo ""
         echo "  === Examples ==="
         echo "  task run-web         - Run web frontend dev server"
@@ -58,39 +67,106 @@ tasks:
   # Build Tasks
   # ===========================================================================
 
+  # ---------------------------------------------------------------------------
+  # WASM deliverables are COMPOSITE: the runner component
+  # (antikythera-sdk) imports tool-registry; the toolrunner component exports
+  # it. `wasm-tools compose` wires the two into dist/antikythera-sdk.wasm.
+  # Anything consuming dist (jco transpile, wasmtime harness) MUST see the
+  # composite, never the standalone SDK (it carries an unmet tool-registry
+  # import and fails runtime smoke).
+  # ---------------------------------------------------------------------------
+
   build:
-    desc: Build WASM component
+    desc: Build composite WASM component (SDK + toolrunner -> dist/antikythera-sdk.wasm)
     deps:
       - wit
     cmds:
-      - echo "Building WASM component..."
-      - cargo component build --target {{.WASM_TARGET}} --release
-      - echo ""
-      - 'echo "OK WASM component built: {{.WASM_BINARY}}"'
-      - task: size
+      - echo "Building composite WASM component..."
+      - task: compose
 
   build-wasm-harness:
-    desc: Build WASM artifact for CLI harness (component lane)
+    desc: Build standalone SDK WASM component (wasm32-wasip1, feature component)
     deps:
       - wit
     cmds:
-      - echo "Building WASM harness artifact..."
+      - echo "Building standalone SDK WASM component..."
       - cargo component build -p antikythera-sdk --target {{.WASM_TARGET}} --release --no-default-features --features component
       - echo ""
-      - 'echo "OK WASM harness artifact built: {{.WASM_BINARY}}"'
+      - 'echo "OK standalone SDK component built: {{.WASM_BINARY}}"'
+      - task: size
+
+  build-toolrunner:
+    desc: Build standalone toolrunner WASM component (wasm32-wasip1, feature component)
+    cmds:
+      - echo "Building standalone toolrunner WASM component..."
+      - cargo component build -p antikythera-toolrunner --target {{.WASM_TARGET}} --release --no-default-features --features component
+      - echo ""
+      - 'echo "OK standalone toolrunner component built: {{.TOOLRUNNER_BINARY}}"'
+      - task: size
+
+  compose:
+    desc: Compose SDK + toolrunner into composite dist/antikythera-sdk.wasm
+    deps:
+      - build-wasm-harness
+      - build-toolrunner
+    cmds:
+      - echo "Composing SDK + toolrunner into composite..."
+      - mkdir -p dist
+      # wasm-tools compose rejects the underscore crate name; use kebab-case copy.
+      - cp {{.TOOLRUNNER_BINARY}} {{.TOOLRUNNER_KEBAB}}
+      - wasm-tools compose {{.WASM_BINARY}} -d {{.TOOLRUNNER_KEBAB}} -o {{.DIST_SDK}}
+      - echo ""
+      - 'echo "OK composite built: {{.DIST_SDK}}"'
       - task: size
 
   build-all:
-    desc: Build all WASM artifacts
+    desc: Build all WASM artifacts (standalone SDK + toolrunner + composite)
     cmds:
-      - task: build
       - task: build-wasm-harness
+      - task: build-toolrunner
+      - task: compose
 
   wit:
     desc: Validate WIT file conformance against Rust source types
     cmds:
       - echo "Validating WIT conformance..."
       - cargo run -p build-scripts --release -- validate
+
+  transpile:
+    desc: Transpile composite WASM component to JS bindings with jco
+    deps:
+      - compose
+    cmds:
+      - echo "Transpiling composite WASM component with jco..."
+      # jco has no --dts flag (typescript output is default); the 12 -M flags
+      # map every WASI interface the component imports to local stubs under the
+      # output directory (npm/antikythera-sdk/component/wasi-stubs).
+      - |
+        npx jco transpile dist/antikythera-sdk.wasm --out-dir npm/antikythera-sdk/component \
+          -M "wasi:cli/environment@0.2.3=./wasi-stubs/environment.js" \
+          -M "wasi:cli/exit@0.2.3=./wasi-stubs/exit.js" \
+          -M "wasi:cli/stderr@0.2.3=./wasi-stubs/stderr.js" \
+          -M "wasi:cli/stdin@0.2.3=./wasi-stubs/stdin.js" \
+          -M "wasi:cli/stdout@0.2.3=./wasi-stubs/stdout.js" \
+          -M "wasi:clocks/monotonic-clock@0.2.3=./wasi-stubs/monotonic-clock.js" \
+          -M "wasi:clocks/wall-clock@0.2.3=./wasi-stubs/wall-clock.js" \
+          -M "wasi:filesystem/preopens@0.2.3=./wasi-stubs/preopens.js" \
+          -M "wasi:filesystem/types@0.2.3=./wasi-stubs/types.js" \
+          -M "wasi:io/error@0.2.3=./wasi-stubs/error.js" \
+          -M "wasi:io/streams@0.2.3=./wasi-stubs/streams.js" \
+          -M "wasi:random/random@0.2.3=./wasi-stubs/random.js"
+      - echo ""
+      - echo "✓ Transpiled to npm/antikythera-sdk/component"
+
+  transpile-clean:
+    desc: Remove transpiled JS output directory
+    cmds:
+      - echo "Cleaning transpiled output..."
+      - |
+        if [ -d "npm/antikythera-sdk/component" ]; then
+          rm -rf "npm/antikythera-sdk/component"
+        fi
+      - echo "✓ Transpile output clean complete"
 
   # ===========================================================================
   # Run Tasks
@@ -245,14 +321,14 @@ tasks:
   # ===========================================================================
 
   inspect:
-    desc: Inspect WASM component
+    desc: Inspect the composite WASM component (dist/antikythera-sdk.wasm)
     deps:
       - build
     cmds:
-      - echo "Inspecting WASM component..."
-      - wasm-tools component info {{.WASM_BINARY}} || echo "wasm-tools not installed"
+      - echo "Inspecting composite WASM component..."
+      - wasm-tools component info {{.DIST_SDK}} || echo "wasm-tools not installed"
       - echo ""
-      - wasm-tools component wit {{.WASM_BINARY}} || echo "wasm-tools not installed"
+      - wasm-tools component wit {{.DIST_SDK}} || echo "wasm-tools not installed"
 
   size:
     desc: Show WASM artifact sizes
@@ -262,8 +338,20 @@ tasks:
         echo "─────────────────────────────────"
         if [ -f "{{.WASM_BINARY}}" ]; then
           WASM_SIZE=$(stat -f%z "{{.WASM_BINARY}}" 2>/dev/null || stat -c%s "{{.WASM_BINARY}}" 2>/dev/null || echo "?")
-          echo "  WASM:   $WASM_SIZE bytes"
+          echo "  SDK standalone:   $WASM_SIZE bytes"
         else
-          echo "  WASM:   not built"
+          echo "  SDK standalone:   not built"
+        fi
+        if [ -f "{{.TOOLRUNNER_BINARY}}" ]; then
+          TR_SIZE=$(stat -f%z "{{.TOOLRUNNER_BINARY}}" 2>/dev/null || stat -c%s "{{.TOOLRUNNER_BINARY}}" 2>/dev/null || echo "?")
+          echo "  toolrunner:       $TR_SIZE bytes"
+        else
+          echo "  toolrunner:       not built"
+        fi
+        if [ -f "{{.DIST_SDK}}" ]; then
+          COMPOSITE_SIZE=$(stat -f%z "{{.DIST_SDK}}" 2>/dev/null || stat -c%s "{{.DIST_SDK}}" 2>/dev/null || echo "?")
+          echo "  composite (dist): $COMPOSITE_SIZE bytes"
+        else
+          echo "  composite (dist): not built"
         fi
         echo "─────────────────────────────────"

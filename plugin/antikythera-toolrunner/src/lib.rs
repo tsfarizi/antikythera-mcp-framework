@@ -63,6 +63,10 @@ pub mod types;
 #[cfg(feature = "wasm")]
 pub mod wasm;
 
+/// WIT export layer for the component world (`antikythera:agent-sdk/tool-registry-component`)
+#[cfg(feature = "component")]
+pub mod component;
+
 pub use error::ToolRunnerError;
 pub use handler::ToolHandlerFn;
 pub use registry::ToolRegistry;

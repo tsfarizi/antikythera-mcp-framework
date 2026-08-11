@@ -23,6 +23,12 @@ const RED: &str = "\x1b[31m";
 const BOLD: &str = "\x1b[1m";
 const RESET: &str = "\x1b[0m";
 
+// Interfaces whose implementation lives outside the scanned crates
+// (e.g. `plugin/antikythera-toolrunner`) are not subject to this
+// conformance check; their drift is caught by the real wit-parser
+// during `cargo component build`.
+const SKIPPED_INTERFACES: &[&str] = &["tool-registry"];
+
 // ── Parsed WIT structures ────────────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
@@ -169,6 +175,14 @@ fn run_validate() {
     // ── 4. Validate interfaces ────────────────────────────────────────────
     println!("{BOLD}--- Interface Validation ---{RESET}");
     for wit_iface in &wit_interfaces {
+        if SKIPPED_INTERFACES.contains(&wit_iface.name.as_str()) {
+            println!(
+                "  {YELLOW}○{RESET} {} - implementation outside scanned crates (skipped)",
+                wit_iface.name
+            );
+            continue;
+        }
+
         let expected_fns: Vec<&str> = wit_iface
             .functions
             .iter()
@@ -176,7 +190,7 @@ fn run_validate() {
             .collect();
         let matching_fns: Vec<&RustFunction> = rust_fns
             .iter()
-            .filter(|f| expected_fns.contains(&f.name.as_str()))
+            .filter(|f| expected_fns.contains(&snake_to_kebab(&f.name).as_str()))
             .collect();
 
         if matching_fns.is_empty() {
@@ -189,7 +203,7 @@ fn run_validate() {
 
         let mut iface_drift = false;
         for wit_fn in &wit_iface.functions {
-            match matching_fns.iter().find(|f| f.name == wit_fn.name) {
+            match matching_fns.iter().find(|f| snake_to_kebab(&f.name) == wit_fn.name) {
                 Some(rust_fn) => {
                     let diffs = compare_function(wit_fn, rust_fn);
                     if diffs.is_empty() {
@@ -317,6 +331,10 @@ fn parse_wit_interfaces(content: &str) -> Vec<WitInterface> {
 
 fn parse_wit_function_sig(line: &str) -> Option<WitFunction> {
     let line = line.trim().trim_end_matches(';');
+    // Canonical WIT declares functions as `name: func(params) -> ret;`;
+    // normalize that form to the legacy `name(params)` shape so the rest
+    // of the parser is unchanged.
+    let line = line.replace(": func(", "(");
     let paren_open = line.find('(')?;
     let name = line[..paren_open].trim().to_string();
     let after_paren = &line[paren_open + 1..];
@@ -486,41 +504,67 @@ fn scan_fns_recursive(dir: &Path, fns: &mut Vec<RustFunction>) {
 }
 
 fn parse_rust_functions(content: &str, fns: &mut Vec<RustFunction>) {
-    for line in content.lines() {
-        let trimmed = line.trim();
-        // Match: pub fn <name>(...)  or  pub fn <name>(...) -> Type
-        if !trimmed.starts_with("pub fn ") {
+    let mut pos = 0;
+    while let Some(rel) = content[pos..].find("pub fn ") {
+        let start = pos + rel;
+        let after_pub = &content[start + "pub fn ".len()..];
+        let Some(paren_rel) = after_pub.find('(') else {
+            pos = start + 1;
             continue;
-        }
-        let after_pub = &trimmed["pub fn ".len()..];
-        if let Some(paren) = after_pub.find('(') {
-            let fn_name = after_pub[..paren].trim().to_string();
-            let after_paren = &after_pub[paren + 1..];
-            if let Some(paren_close) = after_paren.find(')') {
-                let params_str = &after_paren[..paren_close];
-                let rest = after_paren[paren_close + 1..].trim();
+        };
+        let fn_name = after_pub[..paren_rel].trim().to_string();
+        let body = &after_pub[paren_rel..];
+        let Some((close_offset, params_str)) = find_fn_params(body) else {
+            pos = start + 1;
+            continue;
+        };
+        let params = parse_rust_params(params_str);
 
-                let params = parse_rust_params(params_str);
+        let rest = body[close_offset..].trim();
+        let return_type = rest.strip_prefix("->").map(|stripped| {
+            stripped
+                .trim()
+                .split_once('{')
+                .map(|(head, _)| head)
+                .unwrap_or(stripped.trim())
+                .trim_end_matches(';')
+                .trim()
+                .to_string()
+        });
 
-                let return_type = rest.strip_prefix("->").map(|stripped| {
-                    stripped
-                        .trim()
-                        .trim_end_matches('{')
-                        .trim_end_matches(';')
-                        .trim()
-                        .to_string()
-                });
-
-                fns.push(RustFunction {
-                    name: fn_name,
-                    params,
-                    return_type,
-                });
-            }
-        }
+        fns.push(RustFunction {
+            name: fn_name,
+            params,
+            return_type,
+        });
+        pos = start + 1;
     }
 }
 
+fn find_fn_params(body: &str) -> Option<(usize, &str)> {
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+    for (i, c) in body.char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        match c {
+            '"' => in_string = !in_string,
+            '\\' if in_string => escaped = true,
+            '(' if !in_string => depth += 1,
+            ')' if !in_string => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some((i + 1, &body[1..i]));
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
 fn parse_rust_params(params_str: &str) -> Vec<RustField> {
     if params_str.trim().is_empty() {
         return Vec::new();
@@ -630,7 +674,11 @@ fn compare_function(wit: &WitFunction, rust: &RustFunction) -> Vec<String> {
     match (&wit.return_type, &rust.return_type) {
         (Some(wit_ret), Some(rust_ret)) => {
             let wit_as_rust = wit_type_to_rust(wit_ret);
-            if !type_equivalent(&wit_as_rust, rust_ret) {
+            // Runner functions report `AgentRunnerError` in Rust but the WIT
+            // boundary flattens it to `string` (`e.to_string()` in the export
+            // shim); treat the two as equivalent for conformance.
+            let rust_normalized = rust_ret.replace("AgentRunnerError", "String");
+            if !type_equivalent(&wit_as_rust, &rust_normalized) {
                 diffs.push(format!(
                     "return type: WIT '{}' ≠ Rust '{}'",
                     wit_ret, rust_ret
@@ -673,7 +721,19 @@ fn wit_type_to_rust(wit: &str) -> String {
             let inner = &t[5..t.len() - 1];
             format!("Vec<{}>", wit_type_to_rust(inner))
         }
-        t if t.starts_with("result<") => "Result<_, String>".to_string(),
+        t if t.starts_with("result<") => {
+            let inner = &t[7..t.len() - 1];
+            let (ok, err) = inner
+                .split_once(',')
+                .map(|(ok, err)| (ok.trim(), err.trim()))
+                .unwrap_or((inner.trim(), ""));
+            let ok_rust = if ok == "_" {
+                "_".to_string()
+            } else {
+                wit_type_to_rust(ok)
+            };
+            format!("Result<{ok_rust}, {}>", wit_type_to_rust(err))
+        }
         _ => kebab_to_camel(wit),
     }
 }

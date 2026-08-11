@@ -38,7 +38,7 @@ flowchart TD
 - Multi-provider LLM support: Ollama (default), OpenAI, and Gemini via feature-gated facade.
 - Multi-agent orchestration with guardrails, resilience, and observability hooks.
 - Streaming support for token/event output and buffered delivery policies.
-- WASM component integration path for host-controlled execution (browser WASM, WASI Component Model, Wasmtime sandbox).
+- WASM component integration path for host-controlled execution (browser via WASI component + jco, WASI Component Model on the server, Wasmtime sandbox).
 - Consolidated documentation under `documentation/`.
 
 ## Workspace Layout
@@ -88,8 +88,8 @@ flowchart TD
 
 | Crate | Role |
 |:------|:-----|
-| `plugin/antikythera-wasm-bindgen` | wasm-bindgen bindings for browser WASM targets — depends on SDK |
-| `plugin/antikythera-toolrunner` | In-process tool execution — standalone |
+| `plugin/antikythera-wasm-bindgen` | **Legacy** wasm-bindgen browser glue (`wasm32-unknown-unknown`) — digantikan jalur WASI component + jco; dipertahankan untuk kompatibilitas — depends on SDK |
+| `plugin/antikythera-toolrunner` | In-process tool execution and standalone WASM tool-registry component (composed into the SDK deliverable) |
 
 ### Supporting directories
 

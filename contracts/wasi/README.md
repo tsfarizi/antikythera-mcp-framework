@@ -2,9 +2,10 @@
 
 This directory contains the contract definition for the WASI Component Model target (`wasm32-wasip1`).
 
-## Contract File
+## Contract Files
 
-- `../shared/wit_signatures.golden.txt` — WIT function signatures (golden file)
+- `wit_signatures.golden.txt` — WIT function signatures (golden file, mechanically regenerated from `wit/antikythera.wit` in the same deterministic style as `contracts/shared/wit_signatures.golden.txt`)
+- `component_contract.golden.json` — legacy JSON contract artifact (superseded; kept for history)
 
 ## Build Target
 
@@ -14,18 +15,24 @@ This directory contains the contract definition for the WASI Component Model tar
 
 ## Interface
 
-The WASI component uses WIT (WebAssembly Interface Types) defined in `wit/antikythera.wit`.
+The WASI component uses WIT (WebAssembly Interface Types) defined in `wit/antikythera.wit`. The deliverable is **composite**: the SDK component (`world antikythera-agent-sdk`) is composed with the standalone toolrunner component (`world tool-registry-component`) via `wasm-tools compose` into `dist/antikythera-sdk.wasm`.
 
-### Imports (host provides)
-- `host-imports`: `call-llm`, `emit-tool-call`, `log-message`, `save-state`, `load-state`
+### World `antikythera-agent-sdk` (SDK component)
 
-### Exports (WASM provides)
-- `prompt-manager`: `get-prompt`, `list-prompts`
-- `mcp-client`: `list-tools`, `invoke-tool`
-- `ffi-server`: `start`, `stop`
+- **Import** `tool-registry`: `list-tools-json`, `validate-tool-call`, `execute-builtin` — supplied by the embedded toolrunner component at composition time (stateless tool catalog + builtin executor; JSON-string payloads)
+- **Export** `runner`: `init`, `prepare-user-turn`, `commit-llm-response`, `commit-llm-stream`, `process-llm-response-for-session`, `process-tool-result-for-session`, `append-llm-chunk`, `drain-events`, `get-state`, `reset-session`, `sweep-idle-sessions`, `register-tools`, `get-tools-prompt`, `set-context-policy`, `get-telemetry-snapshot`, `get-slo-snapshot`
+
+### World `tool-registry-component` (toolrunner component)
+
+- **Export** `tool-registry` — the interface imported by the SDK world; `wasm-tools compose` wires the two
+
+### Import resolution
+
+The standalone SDK component carries an unmet `tool-registry` import and must never be embedded or transpiled directly. The composed composite imports only `wasi:` interfaces and exports `antikythera:agent-sdk/runner@1.0.0`.
 
 ## Verification
 
 ```bash
-cargo run -p build-scripts --release -- validate
+wasm-tools component wit dist/antikythera-sdk.wasm
+cargo run -p component-harness --release
 ```

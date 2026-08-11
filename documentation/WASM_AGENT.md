@@ -99,6 +99,8 @@ The WASM component exports the following host-callable functions:
 | `reset_session(session_id)` | Reset/remove a session |
 | `sweep_idle_sessions(now_unix_ms?)` | Trigger idle timeout sweep manually |
 
+The table above uses the Rust/WIT naming (snake_case). When the component is transpiled with jco for the browser, the same functions are exposed on the `runner` namespace with camelCase names (e.g. `prepareUserTurn`, `getState`, `sweepIdleSessions`) — see [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md).
+
 ## Related documents
 
 - [`COMPONENT.md`](COMPONENT.md)

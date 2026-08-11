@@ -6,6 +6,8 @@ This document explains the WASM component model used by the project documentatio
 
 The component model keeps agent logic inside the component and pushes environment-specific I/O into the host.
 
+The same component is the basis for both active WASM paths: the server embeds it via wasmtime, and the browser consumes it after `jco` transpiles it to ESM bindings (`npm/antikythera-sdk/component/`, namespace `runner`). See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) for the target/feature/build matrix.
+
 ## Component view
 
 ```mermaid

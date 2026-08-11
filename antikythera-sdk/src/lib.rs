@@ -72,6 +72,10 @@ pub mod wasm_runtime;
 #[cfg(feature = "component")]
 pub mod wasm_agent;
 
+/// WIT export layer for the component world (`antikythera:agent-sdk/runner`)
+#[cfg(feature = "component")]
+pub mod wasm_exports;
+
 #[cfg(feature = "component")]
 pub use wasm_agent::{
     AgentAction, AgentMessage, AgentRunnerError, AgentState, ContextPolicy, ContextSummary,

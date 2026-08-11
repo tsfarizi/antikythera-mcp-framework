@@ -1,97 +1,211 @@
 package antikythera:agent-sdk@1.0.0;
 
-/// LlmRequest
-record llm-request {
-  provider: option<string>,
-  model: option<string>,
-  session-id: option<string>,
-  messages-json: string,
-  force-json: bool,
-  temperature: option<float32>,
-  max-tokens: option<u32>,
-  schema-name: option<string>,
-  metadata-json: option<string>,
-}
+/// Shared vocabulary for the host-facing interfaces.
+///
+/// Records are defined here (canonical WIT requires types to live inside an
+/// interface) and imported by the interfaces that consume them. None of this
+/// vocabulary is wired into the world yet.
+interface vocabulary {
+  /// LlmRequest
+  record llm-request {
+    provider: option<string>,
+    model: option<string>,
+    session-id: option<string>,
+    messages-json: string,
+    force-json: bool,
+    temperature: option<f32>,
+    max-tokens: option<u32>,
+    schema-name: option<string>,
+    metadata-json: option<string>,
+  }
 
-/// LlmResponse
-record llm-response {
-  content: string,
-  model: option<string>,
-  session-id: option<string>,
-  message-json: option<string>,
-  tokens-used: option<u32>,
-  finish-reason: option<string>,
-  raw-response-json: option<string>,
-}
+  /// LlmResponse
+  record llm-response {
+    content: string,
+    model: option<string>,
+    session-id: option<string>,
+    message-json: option<string>,
+    tokens-used: option<u32>,
+    finish-reason: option<string>,
+    raw-response-json: option<string>,
+  }
 
-/// ToolCallEvent
-record tool-call-event {
-  tool-name: string,
-  arguments-json: string,
-  session-id: option<string>,
-  step-id: u32,
-}
+  /// ToolCallEvent
+  record tool-call-event {
+    tool-name: string,
+    arguments-json: string,
+    session-id: option<string>,
+    step-id: u32,
+  }
 
-/// ToolExecutionResult
-record tool-execution-result {
-  tool-name: string,
-  success: bool,
-  output-json: string,
-  error-message: option<string>,
-  step-id: u32,
-}
+  /// ToolExecutionResult
+  record tool-execution-result {
+    tool-name: string,
+    success: bool,
+    output-json: string,
+    error-message: option<string>,
+    step-id: u32,
+  }
 
-/// LogEvent
-record log-event {
-  level: string,
-  message: string,
-  timestamp: option<string>,
-}
+  /// LogEvent
+  record log-event {
+    level: string,
+    message: string,
+    timestamp: option<string>,
+  }
 
-/// DelegatingAgent<H: HostImports>
-record delegating-agent<-h: -host-imports> {
-  host: h,
-  session-id: option<string>,
-  step-counter: u32,
-  max-steps: u32,
+  /// DelegatingAgent<H: HostImports>
+  ///
+  /// The original design was generic over a `HostImports` implementation
+  /// (`record delegating-agent<-h: -host-imports>`); the WIT dialect used by
+  /// wasm-tools 1.256 has no generic type parameters, so `host` carries an
+  /// opaque host instance id and the field set is preserved unchanged.
+  record delegating-agent {
+    host: string,
+    session-id: option<string>,
+    step-counter: u32,
+    max-steps: u32,
+  }
 }
 
 /// HostImports
 interface host-imports {
-  call-llm(request: llm-request) -> result<llm-response, string>;
-  emit-tool-call(event: tool-call-event) -> result<tool-execution-result, string>;
-  log-message(event: log-event);
-  save-state(context-id: string, state-json: string) -> result<_, string>;
-  load-state(context-id: string) -> result<option<string>, string>;
+  use vocabulary.{llm-request, llm-response, tool-call-event, tool-execution-result, log-event};
+
+  call-llm: func(request: llm-request) -> result<llm-response, string>;
+  emit-tool-call: func(event: tool-call-event) -> result<tool-execution-result, string>;
+  log-message: func(event: log-event);
+  save-state: func(context-id: string, state-json: string) -> result<_, string>;
+  load-state: func(context-id: string) -> result<option<string>, string>;
 }
 
 /// PromptManager — host-side prompt storage interface
 interface prompt-manager {
   /// Retrieve a prompt template by its identifier.
-  get-prompt(prompt-id: string) -> result<option<string>, string>;
+  get-prompt: func(prompt-id: string) -> result<option<string>, string>;
   /// List all available prompt identifiers.
-  list-prompts() -> result<list<string>, string>;
+  list-prompts: func() -> result<list<string>, string>;
 }
 
 /// McpClient — host-side MCP server proxy interface
 interface mcp-client {
+  use vocabulary.{tool-call-event, tool-execution-result};
+
   /// List tools exposed by a connected MCP server.
-  list-tools(server-id: string) -> result<list<tool-call-event>, string>;
+  list-tools: func(server-id: string) -> result<list<tool-call-event>, string>;
   /// Invoke a tool on an MCP server and return the result.
-  invoke-tool(server-id: string, tool-name: string, input-json: string) -> result<tool-execution-result, string>;
+  invoke-tool: func(server-id: string, tool-name: string, input-json: string) -> result<tool-execution-result, string>;
 }
 
 /// FfiServer — optional REST bridge for non-WASM hosts
 interface ffi-server {
   /// Start the HTTP bridge on the given bind address.
-  start(bind-address: string) -> result<_, string>;
+  start: func(bind-address: string) -> result<_, string>;
   /// Gracefully stop the HTTP bridge.
-  stop() -> result<_, string>;
+  stop: func() -> result<_, string>;
+}
+
+/// Runner — JSON-string agent API exported by the Antikythera WASM component.
+///
+/// Every function is a thin wrapper over `crate::wasm_agent::runner`; JSON
+/// payloads pass through unmodified and errors are flattened to strings.
+interface runner {
+  /// Initialize the runner from a config JSON string.
+  init: func(config-json: string) -> result<string, string>;
+  /// Prepare a user turn (prompt building + tool guidance).
+  prepare-user-turn: func(request-json: string) -> result<string, string>;
+  /// Commit a complete LLM response against a prepared turn.
+  commit-llm-response: func(prepared-turn-json: string, llm-response-json: string) -> result<string, string>;
+  /// Commit an LLM stream session against a prepared turn.
+  commit-llm-stream: func(prepared-turn-json: string) -> result<string, string>;
+  /// Process an LLM response for a named session.
+  process-llm-response-for-session: func(session-id: string, llm-response-json: string) -> result<string, string>;
+  /// Process a tool result for a named session.
+  process-tool-result-for-session: func(session-id: string, tool-result-json: string) -> result<string, string>;
+  /// Append a streaming LLM chunk to a session.
+  append-llm-chunk: func(session-id: string, chunk: string, correlation-id: option<string>) -> result<bool, string>;
+  /// Drain pending stream events for a session as JSON.
+  drain-events: func(session-id: string) -> result<string, string>;
+  /// Snapshot the agent state of a session as JSON.
+  get-state: func(session-id: string) -> result<string, string>;
+  /// Reset (drop) a session; returns whether it existed.
+  reset-session: func(session-id: string) -> result<bool, string>;
+  /// Sweep idle sessions; returns the number of sessions reaped.
+  sweep-idle-sessions: func(now-unix-ms: option<s64>) -> result<u32, string>;
+  /// Register tool definitions; returns the number registered.
+  register-tools: func(tools-json: string) -> result<u32, string>;
+  /// Return the formatted tool-list prompt block.
+  get-tools-prompt: func() -> result<string, string>;
+  /// Install the context-policy from a JSON string.
+  set-context-policy: func(policy-json: string) -> result<bool, string>;
+  /// Snapshot runner telemetry for a session as JSON.
+  get-telemetry-snapshot: func(session-id: string) -> result<string, string>;
+  /// Snapshot SLO metrics for a session as JSON.
+  get-slo-snapshot: func(session-id: string) -> result<string, string>;
 }
 
 world antikythera-agent-sdk {
-    import host-imports;
-    export prompt-manager;
-    export mcp-client;
-    export ffi-server;
+  import tool-registry;
+  export runner;
+}
+
+/// ToolRegistry - stateless tool definition catalog and builtin executor.
+///
+/// Contract exported by the standalone `antikythera-toolrunner`
+/// component and imported by the SDK component; `wasm-tools
+/// compose` wires the two. The interface carries no state (D4): every call
+/// is self-contained and all payloads travel as JSON strings, consistent
+/// with the JSON-string philosophy of `runner`.
+interface tool-registry {
+  /// List the known tool definitions as a JSON array string.
+  ///
+  /// Each element is a ToolDefinition JSON object:
+  ///   { "name", "title"?, "description", "parameters"?,
+  ///     "input_schema"?, "output_schema"? }
+  /// The array is sorted by tool name for determinism
+  /// (`ToolRegistry::to_json`).
+  ///
+  /// Ok - JSON array of ToolDefinition.
+  /// Err - the registry could not be serialized.
+  list-tools-json: func() -> result<string, string>;
+
+  /// Validate a tool call against the registry.
+  ///
+  /// Ok - the call is valid.
+  /// Err(message) - the tool is unknown or a required parameter is missing
+  /// (`ToolRegistry::validate_call` failure).
+  ///
+  /// An empty registry skips validation and accepts any tool, mirroring
+  /// `ToolRegistry::validate_call`.
+  validate-tool-call: func(tool-name: string, arguments-json: string) -> result<_, string>;
+
+  /// Execute a builtin tool and return its result as a JSON string.
+  ///
+  /// Ok - JSON ToolResult object:
+  ///   { "name", "success", "output", "error"?, "step_id" }
+  /// - the exact shape produced by `tool_result_to_json`, identical to the
+  ///   SDK's WASM `ToolResult` mirror, so the composite can deserialize it
+  ///   without field translation.
+  ///
+  /// Err - signal, not a tool failure:
+  /// - "tool '<name>' requires host execution (not builtin)" means the tool
+  ///   has no builtin handler in this component; the caller MUST delegate
+  ///   execution to the host (existing `process_tool_result_for_session`
+  ///   flow);
+  /// - any other message means the call was rejected before execution
+  ///   (validation failure or malformed arguments).
+  ///
+  /// A tool failure is NOT an error: it is returned as Ok with
+  /// `success: false` and an `error` message.
+  execute-builtin: func(tool-name: string, arguments-json: string, step-id: u32) -> result<string, string>;
+}
+
+/// World for the standalone toolrunner component.
+///
+/// The component exports the stateless `tool-registry` interface and imports
+/// nothing from this package. `wasm-tools compose` wires this export to the
+/// SDK component's `import tool-registry;`. The
+/// `antikythera-agent-sdk` world is NOT modified here.
+world tool-registry-component {
+  export tool-registry;
 }

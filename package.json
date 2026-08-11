@@ -1,0 +1,7 @@
+{
+  "name": "antikythera-workspace-tooling",
+  "private": true,
+  "devDependencies": {
+    "@bytecodealliance/jco": "^1.27.0"
+  }
+}

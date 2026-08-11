@@ -100,8 +100,8 @@ prompts = PromptManager.from_json('[{"id":"agent","name":"Agent","content":"You 
 
 ## Requirements
 
-- Python >= 3.9
-- wasmtime >= 28.0 (optional, for WASM execution)
+- Python 3
+- wasmtime (optional, for WASM execution; the supported minimum is pinned in pyproject.toml)
 
 ## License
 

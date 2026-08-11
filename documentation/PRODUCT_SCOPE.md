@@ -12,16 +12,17 @@ Antikythera is a **Rust-based MCP client framework** designed to:
 - expose agent logic as a portable **server-side WASM component** (wasm32-wasip1)
 - support multiple LLM providers (Ollama, OpenAI, Gemini) via feature-gated facade
 
-No browser WASM, no C FFI, and no embedded HTTP server are provided by the framework. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom).
+No C FFI and no embedded HTTP server are provided by the framework. Browser WASM is supported through the **WASI component transpiled with jco** (`npm/antikythera-sdk/component/`, namespace `runner`); the wasm-bindgen browser path is legacy only. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom).
 
 ## Deployment targets
 
 | Target | Build command | Output |
 |:-------|:-------------|:-------|
 | **Framework crates** | `cargo build --workspace` | Library crates |
-| **Server-side WASM component** | `cargo component build -p antikythera-sdk --release --target wasm32-wasip1` | `.wasm` component |
+| **Server-side WASM component** (composite) | `task build` — SDK component + toolrunner component + `wasm-tools compose` → `dist/antikythera-sdk.wasm` | `.wasm` component (exports `runner`, imports only WASI) |
+| **Browser JS bindings** | `npx jco transpile dist/antikythera-sdk.wasm --out-dir npm/antikythera-sdk/component` | ESM module (namespace `runner`) |
 
-No browser WASM, no C FFI, and no embedded HTTP server are provided by the framework. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom).
+No C FFI and no embedded HTTP server are provided by the framework. Browser WASM is supported through the **WASI component transpiled with jco** (`npm/antikythera-sdk/component/`, namespace `runner`); the wasm-bindgen browser path is legacy only. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom).
 
 ## Public SDK surface
 
@@ -67,8 +68,8 @@ The WASM component handles agent reasoning, session continuity, history shaping,
 
 | Flag | Purpose | Status |
 |:-----|:--------|:-------|
-| `component` | Server-side WASM Component Model support (wasm32-wasip1 WASI) | Active |
-| `wasm` | Browser WASM support (wasm32-unknown-unknown), enables `antikythera-log/wasm` | Active |
+| `component` | Server-side WASM Component Model support (wasm32-wasip1 WASI) — basis untuk server dan browser-via-jco | Active |
+| `wasm` | Browser WASM support (wasm32-unknown-unknown), enables `antikythera-log/wasm` — **legacy**, digantikan jalur component + jco | Deprecated |
 | `toolrunner` | In-process tool execution via `antikythera-toolrunner` | Active |
 | `wasm-sandbox` | Wasmtime-based sandbox execution | Active |
 
@@ -85,7 +86,7 @@ The WASM component handles agent reasoning, session continuity, history shaping,
 
 | Flag | Purpose | Status |
 |:-----|:--------|:-------|
-| `wasm` | Browser-safe time via js-sys (wasm32-unknown-unknown) | Stable |
+| `wasm` | Browser-safe time via js-sys (wasm32-unknown-unknown) — **legacy** (digantikan jalur WASI component + jco) | Deprecated |
 | `subscriber` | Real-time log streaming via tokio + crossbeam-channel | Stable |
 | `lint` | Compile-time lint blocking println!, eprintln!, dbg!, tracing | Stable |
 

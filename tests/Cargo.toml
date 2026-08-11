@@ -76,6 +76,14 @@ name = "deterministic_harness_tests"
 path = "sdk/wasm_agent/deterministic_harness_tests.rs"
 
 # ============================================================================
+# Contract Compatibility Tests (golden artifacts, text-only, no wasm runtime)
+# ============================================================================
+
+[[test]]
+name = "compatibility_tests"
+path = "compatibility_tests.rs"
+
+# ============================================================================
 # Multi-Agent Hardening Tests
 # ============================================================================
 

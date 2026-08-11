@@ -37,6 +37,7 @@ members = [
 
     # Examples
     "examples/chat",
+    "examples/component-harness",
 
     # Build-time: Proc macros
     "antikythera-macros",
@@ -44,7 +45,7 @@ members = [
 
 
 [workspace.package]
-version = "1.8.1"
+version = "1.8.2"
 edition = "2024"
 authors = ["tsfarizi"]
 license = "MIT"

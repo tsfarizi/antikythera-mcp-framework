@@ -12,7 +12,7 @@ All focused guides live under `documentation/` and use uppercase direct filename
 
 - `ARCHITECTURE.md`
 - `BUILD.md`
-- `CLI.md`
+- `CONFIG.md`
 - `COMPONENT.md`
 - `WORKSPACE.md`
 
@@ -47,7 +47,7 @@ If you are looking for current usage or structure, prefer:
 1. `README.md`
 2. `documentation/WORKSPACE.md`
 3. `documentation/ARCHITECTURE.md`
-4. `documentation/CLI.md`
+4. `documentation/CONFIG.md`
 5. `documentation/BUILD.md`
 
 Use this file only as historical context.

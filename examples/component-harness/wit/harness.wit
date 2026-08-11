@@ -1,0 +1,47 @@
+package antikythera:agent-sdk@1.0.0;
+
+/// Interface export of the composed composite, copied verbatim from
+/// `wasm-tools component wit dist/antikythera-sdk.wasm --out-dir wit`
+/// (deps/agent-sdk.wit). The world deliberately declares NO wasi imports:
+/// bindgen! then generates no host code for wasi, and the linker supplies
+/// them at instantiation via `wasmtime_wasi::p2::add_to_linker_sync`.
+/// (wasmtime's bindgen emits 2-arg add_to_linker calls while
+/// wasmtime-wasi's `cli::exit` bindings expect a 3-arg LinkOptions form;
+/// declaring wasi imports in this world triggers that upstream skew.)
+interface runner {
+  init: func(config-json: string) -> result<string, string>;
+
+  prepare-user-turn: func(request-json: string) -> result<string, string>;
+
+  commit-llm-response: func(prepared-turn-json: string, llm-response-json: string) -> result<string, string>;
+
+  commit-llm-stream: func(prepared-turn-json: string) -> result<string, string>;
+
+  process-llm-response-for-session: func(session-id: string, llm-response-json: string) -> result<string, string>;
+
+  process-tool-result-for-session: func(session-id: string, tool-result-json: string) -> result<string, string>;
+
+  append-llm-chunk: func(session-id: string, chunk: string, correlation-id: option<string>) -> result<bool, string>;
+
+  drain-events: func(session-id: string) -> result<string, string>;
+
+  get-state: func(session-id: string) -> result<string, string>;
+
+  reset-session: func(session-id: string) -> result<bool, string>;
+
+  sweep-idle-sessions: func(now-unix-ms: option<s64>) -> result<u32, string>;
+
+  register-tools: func(tools-json: string) -> result<u32, string>;
+
+  get-tools-prompt: func() -> result<string, string>;
+
+  set-context-policy: func(policy-json: string) -> result<bool, string>;
+
+  get-telemetry-snapshot: func(session-id: string) -> result<string, string>;
+
+  get-slo-snapshot: func(session-id: string) -> result<string, string>;
+}
+
+world harness {
+  export runner;
+}

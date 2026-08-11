@@ -11,10 +11,15 @@
     "antikythera_wasm_bindgen.js",
     "antikythera_wasm_bindgen.d.ts",
     "README.md",
-    "pkg-nodejs"
+    "pkg-nodejs",
+    "component"
   ],
   "exports": {
     ".": { "types": "./index.d.ts", "default": "./index.js" },
+    "./component": {
+      "types": "./component/antikythera-sdk.d.ts",
+      "default": "./component/antikythera-sdk.js"
+    },
     "./antikythera_wasm_bindgen": {
       "browser": { "types": "./antikythera_wasm_bindgen.d.ts", "default": "./antikythera_wasm_bindgen.js" },
       "node": { "types": "./pkg-nodejs/antikythera_wasm_bindgen.d.ts", "default": "./pkg-nodejs/antikythera_wasm_bindgen.js" },
