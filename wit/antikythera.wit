@@ -144,8 +144,13 @@ interface runner {
   get-slo-snapshot: func(session-id: string) -> result<string, string>;
 }
 
+/// World for the standalone SDK component.
+///
+/// `tool-registry` and `logic-hooks` are imported and supplied by
+/// composition (`wasm-tools compose`); `runner` is exported to the host.
 world antikythera-agent-sdk {
   import tool-registry;
+  import logic-hooks;
   export runner;
 }
 
@@ -200,12 +205,122 @@ interface tool-registry {
   execute-builtin: func(tool-name: string, arguments-json: string, step-id: u32) -> result<string, string>;
 }
 
+/// LogicHooks - host-authored plug-and-play pipeline hooks.
+///
+/// Contract imported by the SDK component and exported by a host-authored
+/// hooks component (`logic-hooks-component`); `wasm-tools compose` wires the
+/// two, mirroring the `tool-registry` / `antikythera-toolrunner` pair. The
+/// SDK runner calls each hook at a fixed pipeline point and uses the returned
+/// JSON as the decision for that point:
+///
+/// - Ok `{"passthrough": true}` - use the SDK default behavior at this point;
+///   the passthrough signal is exactly this single-key object, any other JSON
+///   object is an override;
+/// - Ok <override JSON> - use this value in place of the SDK default; the
+///   meaning of the override is defined per function below;
+/// - Err(message) - the hook failed; the SDK aborts the operation and
+///   surfaces the error to the caller. A failing hook never falls back to
+///   passthrough.
+///
+/// The returned string MUST be a JSON object; an unparseable or non-object
+/// return is treated as a hook failure (Err-path semantics).
+///
+/// Hooks are pure decision functions: they receive inputs and return a
+/// decision. Session state is owned by the SDK - it is passed in as
+/// `session-state-json` on every call, and hooks MUST NOT persist or mutate
+/// it; any state a hook writes is discarded.
+interface logic-hooks {
+  /// Prepare a user turn (prompt building + tool guidance).
+  ///
+  /// Invoked at the start of `runner.prepare-user-turn`, after the SDK has
+  /// built its default prepared turn.
+  ///
+  /// - `request-json` - the request payload passed to `prepare-user-turn`.
+  /// - `session-state-json` - the session agent-state JSON snapshot.
+  ///
+  /// Ok `{"passthrough": true}` - keep the SDK default prepared turn.
+  /// Ok <prepared-turn JSON> - use this JSON as the prepared turn; present
+  ///   fields are authoritative, absent fields fall back to the SDK default.
+  ///   A hook that appends a message returns the full `messages` array.
+  /// Err(message) - abort the turn and surface the error.
+  prepare-turn: func(request-json: string, session-state-json: string) -> result<string, string>;
+
+  /// Decide the action for a committed LLM response.
+  ///
+  /// Invoked by the SDK when an LLM response is committed
+  /// (`process-llm-response-for-session`), before the default action
+  /// derivation runs.
+  ///
+  /// - `session-state-json` - the session agent-state JSON snapshot.
+  /// - `llm-response-json` - the committed LLM response JSON.
+  ///
+  /// Ok `{"passthrough": true}` - keep the SDK default action decision.
+  /// Ok <decision JSON> - override the decision; the SDK commits this value
+  ///   as the action result. A hook can force a terminal action (for
+  ///   example `final`) by returning the same envelope the SDK produces for
+  ///   that action.
+  /// Err(message) - abort the operation and surface the error.
+  decide-action: func(session-state-json: string, llm-response-json: string) -> result<string, string>;
+
+  /// Handle a tool result before it is committed to the session.
+  ///
+  /// Invoked by the SDK when a tool result is reported
+  /// (`process-tool-result-for-session`), before default processing.
+  ///
+  /// - `session-state-json` - the session agent-state JSON snapshot.
+  /// - `tool-result-json` - the reported tool result JSON.
+  ///
+  /// Ok `{"passthrough": true}` - keep the SDK default tool-result processing.
+  /// Ok <tool-result JSON> - use this JSON as the tool result in place of
+  ///   the reported one.
+  /// Err(message) - abort the operation and surface the error.
+  handle-tool-result: func(session-state-json: string, tool-result-json: string) -> result<string, string>;
+}
+
 /// World for the standalone toolrunner component.
 ///
 /// The component exports the stateless `tool-registry` interface and imports
 /// nothing from this package. `wasm-tools compose` wires this export to the
-/// SDK component's `import tool-registry;`. The
-/// `antikythera-agent-sdk` world is NOT modified here.
+/// SDK component's `import tool-registry;`.
 world tool-registry-component {
   export tool-registry;
+}
+
+/// World for a host-authored logic-hooks component.
+///
+/// The component exports the stateless `logic-hooks` interface and imports
+/// nothing from this package. `wasm-tools compose` wires this export to the
+/// SDK component's `import logic-hooks;`.
+world logic-hooks-component {
+  export logic-hooks;
+}
+
+/// World for a host-authored drop-in logic core component.
+///
+/// This world defines the contract for a custom `runner` implementation that
+/// can replace the composite SDK component (`antikythera-agent-sdk`) without
+/// any change to host code. The exported `runner` interface is IDENTICAL to
+/// the SDK runner - the same 16 functions with the same JSON-string
+/// semantics - so a host calls the same API whether the loaded component is
+/// the SDK composite (wasmtime server, jco client) or a custom logic core.
+///
+/// The imports are OPTIONAL declarations, not requirements:
+///
+/// - `host-imports` - a logic core that wants to call the host LLM, tool,
+///   log, or state services may import this interface and use it. A component
+///   that never references it remains valid: unused imports are legal WIT,
+///   and the component encoder prunes an import that nothing in the component
+///   references, so a self-contained logic core ends up importing nothing.
+/// - `tool-registry` - a logic core that wants to reuse the stateless
+///   toolrunner catalog and executor (`list-tools-json`,
+///   `validate-tool-call`, `execute-builtin`) may import this interface; the
+///   same pruning rule applies.
+///
+/// Both `host-imports` and `tool-registry` live in this same package, so the
+/// imports need no dependency declaration - consistent with the other worlds
+/// in this file.
+world logic-core-component {
+  import host-imports;
+  import tool-registry;
+  export runner;
 }

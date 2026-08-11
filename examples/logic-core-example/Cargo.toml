@@ -1,0 +1,40 @@
+[package]
+name = "logic-core-example"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Deterministic drop-in logic core probe (echo-agent): custom_prepare_turn returns a prepared turn, custom_commit_response always returns a final echo envelope — proof that the SAME host code calls either the SDK composite or this core via the identical runner API"
+
+[lib]
+# rlib:   native Rust builds (lets the host author unit-test custom_* logic).
+# cdylib: required by cargo-component to emit the wasm32-wasip1 component
+#         artifact (same dual crate-type as examples/logic-core-template).
+crate-type = ["rlib", "cdylib"]
+
+[package.metadata.component]
+package = "antikythera:agent-sdk"
+
+# World exported by this component; `path` is resolved relative to this
+# crate's manifest directory. The crate lives at examples/logic-core-example,
+# two levels below the repo root, so the canonical root `wit/` is `../../wit`
+# (same relative path as examples/logic-core-template).
+[package.metadata.component.target]
+path = "../../wit"
+world = "logic-core-component"
+
+[features]
+default = []
+# Server-side WASM Component Model support (wasm32-wasip1 WASI).
+component = ["dep:wit-bindgen"]
+
+[dependencies]
+# WIT bindings generator for the component world (component feature only).
+# Pin matches examples/logic-core-template and the locked 0.40.0 so the
+# emitted `component-type` sections decode cleanly with wasm-tools 1.256.
+wit-bindgen = { version = "0.40.0", optional = true }
+# JSON handling for the deterministic hooks (custom_prepare_turn /
+# custom_commit_response) and the in-memory session store. Unlike the
+# template, this example's custom_* surface is JSON-carrying, so the
+# dependency is NOT optional: the same hook logic must compile in the native
+# rlib (host-author unit tests) and in the wasm32-wasip1 component.
+serde_json = { workspace = true }

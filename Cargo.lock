@@ -112,7 +112,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-config"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-domain",
  "dotenvy",
@@ -125,7 +125,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-core"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-config",
  "antikythera-domain",
@@ -156,8 +156,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "antikythera-default-hooks"
+version = "1.8.3"
+dependencies = [
+ "wit-bindgen 0.40.0",
+]
+
+[[package]]
 name = "antikythera-domain"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-macros",
  "chrono",
@@ -169,7 +176,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-facade"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -186,7 +193,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-log"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "chrono",
  "crossbeam-channel",
@@ -199,7 +206,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-macros"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -210,7 +217,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-observability"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-domain",
  "antikythera-ports",
@@ -224,7 +231,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-ports"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-domain",
  "async-trait",
@@ -236,7 +243,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-provider-gemini"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -251,7 +258,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-provider-ollama"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -266,7 +273,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-provider-openai"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -281,7 +288,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-resilience"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-domain",
  "chrono",
@@ -292,7 +299,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-sdk"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-core",
  "antikythera-log",
@@ -311,7 +318,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-security"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-domain",
  "antikythera-ports",
@@ -325,7 +332,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-session"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-domain",
  "antikythera-log",
@@ -338,7 +345,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-storage"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-domain",
  "antikythera-macros",
@@ -362,7 +369,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-tests"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -388,7 +395,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-tooling"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-config",
  "antikythera-domain",
@@ -401,7 +408,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-toolrunner"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-log",
  "antikythera-macros",
@@ -414,7 +421,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-wasm-bindgen"
-version = "1.8.2"
+version = "1.8.3"
 dependencies = [
  "antikythera-sdk",
  "serde",
@@ -669,7 +676,7 @@ dependencies = [
 
 [[package]]
 name = "build-scripts"
-version = "1.8.2"
+version = "1.8.3"
 
 [[package]]
 name = "bumpalo"
@@ -2694,6 +2701,36 @@ name = "log"
 version = "0.4.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
+
+[[package]]
+name = "logic-core-example"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "wit-bindgen 0.40.0",
+]
+
+[[package]]
+name = "logic-core-template"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "wit-bindgen 0.40.0",
+]
+
+[[package]]
+name = "logic-hooks-example"
+version = "0.1.0"
+dependencies = [
+ "wit-bindgen 0.40.0",
+]
+
+[[package]]
+name = "logic-hooks-template"
+version = "0.1.0"
+dependencies = [
+ "wit-bindgen 0.40.0",
+]
 
 [[package]]
 name = "lru"

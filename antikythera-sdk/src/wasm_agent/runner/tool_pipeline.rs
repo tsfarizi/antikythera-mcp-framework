@@ -60,11 +60,31 @@ impl AgentRunnerRuntime {
             &format!("Processing tool result for '{}'", input.tool_name),
         );
 
+        // On the wasm path the tool result may be replaced by the
+        // `handle-tool-result` hook below, which re-parses the output from the
+        // replaced input; the pre-hook parse is only needed on native builds.
+        #[cfg(not(all(feature = "component", target_family = "wasm")))]
         let output: serde_json::Value = serde_json::from_str(&input.output_json)
             .map_err(|e| AgentRunnerError::ToolFailed(format!("Invalid tool output_json: {e}")))?;
 
         let runtime = self.ensure_session(session_id);
         runtime.touch(now_unix_ms());
+
+        // logic-hooks: `handle-tool-result` is consulted before default
+        // tool-result processing. Passthrough keeps the reported tool result;
+        // an override replaces it. A hook error aborts (fail-closed).
+        #[cfg(all(feature = "component", target_family = "wasm"))]
+        let (input, output) = {
+            let input = super::logic_hooks::apply_handle_tool_result_override(
+                &runtime.state,
+                tool_result_json,
+                &input,
+            )?;
+            let output: serde_json::Value = serde_json::from_str(&input.output_json).map_err(
+                |e| AgentRunnerError::ToolFailed(format!("Invalid tool output_json: {e}")),
+            )?;
+            (input, output)
+        };
 
         // FSM guard: ensure we're in ToolRequested state before processing tool result
         if runtime.state.fsm_state != AgentFsmState::ToolRequested {

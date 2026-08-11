@@ -16,7 +16,21 @@ vars:
   # wasm-tools compose rejects crate names with underscores; the toolrunner
   # component must be copied to a kebab-case name before composing.
   TOOLRUNNER_KEBAB: target/{{.WASM_TARGET}}/release/antikythera-toolrunner.wasm
+  DEFAULT_HOOKS_BINARY: target/{{.WASM_TARGET}}/release/antikythera_default_hooks.wasm
+  # Same kebab-case requirement as the toolrunner: wasm-tools compose rejects
+  # the underscore crate name of antikythera_default_hooks.wasm.
+  DEFAULT_HOOKS_KEBAB: target/{{.WASM_TARGET}}/release/antikythera-default-hooks.wasm
+  # Drop-in logic-core components are host-authored: consumed directly as
+  # standalone .wasm artifacts, never composed into dist/ (no kebab-case
+  # copies needed).
+  LOGIC_CORE_TEMPLATE_BINARY: target/{{.WASM_TARGET}}/release/logic_core_template.wasm
+  LOGIC_CORE_EXAMPLE_BINARY: target/{{.WASM_TARGET}}/release/logic_core_example.wasm
   DIST_SDK: dist/antikythera-sdk.wasm
+  DIST_SDK_CUSTOM: dist/antikythera-sdk-custom.wasm
+  # Path to a built custom logic-hooks component (host-authored override).
+  # Empty by default; compose-hooks-custom fails fast until HOOKS_COMPONENT is
+  # set explicitly (no silent fallback to an example component).
+  HOOKS_COMPONENT: '{{default "" .HOOKS_COMPONENT}}'
   APP_CONFIG: app.toml
   PROVIDER_ID: '{{default "local-ollama" .PROVIDER_ID}}'
   PROVIDER_TYPE: '{{default "ollama" .PROVIDER_TYPE}}'
@@ -43,11 +57,15 @@ tasks:
         echo "  task test-native     - Run tests (native target only)"
         echo ""
         echo "  === WASM Development (Optional) ==="
-        echo "  task build           - Build composite WASM component (SDK + toolrunner -> dist/antikythera-sdk.wasm)"
+        echo "  task build           - Build composite WASM component (SDK + toolrunner + default-hooks -> dist/antikythera-sdk.wasm)"
         echo "  task build-wasm-harness - Build standalone SDK WASM artifact (for FFI host harness)"
         echo "  task build-toolrunner - Build standalone toolrunner WASM artifact"
-        echo "  task compose         - Compose SDK + toolrunner into dist/antikythera-sdk.wasm"
-        echo "  task build-all       - Build all WASM artifacts (standalone SDK + toolrunner + composite)"
+        echo "  task build-default-hooks - Build standalone default-hooks WASM artifact"
+        echo "  task build-logic-core-template - Build standalone logic-core template WASM artifact"
+        echo "  task build-logic-core-example - Build standalone logic-core example WASM artifact"
+        echo "  task compose         - Compose SDK + toolrunner + default-hooks into dist/antikythera-sdk.wasm"
+        echo "  task compose-hooks-custom - Compose SDK + toolrunner + CUSTOM hooks (HOOKS_COMPONENT=...) into dist/antikythera-sdk-custom.wasm"
+        echo "  task build-all       - Build all WASM artifacts (standalone SDK + toolrunner + default-hooks + composite)"
         echo "  task check-wasm      - Check WASM compilation"
         echo "  task transpile       - Transpile composite (dist) to JS bindings with jco"
         echo "  task inspect         - Inspect composite component with wasm-tools"
@@ -68,16 +86,17 @@ tasks:
   # ===========================================================================
 
   # ---------------------------------------------------------------------------
-  # WASM deliverables are COMPOSITE: the runner component
-  # (antikythera-sdk) imports tool-registry; the toolrunner component exports
-  # it. `wasm-tools compose` wires the two into dist/antikythera-sdk.wasm.
+  # WASM deliverables are COMPOSITE: the runner component (antikythera-sdk)
+  # imports tool-registry AND logic-hooks; the toolrunner component exports
+  # tool-registry and the default-hooks component exports logic-hooks.
+  # `wasm-tools compose` wires all three into dist/antikythera-sdk.wasm.
   # Anything consuming dist (jco transpile, wasmtime harness) MUST see the
-  # composite, never the standalone SDK (it carries an unmet tool-registry
-  # import and fails runtime smoke).
+  # composite, never the standalone SDK (it carries unmet tool-registry and
+  # logic-hooks imports and fails runtime smoke).
   # ---------------------------------------------------------------------------
 
   build:
-    desc: Build composite WASM component (SDK + toolrunner -> dist/antikythera-sdk.wasm)
+    desc: Build composite WASM component (SDK + toolrunner + default-hooks -> dist/antikythera-sdk.wasm)
     deps:
       - wit
     cmds:
@@ -104,26 +123,78 @@ tasks:
       - 'echo "OK standalone toolrunner component built: {{.TOOLRUNNER_BINARY}}"'
       - task: size
 
+  build-default-hooks:
+    desc: Build standalone default-hooks WASM component (wasm32-wasip1, feature component)
+    cmds:
+      - echo "Building standalone default-hooks WASM component..."
+      - cargo component build -p antikythera-default-hooks --target {{.WASM_TARGET}} --release --no-default-features --features component
+      - echo ""
+      - 'echo "OK standalone default-hooks component built: {{.DEFAULT_HOOKS_BINARY}}"'
+      - task: size
+
+  build-logic-core-template:
+    desc: Build standalone logic-core template WASM component (wasm32-wasip1, feature component)
+    cmds:
+      - echo "Building standalone logic-core template WASM component..."
+      - cargo component build -p logic-core-template --target {{.WASM_TARGET}} --release --no-default-features --features component
+      - echo ""
+      - 'echo "OK logic-core template component built: {{.LOGIC_CORE_TEMPLATE_BINARY}}"'
+      - task: size
+
+  build-logic-core-example:
+    desc: Build standalone logic-core example WASM component (wasm32-wasip1, feature component)
+    cmds:
+      - echo "Building standalone logic-core example WASM component..."
+      - cargo component build -p logic-core-example --target {{.WASM_TARGET}} --release --no-default-features --features component
+      - echo ""
+      - 'echo "OK logic-core example component built: {{.LOGIC_CORE_EXAMPLE_BINARY}}"'
+      - task: size
+
   compose:
-    desc: Compose SDK + toolrunner into composite dist/antikythera-sdk.wasm
+    desc: Compose SDK + toolrunner + default-hooks into composite dist/antikythera-sdk.wasm
     deps:
       - build-wasm-harness
       - build-toolrunner
+      - build-default-hooks
     cmds:
-      - echo "Composing SDK + toolrunner into composite..."
+      - echo "Composing SDK + toolrunner + default-hooks into composite..."
       - mkdir -p dist
-      # wasm-tools compose rejects the underscore crate name; use kebab-case copy.
+      # wasm-tools compose rejects the underscore crate names; use kebab-case copies.
       - cp {{.TOOLRUNNER_BINARY}} {{.TOOLRUNNER_KEBAB}}
-      - wasm-tools compose {{.WASM_BINARY}} -d {{.TOOLRUNNER_KEBAB}} -o {{.DIST_SDK}}
+      - cp {{.DEFAULT_HOOKS_BINARY}} {{.DEFAULT_HOOKS_KEBAB}}
+      - wasm-tools compose {{.WASM_BINARY}} -d {{.TOOLRUNNER_KEBAB}} -d {{.DEFAULT_HOOKS_KEBAB}} -o {{.DIST_SDK}}
       - echo ""
       - 'echo "OK composite built: {{.DIST_SDK}}"'
       - task: size
 
+  compose-hooks-custom:
+    desc: Compose SDK + toolrunner + CUSTOM hooks into dist/antikythera-sdk-custom.wasm. Requires HOOKS_COMPONENT=<path to a built custom logic-hooks .wasm>; the file must be kebab-case named because wasm-tools compose rejects underscore filenames (build the hooks crate with the component feature first, e.g. cargo component build -p logic-hooks-example --target wasm32-wasip1 --release --no-default-features --features component, then cp target/wasm32-wasip1/release/logic_hooks_example.wasm target/wasm32-wasip1/release/logic-hooks-example.wasm).
+    deps:
+      - build-wasm-harness
+      - build-toolrunner
+    cmds:
+      - |
+        if [ -z "{{.HOOKS_COMPONENT}}" ]; then
+          echo "ERROR: HOOKS_COMPONENT is required." >&2
+          echo "Set it to the path of a built custom logic-hooks WASM component (kebab-case filename), e.g.:" >&2
+          echo "  cp target/wasm32-wasip1/release/logic_hooks_example.wasm target/wasm32-wasip1/release/logic-hooks-example.wasm" >&2
+          echo "  task compose-hooks-custom HOOKS_COMPONENT=target/wasm32-wasip1/release/logic-hooks-example.wasm" >&2
+          exit 1
+        fi
+      - echo "Composing SDK + toolrunner + custom hooks into composite..."
+      - mkdir -p dist
+      - cp {{.TOOLRUNNER_BINARY}} {{.TOOLRUNNER_KEBAB}}
+      - wasm-tools compose {{.WASM_BINARY}} -d {{.TOOLRUNNER_KEBAB}} -d {{.HOOKS_COMPONENT}} -o {{.DIST_SDK_CUSTOM}}
+      - echo ""
+      - 'echo "OK composite built: {{.DIST_SDK_CUSTOM}}"'
+      - task: size
+
   build-all:
-    desc: Build all WASM artifacts (standalone SDK + toolrunner + composite)
+    desc: Build all WASM artifacts (standalone SDK + toolrunner + default-hooks + composite)
     cmds:
       - task: build-wasm-harness
       - task: build-toolrunner
+      - task: build-default-hooks
       - task: compose
 
   wit:
@@ -347,6 +418,24 @@ tasks:
           echo "  toolrunner:       $TR_SIZE bytes"
         else
           echo "  toolrunner:       not built"
+        fi
+        if [ -f "{{.DEFAULT_HOOKS_BINARY}}" ]; then
+          DH_SIZE=$(stat -f%z "{{.DEFAULT_HOOKS_BINARY}}" 2>/dev/null || stat -c%s "{{.DEFAULT_HOOKS_BINARY}}" 2>/dev/null || echo "?")
+          echo "  default-hooks:    $DH_SIZE bytes"
+        else
+          echo "  default-hooks:    not built"
+        fi
+        if [ -f "{{.LOGIC_CORE_TEMPLATE_BINARY}}" ]; then
+          LC_T_SIZE=$(stat -f%z "{{.LOGIC_CORE_TEMPLATE_BINARY}}" 2>/dev/null || stat -c%s "{{.LOGIC_CORE_TEMPLATE_BINARY}}" 2>/dev/null || echo "?")
+          echo "  logic-core template: $LC_T_SIZE bytes"
+        else
+          echo "  logic-core template: not built"
+        fi
+        if [ -f "{{.LOGIC_CORE_EXAMPLE_BINARY}}" ]; then
+          LC_E_SIZE=$(stat -f%z "{{.LOGIC_CORE_EXAMPLE_BINARY}}" 2>/dev/null || stat -c%s "{{.LOGIC_CORE_EXAMPLE_BINARY}}" 2>/dev/null || echo "?")
+          echo "  logic-core example:  $LC_E_SIZE bytes"
+        else
+          echo "  logic-core example:  not built"
         fi
         if [ -f "{{.DIST_SDK}}" ]; then
           COMPOSITE_SIZE=$(stat -f%z "{{.DIST_SDK}}" 2>/dev/null || stat -c%s "{{.DIST_SDK}}" 2>/dev/null || echo "?")

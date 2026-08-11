@@ -24,10 +24,10 @@ const BOLD: &str = "\x1b[1m";
 const RESET: &str = "\x1b[0m";
 
 // Interfaces whose implementation lives outside the scanned crates
-// (e.g. `plugin/antikythera-toolrunner`) are not subject to this
-// conformance check; their drift is caught by the real wit-parser
-// during `cargo component build`.
-const SKIPPED_INTERFACES: &[&str] = &["tool-registry"];
+// (e.g. `plugin/antikythera-toolrunner`, host-authored hooks
+// components) are not subject to this conformance check; their drift
+// is caught by the real wit-parser during `cargo component build`.
+const SKIPPED_INTERFACES: &[&str] = &["tool-registry", "logic-hooks"];
 
 // ── Parsed WIT structures ────────────────────────────────────────────────────
 

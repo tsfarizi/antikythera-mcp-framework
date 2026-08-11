@@ -4,13 +4,13 @@ This document describes the WASM integration paths in the Antikythera Agent SDK,
 
 Currently, there are **two active WASM paths** (WASI Component for server, and the same component transpiled by `jco` for the browser), plus a **native sandbox** runner. The former `wasm-bindgen` browser path (`wasm32-unknown-unknown` + `wasm` feature) is **deprecated** and retained only for crate-level compatibility.
 
-The WASI component deliverable is **composite**: `dist/antikythera-sdk.wasm` is produced by `wasm-tools compose`, wiring the `antikythera-sdk` component (exports `runner`, imports `tool-registry`) to the `antikythera-toolrunner` component (exports `tool-registry`, builtin tool execution). The standalone SDK component is an **intermediate artifact only** — it carries an unmet `tool-registry` import and must never be transpiled or embedded directly.
+The WASI component deliverable is **composite** (three members): `dist/antikythera-sdk.wasm` is produced by `wasm-tools compose`, wiring the `antikythera-sdk` component (exports `runner`, imports `tool-registry` and `logic-hooks`) to the `antikythera-toolrunner` component (exports `tool-registry`, builtin tool execution) and the `antikythera-default-hooks` component (exports `logic-hooks`, no-op passthrough). The standalone SDK component is an **intermediate artifact only** — it carries unmet `tool-registry` and `logic-hooks` imports and must never be transpiled or embedded directly.
 
 ## WASM Paths
 
 | Path | Target | Feature Flag | Build Command | Contract | When to Use |
 |------|--------|-------------|---------------|----------|-------------|
-| **WASI Component (server)** | `wasm32-wasip1` | `component` (both crates) | `task build` = `cargo component build -p antikythera-sdk` + `-p antikythera-toolrunner` + `wasm-tools compose` | `wit/antikythera.wit` (worlds `antikythera-agent-sdk` + `tool-registry-component`); composite exports `runner`, imports only WASI | Server-side: host embeds wasmtime and calls exports via FFI |
+| **WASI Component (server)** | `wasm32-wasip1` | `component` (SDK, toolrunner, default-hooks) | `task build` = `cargo component build -p antikythera-sdk` + `-p antikythera-toolrunner` + `-p antikythera-default-hooks` + `wasm-tools compose` | `wit/antikythera.wit` (worlds `antikythera-agent-sdk` + `tool-registry-component` + `logic-hooks-component`); composite exports `runner`, imports only WASI | Server-side: host embeds wasmtime and calls exports via FFI |
 | **Browser (via jco)** | `wasm32-wasip1` composite → JS | `component` (Rust) + `@bytecodealliance/jco` (tooling) | `task build` (composite) + `task transpile` (`jco transpile` of the **composite**) | `npm/antikythera-sdk/component/` (ESM, namespace `runner`, camelCase) | Browser: JS host imports the transpiled ESM module and calls `runner` functions |
 | **Sandbox** | native | `wasm-sandbox` | `cargo build` | JSON over WASM memory | Host-side runner that loads pre-compiled WASM modules via wasmtime |
 | **wasm-bindgen (legacy)** | `wasm32-unknown-unknown` | `wasm` | `cargo build` + wasm-pack | TypeScript `.d.ts` | **Deprecated** — kept for `antikythera-log`/`plugin/antikythera-wasm-bindgen` compatibility during the transition |
@@ -34,18 +34,26 @@ The WASI component deliverable is **composite**: `dist/antikythera-sdk.wasm` is 
 antikythera-sdk (features: component)
   → wit-bindgen (WIT bindings generator for the component world)
   → antikythera-log (no wasm feature)
-  → imports antikythera:agent-sdk/tool-registry (world antikythera-agent-sdk)
+  → imports antikythera:agent-sdk/tool-registry and
+    antikythera:agent-sdk/logic-hooks (world antikythera-agent-sdk)
 
 antikythera-toolrunner (features: component)
   → wit-bindgen (WIT bindings generator for the component world)
   → exports antikythera:agent-sdk/tool-registry (world tool-registry-component,
     builtin tool execution — stateless, no host round-trip)
 
+antikythera-default-hooks (features: component)
+  → wit-bindgen (WIT bindings generator for the component world)
+  → exports antikythera:agent-sdk/logic-hooks (world logic-hooks-component,
+    no-op passthrough — every hook returns {"passthrough": true})
+
 Composite deliverable, build-time tooling:
   wasm-tools compose target/.../antikythera_sdk.wasm \
     -d target/.../antikythera-toolrunner.wasm \
+    -d target/.../antikythera-default-hooks.wasm \
     -o dist/antikythera-sdk.wasm
   → wires the SDK's tool-registry import to the toolrunner's export
+  → wires the SDK's logic-hooks import to the default-hooks' export
   → composite imports only WASI; exports runner
 
 Browser path (build-time tooling, not a Rust dependency):
@@ -81,7 +89,7 @@ world tool-registry-component {
 }
 ```
 
-The `antikythera-agent-sdk` world exports the `runner` interface — 16 functions, every payload is a JSON string, errors are flattened to `string`; it imports the `tool-registry` interface provided by the composed `tool-registry-component` world:
+The `antikythera-agent-sdk` world exports the `runner` interface — 16 functions, every payload is a JSON string, errors are flattened to `string`; it imports the `tool-registry` interface provided by the composed `tool-registry-component` world and the `logic-hooks` interface provided by the composed `logic-hooks-component` world:
 
 | Function | Parameters | Return |
 |----------|-----------|--------|
@@ -106,26 +114,29 @@ The host-facing interfaces (`host-imports`, `prompt-manager`, `mcp-client`, `ffi
 
 > **Decision: host-imports stays vocabulary.** The `host-imports` world remains a vocabulary contract in `wit/antikythera.wit`; it is **not activated** as an import of the composite. Rationale: activation would change the host contract from the current host-push architecture (host drives `runner` calls and feeds tool results via `process-tool-result-for-session`) to a host-pull model; that is a deliberately scoped future work item, not an execution decision in the current scope. No code change is required to keep it as vocabulary.
 
-**Build** (composite deliverable; `task build` wraps all three steps, `task compose` wraps the last two):
+**Build** (composite deliverable; `task build` runs the full composite build, `task compose` wraps the compose step):
 
 ```bash
 cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component
 cargo component build -p antikythera-toolrunner --release --target wasm32-wasip1 --no-default-features --features component
+cargo component build -p antikythera-default-hooks --release --target wasm32-wasip1 --no-default-features --features component
 cp target/wasm32-wasip1/release/antikythera_toolrunner.wasm target/wasm32-wasip1/release/antikythera-toolrunner.wasm
+cp target/wasm32-wasip1/release/antikythera_default_hooks.wasm target/wasm32-wasip1/release/antikythera-default-hooks.wasm
 wasm-tools compose target/wasm32-wasip1/release/antikythera_sdk.wasm \
   -d target/wasm32-wasip1/release/antikythera-toolrunner.wasm \
+  -d target/wasm32-wasip1/release/antikythera-default-hooks.wasm \
   -o dist/antikythera-sdk.wasm
 ```
 
-`wasm-tools compose` rejects crate names containing underscores, so the toolrunner artifact is first copied to its kebab-case name.
+`wasm-tools compose` rejects crate names containing underscores, so the toolrunner and default-hooks artifacts are first copied to their kebab-case names.
 
-Canonical artifact: `dist/antikythera-sdk.wasm` — the **composite** (imports only WASI, exports `runner`). The standalone SDK artifact `target/wasm32-wasip1/release/antikythera_sdk.wasm` still imports `tool-registry` and is **not** a consumable deliverable.
+Canonical artifact: `dist/antikythera-sdk.wasm` — the **composite** (imports only WASI, exports `runner`). The standalone SDK artifact `target/wasm32-wasip1/release/antikythera_sdk.wasm` still imports `tool-registry` and `logic-hooks` and is **not** a consumable deliverable.
 
-**Server proof**: `examples/component-harness` is a wasmtime server binary that loads `dist/antikythera-sdk.wasm` and asserts the builtin tool `echo` executes inside the composite with `success=true` and no host round-trip (`cargo run -p component-harness`).
+**Server proof**: `examples/component-harness` is a wasmtime server binary that loads a component path (default `dist/antikythera-sdk.wasm`) and asserts the builtin tool `echo` executes inside the composite with `success=true` and no host round-trip. The final probe is generic: with `--expect=final --expect-content=<string>` it asserts the commit envelope carries `action=final` with the given content and no tool executes — covering a host-authored `decide-action` override (`hook-forced-final`) or a drop-in logic core's deterministic commit (`echo-agent-done`); `--expect=notimpl` probes logic-core template holes and asserts the structured `{"error":"not implemented",...}` error (`cargo run -p component-harness -- <component-path> --expect=default|final|notimpl --expect-content=<string>`).
 
 ### Browser — same composite transpiled with jco
 
-The browser path reuses the **composite WASI component** (`wasm32-wasip1`, feature `component` on both crates, composed with `wasm-tools compose`) and transpiles it to browser-safe ESM with `@bytecodealliance/jco`. Because the composite carries no non-WASI imports (the SDK's `tool-registry` import is satisfied by the embedded toolrunner), the transpiled module has no unmet imports and runs in Node/browser without a WASI host — transpiling the standalone SDK instead yields a module that fails at runtime.
+The browser path reuses the **composite WASI component** (`wasm32-wasip1`, feature `component` on all three crates, composed with `wasm-tools compose`) and transpiles it to browser-safe ESM with `@bytecodealliance/jco`. Because the composite carries no non-WASI imports (the SDK's `tool-registry` import is satisfied by the embedded toolrunner and its `logic-hooks` import by the embedded default-hooks passthrough), the transpiled module has no unmet imports and runs in Node/browser without a WASI host — transpiling the standalone SDK instead yields a module that fails at runtime.
 
 **Output**: `npm/antikythera-sdk/component/` — ESM module exposing the `runner` namespace with 16 camelCase functions (all JSON strings; WIT `option<T>` renders as `T | undefined`; WIT errors surface as thrown JS errors):
 
@@ -174,6 +185,60 @@ Each WASI import is mapped to a local stub with `-M` flags. The 12 mappings (one
 ```
 
 Use the stub files as the source of truth for the current mapping set: if the component's WASI imports change, regenerate or adjust the `-M` flags to match the files present under `wasi-stubs/`.
+
+### Logic hooks (plug-and-play host logic)
+
+The composite's third member provides the `logic-hooks` interface. The SDK component imports `antikythera:agent-sdk/logic-hooks`; a composed provider exports it from the `logic-hooks-component` world. The default deliverable embeds `plugin/antikythera-default-hooks`, a no-op passthrough provider whose every hook returns `{"passthrough": true}` — so the default composite behaves exactly like the SDK alone. A host-authored hooks component can be composed in its place to customize pipeline decisions without modifying the SDK.
+
+The SDK runner calls three hooks at fixed pipeline points:
+
+| Hook | Pipeline point | Inputs |
+|------|----------------|--------|
+| `prepare-turn` | start of `prepare-user-turn`, after the SDK has built its default prepared turn | `request-json`, `session-state-json` |
+| `decide-action` | LLM response commit path (`process-llm-response-for-session`), before default action derivation | `session-state-json`, `llm-response-json` |
+| `handle-tool-result` | tool result reporting (`process-tool-result-for-session`), before default processing | `session-state-json`, `tool-result-json` |
+
+Each hook is a pure decision function: it receives JSON inputs and returns a JSON decision (`result<string, string>`). The return semantics are uniform across all three points:
+
+- Ok `{"passthrough": true}` — the single-key passthrough signal: keep the SDK default behavior at this point.
+- Ok \<any other JSON object\> — override: use this value in place of the SDK default decision (per-hook merge semantics are documented in `wit/antikythera.wit`).
+- Err(message) — the hook failed; the SDK aborts the operation and surfaces the error. A failing hook never falls back to passthrough.
+- A return that is not parseable JSON or not a JSON object is treated as hook failure (Err-path semantics) — fail-closed.
+
+Hooks are stateless. Session state is owned by the SDK: it is passed in as `session-state-json` on every call, hooks must not persist or mutate it, and any state a hook writes is discarded.
+
+> **Host note — terminal `decide-action` overrides keep the default envelope.** The SDK merges a `decide-action` override over the default commit-result envelope (`logic_hooks.rs`, `apply_decide_action_override`), so a partial override that forces a terminal action (for example `{"action":"final","content":"hook-forced-final"}`) retains the bookkeeping fields derived from the default decision: `tool_name` and `fsm_state` keep their default values, and the session state stays `tool_requested` (default derivation already emitted the `tool_requested` event before the hook is consulted). Hosts MUST NOT branch on `fsm_state` or `tool_name` after an override — the `action` in the envelope is authoritative. Because the session remains `tool_requested`, the host may still call `process-tool-result-for-session` after a terminal action; the tool-result path accepts it (the runner's FSM guard re-establishes `tool_requested` if needed). The same merge semantics are documented in the WIT contract (`wit/antikythera.wit`, `interface logic-hooks`, `decide-action`).
+
+**Default vs custom composition.** `task compose` produces the three-way default composite (SDK + toolrunner + default-hooks). For host-authored hooks, build a `logic-hooks-component` and compose it with the same `-d` wiring used for the toolrunner (`wasm-tools compose ... -d <hooks>.wasm`; `task compose-hooks-custom` wraps the custom flow). The template `examples/logic-hooks-template/` is the starting point — edit only the three `custom_*` functions in `src/lib.rs` (`custom_prepare_turn`, `custom_decide_action`, `custom_handle_tool_result`): `None` means passthrough, `Some(json)` means override. `examples/logic-hooks-example/` is a filled-in probe whose `decide-action` always returns `{"action":"final","content":"hook-forced-final"}`, forcing a terminal action regardless of the committed LLM response.
+
+**Host-push architecture is unchanged.** Logic hooks are decision points inside the existing host-push model: the host still drives `runner` calls and feeds tool results via `process-tool-result-for-session`. The `host-imports` world remains vocabulary and is not activated; composing custom hooks does not switch the model to host-pull. See [`BUILD.md`](BUILD.md) — Host-authored logic hooks for the build and verification flow.
+
+### Drop-in logic core (swap-able runner)
+
+The deepest customization is replacing the runner itself. The WIT world `logic-core-component` (`import host-imports; import tool-registry; export runner;`) is the drop-in contract: a host-authored component that exports the same `runner` interface listed above — the same 16 functions with the same JSON-string semantics — loads wherever the SDK composite loads, with zero host code changes. Host code calls the same API whether the loaded component is the SDK composite (wasmtime server, jco client) or a custom logic core; the same host script runs both.
+
+The world's imports are optional declarations, not requirements:
+
+- `host-imports` — a logic core that wants to call host LLM, tool, log, or state services may import this interface and use it; a component that never references it remains valid.
+- `tool-registry` — a logic core that wants to reuse the stateless toolrunner catalog and executor (`list-tools-json`, `validate-tool-call`, `execute-builtin`) may import this interface.
+
+An import that nothing in the component references is pruned by the component encoder, so a self-contained logic core ends up importing nothing but WASI. The template and the example both import only WASI and are consumed directly as standalone artifacts — they are never composed into `dist/` (unlike the hooks member of the composite).
+
+`examples/logic-core-template/` is the starting point. It ships 14 `custom_*` hooks in `src/lib.rs` — one per runner function except `get-state` and `reset-session`, which are fixed in-memory store plumbing (`init`, `get-state`, `reset-session` work out of the box). Every hook defaults to `None`; the adapter in `component.rs` maps `None` to the template default, and for every runner function without a default it returns the structured error `{"error":"not implemented","function":"<kebab-case-name>"}` so host code can detect a template hole deterministically.
+
+`examples/logic-core-example/` is a filled-in probe proving the swap: a deterministic "echo-agent" whose `prepare-user-turn` builds the standard prepared-turn envelope and whose `commit-llm-response` always commits `{"action":"final","content":"echo-agent-done",...}` — no LLM, no host imports.
+
+**Server proof**: the harness final probe runs the standard init → prepare-user-turn → commit-llm-response → drain-events flow against the logic-core artifact and asserts the commit envelope carries `action=final` and `content=echo-agent-done` with no tool result:
+
+```bash
+cargo run -p component-harness --release -- <logic-core>.wasm --expect=final --expect-content=echo-agent-done
+```
+
+`--expect=notimpl` calls template-hole functions (`get-tools-prompt`, `sweep-idle-sessions`) and asserts the structured not-implemented error. The same final probe covers a logic-hooks override (`--expect-content=hook-forced-final`), which is how the harness stays one generic flow for both customization paths.
+
+**Client proof**: because a self-contained logic core imports only WASI, it transpiles with jco the same way the composite does (same WASI stub mapping) and runs in the Node probe and the Vite bundle.
+
+**Difference from logic hooks.** Logic hooks are customization points *inside* the SDK runner: three stateless decision points (`prepare-turn`, `decide-action`, `handle-tool-result`) that passthrough, override, or abort while the SDK keeps owning session state, tool execution, and the FSM. A drop-in logic core *replaces the whole runner*: the host authors the 16-function `runner` implementation itself and owns every pipeline decision. Together with data-driven tool registration via `register-tools` (the host supplies tool definitions as JSON at runtime), the runner offers three customization paths at different layers: customize the tool surface as data, override decisions at fixed points via composed hooks, or replace the runner with a drop-in logic core.
 
 ### Sandbox (native)
 
@@ -270,6 +335,6 @@ The CI pipeline includes:
 1. **Native test + clippy** — `cargo test --workspace` on ubuntu/windows/macos
 2. **WASM compile check** — `cargo check` for `wasm32-wasip1` (feature `component`); the legacy `wasm32-unknown-unknown` + `wasm` feature check is retained for the deprecated path
 3. **WIT conformance validation** — `cargo run -p build-scripts --release -- validate`
-4. **Composite build** — build SDK component (`cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component`), build toolrunner component (`-p antikythera-toolrunner`), then `wasm-tools compose` both into `dist/antikythera-sdk.wasm` (the kebab-case copy of the toolrunner is required — compose rejects underscore names); only then transpile with jco and smoke-test in Node
+4. **Composite build** — build SDK component (`cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component`), build toolrunner component (`-p antikythera-toolrunner`), build default-hooks component (`-p antikythera-default-hooks`), then `wasm-tools compose` the three into `dist/antikythera-sdk.wasm` (the kebab-case copies of the component artifacts are required — compose rejects underscore names); only then transpile with jco and smoke-test in Node
 5. **Contract tests** — `cargo test -p antikythera-tests --test compatibility_tests` (runner signatures vs golden, payload shapes vs golden, runner namespace re-export)
 6. **Documentation build** — mdBook build

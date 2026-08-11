@@ -53,6 +53,14 @@ The component does not call model APIs directly. The intended flow is:
 
 This means the first incoming turn may be plain text only. Once a session exists, later turns should be sent with the matching `session_id` and any host-level metadata needed to keep the conversation aligned with the WASM state.
 
+## Pipeline customization via logic-hooks
+
+The pipeline can be customized with host-authored `logic-hooks` components (composed into the SDK, see [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md)) without changing the SDK. Hooks are decision points (`prepare-turn`, `decide-action`, `handle-tool-result`) that can passthrough, override, or abort. Session state remains owned by the SDK: hooks are stateless and never persist.
+
+## Runner replacement via a drop-in logic core
+
+Beyond composing hooks, the host can replace the runner itself. A host-authored logic core that exports the same `runner` interface (world `logic-core-component`) loads wherever the SDK composite loads, with zero host code changes — the exported runner is identical to the SDK runner (the same 16 functions, the same JSON-string semantics), so the host calls the same API in both cases. `examples/logic-core-template/` is the starting point; `examples/logic-core-example/` proves the swap. See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Drop-in logic core (swap-able runner) and [`BUILD.md`](BUILD.md) — Authoring a drop-in logic core.
+
 ## Why this design is useful
 
 | Benefit | Explanation |

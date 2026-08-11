@@ -112,6 +112,69 @@ const GOLDEN_PAYLOAD_CONTRACT: &str = "contracts/shared/payload_contract.golden.
 
 const EXPECTED_RUNNER_FUNCTION_COUNT: usize = 16;
 
+// Logic-hooks contract (interface `logic-hooks` in `wit/antikythera.wit`).
+const WIT_ANTIKYTHERA: &str = "wit/antikythera.wit";
+const GOLDEN_WIT_SIGS: &str = "contracts/shared/wit_signatures.golden.txt";
+const SDK_BINDINGS_REL: &str = "antikythera-sdk/src/bindings.rs";
+
+/// Bare signatures of the three logic-hooks functions, exactly as declared in
+/// `wit/antikythera.wit` (interface `logic-hooks`), in WIT definition order.
+const EXPECTED_LOGIC_HOOK_SIGNATURES: [&str; 3] = [
+    "prepare-turn: func(request-json: string, session-state-json: string) -> result<string, string>",
+    "decide-action: func(session-state-json: string, llm-response-json: string) -> result<string, string>",
+    "handle-tool-result: func(session-state-json: string, tool-result-json: string) -> result<string, string>",
+];
+
+/// Snake-case Rust binding names for the three logic-hooks functions
+/// (kebab-case WIT function names are transpiled by wit-bindgen).
+const EXPECTED_LOGIC_HOOK_FUNCTIONS: [&str; 3] =
+    ["prepare_turn", "decide_action", "handle_tool_result"];
+
+const GOLDEN_LOGIC_HOOKS_BLOCK: &str = "logic-hooks {";
+const GOLDEN_LOGIC_HOOKS_COMPONENT_WORLD: &str = "world logic-hooks-component { export logic-hooks; }";
+const GOLDEN_SDK_WORLD_WITH_HOOKS: &str =
+    "world antikythera-agent-sdk { import tool-registry; import logic-hooks; export runner; }";
+
+// Logic-core drop-in contract (world `logic-core-component` in
+// `wit/antikythera.wit`). A custom logic core exports a `runner` interface
+// IDENTICAL to the SDK runner — the same 16 functions — so the host can swap
+// the loaded component without any code change. The imports are optional and
+// pruned when unused by the component encoder.
+const GOLDEN_LOGIC_CORE_COMPONENT_WORLD: &str =
+    "world logic-core-component { import host-imports; import tool-registry; export runner; }";
+const WIT_LOGIC_CORE_WORLD_MARKER: &str = "world logic-core-component {";
+const WIT_LOGIC_CORE_MEMBERS: [&str; 3] = [
+    "import host-imports;",
+    "import tool-registry;",
+    "export runner;",
+];
+const LOGIC_CORE_EXAMPLE_WASM_REL: &str = "target/wasm32-wasip1/release/logic_core_example.wasm";
+const LOGIC_CORE_RUNNER_EXPORT: &str = "export antikythera:agent-sdk/runner@1.0.0";
+const LOGIC_CORE_RUNNER_FUNCTIONS: [&str; 16] = [
+    "init",
+    "prepare-user-turn",
+    "commit-llm-response",
+    "commit-llm-stream",
+    "process-llm-response-for-session",
+    "process-tool-result-for-session",
+    "append-llm-chunk",
+    "drain-events",
+    "get-state",
+    "reset-session",
+    "sweep-idle-sessions",
+    "register-tools",
+    "get-tools-prompt",
+    "set-context-policy",
+    "get-telemetry-snapshot",
+    "get-slo-snapshot",
+];
+
+// Standalone SDK component contract (uncomposed build artifact).
+const STANDALONE_SDK_WASM_REL: &str = "target/wasm32-wasip1/release/antikythera_sdk.wasm";
+const STANDALONE_IMPORT_TOOL_REGISTRY: &str = "import antikythera:agent-sdk/tool-registry@1.0.0";
+const STANDALONE_IMPORT_LOGIC_HOOKS: &str = "import antikythera:agent-sdk/logic-hooks@1.0.0";
+const STANDALONE_EXPORT_RUNNER: &str = "export antikythera:agent-sdk/runner@1.0.0";
+
 // Composite-component contract (toolrunner composition).
 const COMPOSED_WASM_REL: &str = "dist/antikythera-sdk.wasm";
 const COMPOSED_EXPECTED_RUNNER_EXPORT: &str = "export antikythera:agent-sdk/runner@1.0.0";
@@ -352,5 +415,394 @@ fn composed_component_world_no_antikythera_imports() {
     assert!(
         non_wasi_imports.is_empty(),
         "composite world imports a non-wasi interface: {non_wasi_imports:?}"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// Logic-hooks contract — WIT ↔ golden ↔ generated bindings (two-way)
+// ---------------------------------------------------------------------------
+//
+// Contract clause (per `wit/antikythera.wit`): interface `logic-hooks`
+// declares exactly three functions with pinned signatures (`prepare-turn`,
+// `decide-action`, `handle-tool-result`); world `antikythera-agent-sdk`
+// imports `logic-hooks` alongside `tool-registry` and exports `runner`; world
+// `logic-hooks-component` exports `logic-hooks`. The golden
+// `contracts/shared/wit_signatures.golden.txt` must document these signatures
+// and the SDK's generated bindings (`antikythera-sdk/src/bindings.rs`) must
+// expose them as Rust functions.
+//
+// Falsification: renaming/retyping/removing a logic-hooks function in the WIT
+// without regenerating the golden, or a wit-bindgen rerun that drops a
+// binding, goes RED.
+//
+// The bindings leg is SKIP-safe: `bindings.rs` is generated and gitignored;
+// when it is absent (fresh checkout without a build) the test still verifies
+// the WIT↔golden legs and only skips the bindings leg.
+
+/// Body (text between the braces) of `interface {interface_name}` in the WIT.
+fn extract_wit_interface_body(wit: &str, interface_name: &str) -> String {
+    let marker = format!("interface {interface_name} {{");
+    let start = wit
+        .find(&marker)
+        .unwrap_or_else(|| panic!("{WIT_ANTIKYTHERA} must declare `interface {interface_name}`"))
+        + marker.len();
+    let mut depth = 1usize;
+    let bytes = wit[start..].as_bytes();
+    let mut end = wit.len();
+    for (i, b) in bytes.iter().enumerate() {
+        match b {
+            b'{' => depth += 1,
+            b'}' => {
+                depth -= 1;
+                if depth == 0 {
+                    end = start + i;
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    assert_eq!(
+        depth, 0,
+        "interface `{interface_name}` must be brace-balanced in {WIT_ANTIKYTHERA}"
+    );
+    wit[start..end].to_string()
+}
+
+/// Body (text between the braces) of `world {world_name}` in the WIT.
+fn extract_wit_world_body(wit: &str, world_name: &str) -> String {
+    let marker = format!("world {world_name} {{");
+    let start = wit
+        .find(&marker)
+        .unwrap_or_else(|| panic!("{WIT_ANTIKYTHERA} must declare `world {world_name}`"))
+        + marker.len();
+    let mut depth = 1usize;
+    let bytes = wit[start..].as_bytes();
+    let mut end = wit.len();
+    for (i, b) in bytes.iter().enumerate() {
+        match b {
+            b'{' => depth += 1,
+            b'}' => {
+                depth -= 1;
+                if depth == 0 {
+                    end = start + i;
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    assert_eq!(
+        depth, 0,
+        "world `{world_name}` must be brace-balanced in {WIT_ANTIKYTHERA}"
+    );
+    wit[start..end].to_string()
+}
+
+/// Bare signatures (`name: func(...) -> ret`) of every function declared in an
+/// interface body, in WIT definition order.
+fn parse_wit_func_signatures(body: &str) -> Vec<String> {
+    body.lines()
+        .map(str::trim)
+        .filter_map(|line| {
+            let line = line.strip_suffix(';').unwrap_or(line).trim();
+            let colon = line.find(": func(")?;
+            let name = line[..colon].trim();
+            let rest = line[colon + 1..].trim();
+            Some(format!("{name}: {rest}"))
+        })
+        .collect()
+}
+
+#[test]
+fn logic_hooks_signatures_match_wit() {
+    let root = repo_root();
+    let wit = read_repo_file(&root, WIT_ANTIKYTHERA);
+    let golden = read_repo_file(&root, GOLDEN_WIT_SIGS);
+
+    // Leg 1 — the WIT declares exactly the three pinned functions.
+    let body = extract_wit_interface_body(&wit, "logic-hooks");
+    let wit_signatures = parse_wit_func_signatures(&body);
+    let expected: BTreeSet<&str> = EXPECTED_LOGIC_HOOK_SIGNATURES.into_iter().collect();
+    let actual: BTreeSet<&str> = wit_signatures.iter().map(String::as_str).collect();
+    assert_eq!(
+        actual, expected,
+        "interface `logic-hooks` in {WIT_ANTIKYTHERA} must declare exactly \
+         prepare-turn, decide-action, handle-tool-result with the pinned signatures"
+    );
+
+    // Leg 2 — the golden documents each signature as an individual line.
+    let golden_lines: BTreeSet<String> =
+        parse_golden_signatures(&golden).into_iter().collect();
+    for signature in EXPECTED_LOGIC_HOOK_SIGNATURES {
+        assert!(
+            golden_lines.contains(signature),
+            "{GOLDEN_WIT_SIGS} must document `{signature}` as a line"
+        );
+    }
+
+    // Leg 3 — the golden documents the interface block with all three hooks.
+    assert!(
+        golden.contains(GOLDEN_LOGIC_HOOKS_BLOCK),
+        "{GOLDEN_WIT_SIGS} must document the `logic-hooks {{ ... }}` interface block"
+    );
+    for signature in EXPECTED_LOGIC_HOOK_SIGNATURES {
+        assert!(
+            golden.contains(signature),
+            "{GOLDEN_WIT_SIGS} logic-hooks block must contain `{signature}`"
+        );
+    }
+
+    // Leg 4 — the golden documents both world lines affected by logic-hooks.
+    assert!(
+        golden.contains(GOLDEN_LOGIC_HOOKS_COMPONENT_WORLD),
+        "{GOLDEN_WIT_SIGS} must document `{GOLDEN_LOGIC_HOOKS_COMPONENT_WORLD}`"
+    );
+    assert!(
+        golden.contains(GOLDEN_SDK_WORLD_WITH_HOOKS),
+        "{GOLDEN_WIT_SIGS} must document `{GOLDEN_SDK_WORLD_WITH_HOOKS}` \
+         (the SDK world imports logic-hooks)"
+    );
+
+    // Leg 5 — the generated SDK bindings expose the three hooks as Rust
+    // functions (two-way WIT→bindings mapping; kebab-case becomes snake_case).
+    // SKIP-safe: `bindings.rs` is generated and gitignored; absent on a fresh
+    // checkout without a build.
+    let bindings_path = root.join(SDK_BINDINGS_REL);
+    if !bindings_path.is_file() {
+        eprintln!(
+            "Skipping bindings leg: {SDK_BINDINGS_REL} not found \
+             (generated, gitignored; fresh checkout without a build)"
+        );
+    } else {
+        let bindings = fs::read_to_string(&bindings_path).unwrap_or_else(|e| {
+            panic!("cannot read generated bindings {SDK_BINDINGS_REL}: {e}")
+        });
+        assert!(
+            bindings.contains("pub mod logic_hooks"),
+            "{SDK_BINDINGS_REL} must declare `pub mod logic_hooks`"
+        );
+        for function in EXPECTED_LOGIC_HOOK_FUNCTIONS {
+            let needle = format!("pub fn {function}");
+            assert!(
+                bindings.contains(&needle),
+                "{SDK_BINDINGS_REL} must declare `{needle}` (two-way mapping \
+                 from WIT function to generated Rust binding)"
+            );
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Standalone SDK component contract (uncomposed build artifact)
+// ---------------------------------------------------------------------------
+//
+// Contract clause (per `wit/antikythera.wit`, world `antikythera-agent-sdk`):
+// the standalone SDK component imports `tool-registry` AND `logic-hooks`
+// (both supplied by composition) and exports `runner`. This is the
+// pre-composition artifact; the composite (`dist/antikythera-sdk.wasm`) is
+// covered by `composed_component_world_no_antikythera_imports`.
+//
+// SKIP (not fail) when the artifact or the tool is absent: the standalone
+// wasm is a build artifact, not a source unit; CI without `target/` must stay
+// green.
+
+#[test]
+fn standalone_sdk_imports_hooks_and_tools() {
+    let root = repo_root();
+    let wasm_path = root.join(STANDALONE_SDK_WASM_REL);
+    if !wasm_path.is_file() {
+        eprintln!("Skipping: {STANDALONE_SDK_WASM_REL} not found (build artifact)");
+        return;
+    }
+
+    let Some(wasm_tools) = find_wasm_tools() else {
+        eprintln!(
+            "Skipping: wasm-tools not found in WASM_TOOLS, PATH, \
+             $CARGO_HOME/bin, or $HOME/.cargo/bin"
+        );
+        return;
+    };
+
+    let output = std::process::Command::new(&wasm_tools)
+        .args(["component", "wit"])
+        .arg(&wasm_path)
+        .output()
+        .unwrap_or_else(|e| panic!("failed to execute {wasm_tools:?}: {e}"));
+
+    assert!(
+        output.status.success(),
+        "wasm-tools component wit failed on the standalone SDK (status: {}):\nstdout: {}\nstderr: {}",
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+    );
+
+    let wit_text = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        wit_text.contains(STANDALONE_IMPORT_TOOL_REGISTRY),
+        "standalone SDK world must import {STANDALONE_IMPORT_TOOL_REGISTRY}"
+    );
+    assert!(
+        wit_text.contains(STANDALONE_IMPORT_LOGIC_HOOKS),
+        "standalone SDK world must import {STANDALONE_IMPORT_LOGIC_HOOKS}"
+    );
+    assert!(
+        wit_text.contains(STANDALONE_EXPORT_RUNNER),
+        "standalone SDK world must export {STANDALONE_EXPORT_RUNNER}"
+    );
+    for signature in EXPECTED_LOGIC_HOOK_SIGNATURES {
+        assert!(
+            wit_text.contains(signature),
+            "standalone SDK world must declare the logic-hooks function `{signature}`"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Logic-core drop-in contract — world `logic-core-component`
+// ---------------------------------------------------------------------------
+//
+// Contract clause (per `wit/antikythera.wit`): world `logic-core-component`
+// declares the contract for a custom `runner` implementation that can replace
+// the composite SDK component without any change to host code. It imports
+// `host-imports` and `tool-registry` (both OPTIONAL — unused imports are
+// legal WIT and are pruned by the component encoder) and exports `runner`.
+// The golden `contracts/shared/wit_signatures.golden.txt` must document the
+// world line verbatim, so WIT ↔ golden agreement is checked in both
+// directions: the WIT must declare the world with exactly these members, and
+// the golden must carry the canonical world line.
+//
+// Falsification: renaming/removing a world member in the WIT, or dropping/
+// rewriting the golden line, goes RED.
+
+#[test]
+fn logic_core_world_documented() {
+    let root = repo_root();
+    let wit = read_repo_file(&root, WIT_ANTIKYTHERA);
+    let golden = read_repo_file(&root, GOLDEN_WIT_SIGS);
+
+    // Leg 1 — the WIT declares the world and its three members verbatim.
+    let body = extract_wit_world_body(&wit, "logic-core-component");
+    let declarations: Vec<String> = body
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect();
+    let expected: BTreeSet<&str> = WIT_LOGIC_CORE_MEMBERS.into_iter().collect();
+    let actual: BTreeSet<&str> = declarations.iter().map(String::as_str).collect();
+    assert_eq!(
+        actual, expected,
+        "world `logic-core-component` in {WIT_ANTIKYTHERA} must declare exactly \
+         `import host-imports;`, `import tool-registry;`, `export runner;`"
+    );
+
+    // Leg 2 — the golden documents the canonical world line verbatim
+    // (WIT → golden direction).
+    assert!(
+        golden.contains(GOLDEN_LOGIC_CORE_COMPONENT_WORLD),
+        "{GOLDEN_WIT_SIGS} must document `{GOLDEN_LOGIC_CORE_COMPONENT_WORLD}`"
+    );
+
+    // Leg 3 — the golden line reconstructs exactly the members declared in
+    // the WIT (golden → WIT direction): no golden-only member invented.
+    assert!(
+        golden.contains(WIT_LOGIC_CORE_WORLD_MARKER),
+        "{GOLDEN_WIT_SIGS} must contain the world marker `{WIT_LOGIC_CORE_WORLD_MARKER}`"
+    );
+    for member in WIT_LOGIC_CORE_MEMBERS {
+        assert!(
+            golden.contains(member),
+            "{GOLDEN_WIT_SIGS} logic-core world line must contain `{member}`"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Logic-core example artifact — identical runner export, pruned imports
+// ---------------------------------------------------------------------------
+//
+// Contract clause (per `examples/logic-core-example`, world
+// `logic-core-component`): a drop-in logic core must export the runner
+// interface with the SAME pinned package id
+// (`antikythera:agent-sdk/runner@1.0.0`) and the SAME 16 kebab-case
+// functions as the SDK — that is what makes the component swappable without
+// host changes. Unused optional imports (`host-imports`, `tool-registry`)
+// must be pruned: the rendered world must NOT import anything from
+// `antikythera:*`.
+//
+// SKIP (not fail) when the artifact or the tool is absent: the example wasm
+// is a build artifact, not a source unit; CI without `target/` must stay
+// green.
+
+#[test]
+fn logic_core_example_exports_identical_runner() {
+    let root = repo_root();
+    let wasm_path = root.join(LOGIC_CORE_EXAMPLE_WASM_REL);
+    if !wasm_path.is_file() {
+        eprintln!("Skipping: {LOGIC_CORE_EXAMPLE_WASM_REL} not found (build artifact)");
+        return;
+    }
+
+    let Some(wasm_tools) = find_wasm_tools() else {
+        eprintln!(
+            "Skipping: wasm-tools not found in WASM_TOOLS, PATH, \
+             $CARGO_HOME/bin, or $HOME/.cargo/bin"
+        );
+        return;
+    };
+
+    let output = std::process::Command::new(&wasm_tools)
+        .args(["component", "wit"])
+        .arg(&wasm_path)
+        .output()
+        .unwrap_or_else(|e| panic!("failed to execute {wasm_tools:?}: {e}"));
+
+    assert!(
+        output.status.success(),
+        "wasm-tools component wit failed on the logic-core example (status: {}):\nstdout: {}\nstderr: {}",
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+    );
+
+    let wit_text = String::from_utf8_lossy(&output.stdout);
+
+    // (a) the runner interface is exported with the pinned package id.
+    assert!(
+        wit_text.contains(LOGIC_CORE_RUNNER_EXPORT),
+        "logic-core example world must export `{LOGIC_CORE_RUNNER_EXPORT}`"
+    );
+
+    // (b) every one of the 16 SDK runner functions is present (identical
+    // swap-able surface), each as a kebab-case declaration.
+    let func_decls: Vec<&str> = wit_text
+        .lines()
+        .map(str::trim)
+        .filter(|line| line.contains(": func("))
+        .collect();
+    for name in LOGIC_CORE_RUNNER_FUNCTIONS {
+        let needle = format!("{name}: func(");
+        assert!(
+            wit_text.contains(&needle),
+            "logic-core example runner must declare `{needle}`; \
+             rendered runner interface: {}",
+            func_decls.join("\n")
+        );
+    }
+
+    // (c) NO import from `antikythera:*` leaks out of the example: the
+    // optional `host-imports` and `tool-registry` imports are unused and must
+    // be pruned by the component encoder.
+    let leaked_import = wit_text
+        .lines()
+        .find(|line| line.trim_start().starts_with("import antikythera:"));
+    assert!(
+        leaked_import.is_none(),
+        "logic-core example must not import any `antikythera:*` interface; \
+         unused optional imports must be pruned, found: {:?}",
+        leaked_import
     );
 }

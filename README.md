@@ -90,6 +90,7 @@ flowchart TD
 |:------|:-----|
 | `plugin/antikythera-wasm-bindgen` | **Legacy** wasm-bindgen browser glue (`wasm32-unknown-unknown`) — digantikan jalur WASI component + jco; dipertahankan untuk kompatibilitas — depends on SDK |
 | `plugin/antikythera-toolrunner` | In-process tool execution and standalone WASM tool-registry component (composed into the SDK deliverable) |
+| `plugin/antikythera-default-hooks` | Default no-op logic-hooks implementation (composed into the SDK deliverable) |
 
 ### Supporting directories
 
@@ -97,9 +98,16 @@ flowchart TD
 |:-----|:-----|
 | `tests/` | Workspace integration tests and scenario coverage |
 | `scripts/` | WIT generation and component build helpers |
+| `documentation/` | Focused guides and references |
+
+### Examples
+
+| Path | Role |
+|:-----|:-----|
 | `examples/chat` | Rust chat example using antikythera-facade |
 | `examples/antikythera-web` | TypeScript/Vite web frontend (not a workspace member) |
-| `documentation/` | Focused guides and references |
+| `examples/logic-core-template` | Drop-in runner template (world logic-core-component) |
+| `examples/logic-core-example` | Deterministic drop-in logic core (echo-agent) + swap proof |
 
 ## Build and Validate
 

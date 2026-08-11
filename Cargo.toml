@@ -30,6 +30,7 @@ members = [
     # Layer 5: Deployment
     "plugin/antikythera-wasm-bindgen",
     "plugin/antikythera-toolrunner",
+    "plugin/antikythera-default-hooks",
 
     # Infra
     "scripts",
@@ -38,6 +39,10 @@ members = [
     # Examples
     "examples/chat",
     "examples/component-harness",
+    "examples/logic-hooks-template",
+    "examples/logic-hooks-example",
+    "examples/logic-core-template",
+    "examples/logic-core-example",
 
     # Build-time: Proc macros
     "antikythera-macros",
@@ -45,7 +50,7 @@ members = [
 
 
 [workspace.package]
-version = "1.8.2"
+version = "1.8.3"
 edition = "2024"
 authors = ["tsfarizi"]
 license = "MIT"

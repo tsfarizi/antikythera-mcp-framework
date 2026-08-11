@@ -12,6 +12,8 @@ use antikythera_log::LogLevel;
 
 mod context_manager;
 mod llm_stream;
+#[cfg(all(feature = "component", target_family = "wasm"))]
+mod logic_hooks;
 mod runner_telemetry;
 mod runner_types;
 mod session_lifecycle;

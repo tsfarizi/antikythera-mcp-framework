@@ -13,3 +13,4 @@ node_modules/
 dist/
 app.toml
 antikythera-sdk/src/bindings.rs
+examples/logic-core-template/src/bindings.rs

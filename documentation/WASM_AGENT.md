@@ -34,6 +34,10 @@ flowchart LR
 - Lets the host choose provider and infrastructure strategy
 - Avoids embedding every I/O concern into the component itself
 
+## Pipeline customization
+
+The pipeline can be customized via composed `logic-hooks` components without changing the SDK: `prepare-turn`, `decide-action`, and `handle-tool-result` run as stateless decision points that passthrough, override, or abort. Session state stays with the SDK — hooks receive it as input and never persist. See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Logic hooks.
+
 ## Message and session flow
 
 The intended host/WASM exchange is:

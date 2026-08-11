@@ -19,7 +19,7 @@ No C FFI and no embedded HTTP server are provided by the framework. Browser WASM
 | Target | Build command | Output |
 |:-------|:-------------|:-------|
 | **Framework crates** | `cargo build --workspace` | Library crates |
-| **Server-side WASM component** (composite) | `task build` — SDK component + toolrunner component + `wasm-tools compose` → `dist/antikythera-sdk.wasm` | `.wasm` component (exports `runner`, imports only WASI) |
+| **Server-side WASM component** (composite) | `task build` — SDK + toolrunner + default-hooks components + `wasm-tools compose` → `dist/antikythera-sdk.wasm` | `.wasm` component (exports `runner`, imports only WASI) |
 | **Browser JS bindings** | `npx jco transpile dist/antikythera-sdk.wasm --out-dir npm/antikythera-sdk/component` | ESM module (namespace `runner`) |
 
 No C FFI and no embedded HTTP server are provided by the framework. Browser WASM is supported through the **WASI component transpiled with jco** (`npm/antikythera-sdk/component/`, namespace `runner`); the wasm-bindgen browser path is legacy only. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom).

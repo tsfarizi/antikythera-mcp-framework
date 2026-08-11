@@ -229,6 +229,17 @@ impl AgentRunnerRuntime {
             AgentRunnerError::Internal(format!("Failed to encode prepared turn: {e}"))
         })?;
 
+        // logic-hooks: `prepare-turn` is consulted after the SDK built its
+        // default prepared turn. Passthrough keeps the default byte-identical;
+        // an override's present fields are authoritative, absent fields fall
+        // back to the default. A hook error aborts the turn (fail-closed).
+        #[cfg(all(feature = "component", target_family = "wasm"))]
+        let encoded = super::logic_hooks::apply_prepare_turn_override(
+            &runtime.state,
+            request_json,
+            &encoded,
+        )?;
+
         let _ =
             self.enforce_capacity(Some(&prepared.session_id), prepared.correlation_id.clone())?;
 
@@ -450,6 +461,17 @@ impl AgentRunnerRuntime {
             }
         };
 
+        // logic-hooks: `decide-action` is consulted before the default action
+        // decision is finalized. Passthrough keeps the SDK default; an
+        // override is committed as the action result (e.g. forcing `final` by
+        // returning the SDK's envelope). A hook error aborts (fail-closed).
+        #[cfg(all(feature = "component", target_family = "wasm"))]
+        let result = super::logic_hooks::apply_decide_action_override(
+            &runtime.state,
+            llm_response_json,
+            &result,
+        )?;
+
         wasm_log(
             &prepared.session_id,
             LogLevel::Debug,
@@ -632,6 +654,18 @@ impl AgentRunnerRuntime {
                     fsm_before, runtime.state.fsm_state
                 ),
             );
+        }
+
+        // logic-hooks: `decide-action` is consulted before the default action
+        // derivation runs. Passthrough keeps the SDK default; an override is
+        // committed as the action result (the same envelope the SDK produces).
+        // A hook error aborts the operation (fail-closed).
+        #[cfg(all(feature = "component", target_family = "wasm"))]
+        if let Some(override_value) =
+            super::logic_hooks::decide_action_override(&runtime.state, llm_response_json)?
+        {
+            return serde_json::to_string(&override_value)
+                .map_err(|e| AgentRunnerError::Internal(format!("Failed to encode action: {e}")));
         }
 
         let action = process_llm_response(&mut runtime.state, llm_response_json)?;
