@@ -1,5 +1,71 @@
 package antikythera:agent-sdk@1.0.0;
 
+/// Shared vocabulary for the host-facing interfaces, copied verbatim from
+/// `wit/antikythera.wit` (C3a): the harness world now imports
+/// `host-imports`, and bindgen! needs the full type closure resolvable
+/// from this single WIT file.
+interface vocabulary {
+  record llm-request {
+    provider: option<string>,
+    model: option<string>,
+    session-id: option<string>,
+    messages-json: string,
+    force-json: bool,
+    temperature: option<f32>,
+    max-tokens: option<u32>,
+    schema-name: option<string>,
+    metadata-json: option<string>,
+  }
+
+  record llm-response {
+    content: string,
+    model: option<string>,
+    session-id: option<string>,
+    message-json: option<string>,
+    tokens-used: option<u32>,
+    finish-reason: option<string>,
+    raw-response-json: option<string>,
+  }
+
+  record tool-call-event {
+    tool-name: string,
+    arguments-json: string,
+    session-id: option<string>,
+    step-id: u32,
+  }
+
+  record tool-execution-result {
+    tool-name: string,
+    success: bool,
+    output-json: string,
+    error-message: option<string>,
+    step-id: u32,
+  }
+
+  record log-event {
+    level: string,
+    message: string,
+    timestamp: option<string>,
+  }
+}
+
+/// HostImports (C3a): the escape hatch imported by a logic-core component
+/// (world `logic-core-component`). The server harness wires these five
+/// functions via `Harness::add_to_linker` with permission gates:
+///   - call-llm:       quota, max 3 calls per instance
+///   - emit-tool-call: allowlist, only `echo`
+///   - save-state/load-state: bounded storage under %TEMP%\opencode\c3a-storage
+///   - log-message:    passthrough to host stderr
+interface host-imports {
+  use vocabulary.{llm-request, llm-response, tool-call-event, tool-execution-result, log-event};
+
+  call-llm: func(request: llm-request) -> result<llm-response, string>;
+  emit-tool-call: func(event: tool-call-event) -> result<tool-execution-result, string>;
+  log-message: func(event: log-event);
+  save-state: func(context-id: string, state-json: string) -> result<_, string>;
+  load-state: func(context-id: string) -> result<option<string>, string>;
+}
+
 /// Interface export of the composed composite, copied verbatim from
 /// `wasm-tools component wit dist/antikythera-sdk.wasm --out-dir wit`
 /// (deps/agent-sdk.wit). The world deliberately declares NO wasi imports:
@@ -43,5 +109,6 @@ interface runner {
 }
 
 world harness {
+  import host-imports;
   export runner;
 }

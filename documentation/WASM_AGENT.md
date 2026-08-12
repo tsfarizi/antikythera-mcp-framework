@@ -38,6 +38,15 @@ flowchart LR
 
 The pipeline can be customized via composed `logic-hooks` components without changing the SDK: `prepare-turn`, `decide-action`, and `handle-tool-result` run as stateless decision points that passthrough, override, or abort. Session state stays with the SDK — hooks receive it as input and never persist. See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Logic hooks.
 
+## Hybrid host model
+
+The WASM agent ships in two shapes with different host contracts:
+
+- **Host-push (SDK composite)** — the host drives the exported `runner` functions and feeds tool results back via `process-tool-result-for-session`. The composite never imports `host-imports`.
+- **Host-pull (drop-in logic core)** — a logic core that imports `host-imports` calls the host for LLM, state, tool execution, and logging (`call-llm`, `save-state`, `load-state`, `emit-tool-call`, `log-message`). The host MUST implement the import behind permission gates (quota, allowlist, bounded storage, log passthrough); without permission the component is rejected (fail-closed).
+
+Both shapes export the same `runner` interface, so host code calls the same API either way. See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Host-imports (activated for drop-in logic cores).
+
 ## Message and session flow
 
 The intended host/WASM exchange is:

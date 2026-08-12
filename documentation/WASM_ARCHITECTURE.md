@@ -110,9 +110,9 @@ The `antikythera-agent-sdk` world exports the `runner` interface — 16 function
 | `get-telemetry-snapshot` | `session-id: string` | `result<string, string>` |
 | `get-slo-snapshot` | `session-id: string` | `result<string, string>` |
 
-The host-facing interfaces (`host-imports`, `prompt-manager`, `mcp-client`, `ffi-server`) plus the shared `vocabulary` records are **preserved as vocabulary** in the WIT file but are **not yet imported by the world** — they are not part of the current component surface.
+The host-facing interfaces (`prompt-manager`, `mcp-client`, `ffi-server`) plus the shared `vocabulary` records are **preserved as vocabulary** in the WIT file — they are not part of any world surface. `host-imports` is the exception: it is **activated** as an import of the `logic-core-component` world (drop-in logic cores) — see [Host-imports (activated for drop-in logic cores)](#host-imports-activated-for-drop-in-logic-cores) below.
 
-> **Decision: host-imports stays vocabulary.** The `host-imports` world remains a vocabulary contract in `wit/antikythera.wit`; it is **not activated** as an import of the composite. Rationale: activation would change the host contract from the current host-push architecture (host drives `runner` calls and feeds tool results via `process-tool-result-for-session`) to a host-pull model; that is a deliberately scoped future work item, not an execution decision in the current scope. No code change is required to keep it as vocabulary.
+> **Decision: host-imports activated for drop-in logic cores.** The `logic-core-component` world imports `host-imports`, and a logic core that references it gets a host-pull escape hatch: the component calls the host (LLM, state, tools, logging) instead of the host calling it. The SDK composite does **not** import `host-imports` — it keeps the host-push contract (host drives `runner` calls and feeds tool results via `process-tool-result-for-session`). The two models coexist — host-push for the SDK composite, host-pull for logic cores that choose to import `host-imports` (**hybrid model**). A host MUST implement `host-imports` behind permission gates before loading any component that imports it; without permission the component is rejected (fail-closed).
 
 **Build** (composite deliverable; `task build` runs the full composite build, `task compose` wraps the compose step):
 
@@ -211,7 +211,7 @@ Hooks are stateless. Session state is owned by the SDK: it is passed in as `sess
 
 **Default vs custom composition.** `task compose` produces the three-way default composite (SDK + toolrunner + default-hooks). For host-authored hooks, build a `logic-hooks-component` and compose it with the same `-d` wiring used for the toolrunner (`wasm-tools compose ... -d <hooks>.wasm`; `task compose-hooks-custom` wraps the custom flow). The template `examples/logic-hooks-template/` is the starting point — edit only the three `custom_*` functions in `src/lib.rs` (`custom_prepare_turn`, `custom_decide_action`, `custom_handle_tool_result`): `None` means passthrough, `Some(json)` means override. `examples/logic-hooks-example/` is a filled-in probe whose `decide-action` always returns `{"action":"final","content":"hook-forced-final"}`, forcing a terminal action regardless of the committed LLM response.
 
-**Host-push architecture is unchanged.** Logic hooks are decision points inside the existing host-push model: the host still drives `runner` calls and feeds tool results via `process-tool-result-for-session`. The `host-imports` world remains vocabulary and is not activated; composing custom hooks does not switch the model to host-pull. See [`BUILD.md`](BUILD.md) — Host-authored logic hooks for the build and verification flow.
+**Host-push architecture is unchanged for the SDK composite.** Logic hooks are decision points inside the existing host-push model: the host still drives `runner` calls and feeds tool results via `process-tool-result-for-session`. Composing custom hooks does not switch the model to host-pull. Host-pull is available only to drop-in logic cores that import `host-imports` (see below); the SDK composite never imports it. See [`BUILD.md`](BUILD.md) — Host-authored logic hooks for the build and verification flow.
 
 ### Drop-in logic core (swap-able runner)
 
@@ -222,11 +222,13 @@ The world's imports are optional declarations, not requirements:
 - `host-imports` — a logic core that wants to call host LLM, tool, log, or state services may import this interface and use it; a component that never references it remains valid.
 - `tool-registry` — a logic core that wants to reuse the stateless toolrunner catalog and executor (`list-tools-json`, `validate-tool-call`, `execute-builtin`) may import this interface.
 
-An import that nothing in the component references is pruned by the component encoder, so a self-contained logic core ends up importing nothing but WASI. The template and the example both import only WASI and are consumed directly as standalone artifacts — they are never composed into `dist/` (unlike the hooks member of the composite).
+An import that nothing in the component references is pruned by the component encoder, so a self-contained logic core ends up importing nothing but WASI. The template and the deterministic example both import only WASI; the host-imports example (`examples/logic-core-host-example/`) actually calls the host helpers, so its artifact carries `import antikythera:agent-sdk/host-imports@1.0.0;` — the activation proof. All logic cores are consumed directly as standalone artifacts — never composed into `dist/` (unlike the hooks member of the composite).
 
 `examples/logic-core-template/` is the starting point. It ships 14 `custom_*` hooks in `src/lib.rs` — one per runner function except `get-state` and `reset-session`, which are fixed in-memory store plumbing (`init`, `get-state`, `reset-session` work out of the box). Every hook defaults to `None`; the adapter in `component.rs` maps `None` to the template default, and for every runner function without a default it returns the structured error `{"error":"not implemented","function":"<kebab-case-name>"}` so host code can detect a template hole deterministically.
 
 `examples/logic-core-example/` is a filled-in probe proving the swap: a deterministic "echo-agent" whose `prepare-user-turn` builds the standard prepared-turn envelope and whose `commit-llm-response` always commits `{"action":"final","content":"echo-agent-done",...}` — no LLM, no host imports.
+
+`examples/logic-core-host-example/` is the third sibling: a full custom loop that reaches the host for the LLM and for tool execution through the `host-imports` escape hatch (see the next section) instead of computing everything deterministically inside the component. Its session state lives in the host (`save-state` / `load-state`), and its `get-state` / `reset-session` report `Session not found` — the component is stateless between runner calls.
 
 **Server proof**: the harness final probe runs the standard init → prepare-user-turn → commit-llm-response → drain-events flow against the logic-core artifact and asserts the commit envelope carries `action=final` and `content=echo-agent-done` with no tool result:
 
@@ -239,6 +241,43 @@ cargo run -p component-harness --release -- <logic-core>.wasm --expect=final --e
 **Client proof**: because a self-contained logic core imports only WASI, it transpiles with jco the same way the composite does (same WASI stub mapping) and runs in the Node probe and the Vite bundle.
 
 **Difference from logic hooks.** Logic hooks are customization points *inside* the SDK runner: three stateless decision points (`prepare-turn`, `decide-action`, `handle-tool-result`) that passthrough, override, or abort while the SDK keeps owning session state, tool execution, and the FSM. A drop-in logic core *replaces the whole runner*: the host authors the 16-function `runner` implementation itself and owns every pipeline decision. Together with data-driven tool registration via `register-tools` (the host supplies tool definitions as JSON at runtime), the runner offers three customization paths at different layers: customize the tool surface as data, override decisions at fixed points via composed hooks, or replace the runner with a drop-in logic core.
+
+### Host-imports (activated for drop-in logic cores)
+
+`host-imports` is the escape hatch that turns a logic core from host-push into host-pull: the component calls the host instead of being called by it. It is declared on the `logic-core-component` world and is **activated** whenever a logic core's code actually references it — the component encoder prunes the import otherwise, so the SDK composite (which never references it) stays host-push.
+
+**Interface** (`wit/antikythera.wit`, `interface host-imports`; the import name `antikythera:agent-sdk/host-imports@1.0.0` is the contract identity — it is what the host linker registers and what jco maps). Five functions, all JSON-string semantics matching the rest of the surface:
+
+| Function | Purpose | Return |
+|----------|---------|--------|
+| `call-llm` | request an LLM completion from the host | `result<llm-response, string>` |
+| `save-state` | persist session state with the host | `result<_, string>` |
+| `load-state` | load state previously saved by the host | `result<option<string>, string>` |
+| `emit-tool-call` | ask the host to execute a tool | `result<tool-execution-result, string>` |
+| `log-message` | send a log line to the host | — |
+
+**Helper template.** `examples/logic-core-template/` (and its filled-in sibling `examples/logic-core-host-example/`) ships five Rust helpers in `src/lib.rs`, gated by `#[cfg(feature = "component")]`: `host_call_llm`, `host_save_state`, `host_load_state`, `host_emit_tool_call`, and `host_log`. They bind the generated `host-imports` bindings and translate the WIT records to and from the JSON-string convention; the native build compiles them as stubs, so the loop only runs inside the component.
+
+**Host obligation — permission gates are mandatory.** A host that wires `host-imports` into its linker is granting the component an exit to the outside world; it MUST implement the five functions behind permission gates. The reference implementation is `examples/component-harness` (wasmtime server): `Harness::add_to_linker` registers the import instance `antikythera:agent-sdk/host-imports@1.0.0`, and every gate fails explicitly with a `permission:` message — there is no silent degradation:
+
+- `call-llm` — **quota**: at most 3 calls per instance; beyond that `Err("permission: llm quota exceeded")`.
+- `emit-tool-call` — **allowlist**: only the builtin `echo` executes; anything else `Err("permission: tool '<name>' not in allowlist")`.
+- `save-state` / `load-state` — **bounded storage**: files live under a fixed storage root (`<storage-dir>/<context-id>.json`), and the context-id is validated before any filesystem access; traversal ids are rejected `Err("permission: invalid context id")`.
+- `log-message` — passthrough to host stderr.
+
+**Server proof.** The harness runs four probes against the host-imports artifact (`target/wasm32-wasip1/release/logic_core_host_example.wasm`):
+
+```bash
+cargo run -p component-harness --release -- \
+  target/wasm32-wasip1/release/logic_core_host_example.wasm \
+  --probe=full-loop|quota|allowlist|storage
+```
+
+`full-loop` proves `call-llm` is reached (the committed content is the host stub's `stub-llm-response`, not a guest constant) and `emit-tool-call` executes the allowlisted `echo`; `quota`, `allowlist`, and `storage` assert each gate rejects with the exact `permission:` message.
+
+**Client wiring.** A logic core that imports `host-imports` transpiles with jco like any component; the versioned import is mapped to a JS module that implements the same gates — see [`BUILD.md`](BUILD.md) — Host-imports wiring for the `-M` flag, the import object, and the plain-string error rule.
+
+**State ownership.** With `host-imports`, session state may live in the host: `save-state` / `load-state` persist and restore it, and the component stays stateless between runner calls (`examples/logic-core-host-example/` re-reads state at every hook entry and re-persists at exit). The host decides how much of the session the component may touch — the same permission gates apply.
 
 ### Sandbox (native)
 

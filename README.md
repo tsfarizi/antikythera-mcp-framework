@@ -108,6 +108,7 @@ flowchart TD
 | `examples/antikythera-web` | TypeScript/Vite web frontend (not a workspace member) |
 | `examples/logic-core-template` | Drop-in runner template (world logic-core-component) |
 | `examples/logic-core-example` | Deterministic drop-in logic core (echo-agent) + swap proof |
+| `examples/logic-core-host-example` | Full custom loop via host-imports (call-llm/save/load/emit-tool-call/log) + permission-gated host implementations |
 
 ## Build and Validate
 

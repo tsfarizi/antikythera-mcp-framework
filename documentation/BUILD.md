@@ -145,7 +145,7 @@ cargo run -p component-harness --release -- <hooks>.wasm --expect=final
 
 ### Authoring a drop-in logic core
 
-The deepest customization is replacing the runner itself. A host-authored logic core that exports the same `runner` contract (world `logic-core-component` — the same 16 functions, the same JSON-string semantics) loads wherever the SDK composite loads, with zero host code changes. See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Drop-in logic core (swap-able runner) for the contract, the optional `host-imports` / `tool-registry` imports, and the pruning rule.
+The deepest customization is replacing the runner itself. A host-authored logic core that exports the same `runner` contract (world `logic-core-component` — the same 16 functions, the same JSON-string semantics) loads wherever the SDK composite loads, with zero host code changes. See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Drop-in logic core (swap-able runner) for the contract, the optional `host-imports` / `tool-registry` imports, and the pruning rule. A logic core that uses the `host-imports` escape hatch additionally requires the host wiring below — Host-imports wiring.
 
 Start from the template `examples/logic-core-template/`:
 
@@ -169,6 +169,45 @@ cargo run -p component-harness --release -- <logic-core>.wasm --expect=final --e
 `examples/logic-core-example/` is a deterministic "echo-agent": its commit always returns `{"action":"final","content":"echo-agent-done",...}`, so the command above asserts the committed action is `final` with that content and no tool executes. Use `--expect=notimpl` to probe template holes and assert the structured not-implemented error.
 
 - Verify client-side: because a self-contained logic core imports only WASI, it transpiles with jco like the composite does (same WASI stub mapping, see the transpile section below) and runs in the Node probe and the Vite bundle.
+
+### Host-imports wiring
+
+A logic core that uses the `host-imports` escape hatch (world `logic-core-component`; import name `antikythera:agent-sdk/host-imports@1.0.0`) needs a host that implements the five import functions — `call-llm`, `save-state`, `load-state`, `emit-tool-call`, `log-message` — behind permission gates. The reference implementation is `examples/component-harness`.
+
+Build the host-imports probe artifact (no task wraps this crate; use the direct command):
+
+```bash
+cargo component build -p logic-core-host-example --release --target wasm32-wasip1 \
+  --no-default-features --features component
+```
+
+Artifact: `target/wasm32-wasip1/release/logic_core_host_example.wasm` (exports `runner`; imports `antikythera:agent-sdk/host-imports@1.0.0`).
+
+**Server.** `examples/component-harness` registers the import into the wasmtime linker with `wasmtime::component::bindgen!` plus the generated `add_to_linker` (in the harness: `Harness::add_to_linker::<_, wasmtime::component::HasSelf<HostState>>(&mut linker, |state| state)`), alongside `wasmtime_wasi::p2::add_to_linker_sync` for WASI; a manual `Linker::func_wrap` per function is the equivalent when wiring by hand. The `Host` impl applies the permission gates (call-llm quota, emit-tool-call allowlist, bounded storage with traversal rejection, log passthrough). Prove the wiring with the probe modes:
+
+```bash
+cargo run -p component-harness --release -- \
+  target/wasm32-wasip1/release/logic_core_host_example.wasm \
+  --probe=full-loop|quota|allowlist|storage
+```
+
+- `full-loop` — init → prepare → commit asserts `call-llm` was reached (`content="stub-llm-response"`, the host stub's answer, not a guest constant), then `process-tool-result(echo)` asserts `emit-tool-call` executes the allowlisted tool.
+- `quota` — 4 commits against one instance; the 4th must surface `permission: llm quota exceeded`.
+- `allowlist` — `process-tool-result(tool="rm")` must surface `permission: tool 'rm' not in allowlist`.
+- `storage` — a traversal context-id must surface `permission: invalid context id` (both save-state and load-state share the gate).
+
+**Client.** Transpile the host-imports component with jco and map the versioned import to a JS module that implements the same gates (add this `-M` flag alongside the 12 WASI stub mappings from the transpile section below):
+
+```bash
+npx jco transpile <logic-core-host>.wasm --out-dir <out> \
+  -M "antikythera:agent-sdk/host-imports@1.0.0=./host-imports.js" \
+  -M wasi:cli/environment=./wasi-stubs/environment.js \
+  ... # the remaining 11 WASI -M flags
+```
+
+Pass the mapped module as the `host-imports` entry of the jco import object; its five named exports (`callLlm`, `saveState`, `loadState`, `emitToolCall`, `logMessage`) implement the permission gates, mirroring the server harness.
+
+> **Gate errors must be plain strings, not `Error` objects.** A host function that signals failure with `throw new Error(...)` does not map to the WIT `result<_, string>` error channel in the shape the guest helpers and the harness probes assert; throw a plain string instead (`throw "permission: llm quota exceeded"`), which the guest receives as the `Err(string)` variant. `log-message` has no error channel and must not throw.
 
 ### Transpile the composite to browser JS bindings (jco)
 

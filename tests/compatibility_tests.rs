@@ -149,6 +149,10 @@ const WIT_LOGIC_CORE_MEMBERS: [&str; 3] = [
     "export runner;",
 ];
 const LOGIC_CORE_EXAMPLE_WASM_REL: &str = "target/wasm32-wasip1/release/logic_core_example.wasm";
+const LOGIC_CORE_HOST_EXAMPLE_WASM_REL: &str =
+    "target/wasm32-wasip1/release/logic_core_host_example.wasm";
+const HOST_IMPORTS_IMPORT: &str = "import antikythera:agent-sdk/host-imports@1.0.0";
+const VOCABULARY_IMPORT: &str = "import antikythera:agent-sdk/vocabulary@1.0.0";
 const LOGIC_CORE_RUNNER_EXPORT: &str = "export antikythera:agent-sdk/runner@1.0.0";
 const LOGIC_CORE_RUNNER_FUNCTIONS: [&str; 16] = [
     "init",
@@ -718,6 +722,108 @@ fn logic_core_world_documented() {
             "{GOLDEN_WIT_SIGS} logic-core world line must contain `{member}`"
         );
     }
+}
+
+// ---------------------------------------------------------------------------
+// Logic-core host example artifact — host-imports activation proof
+// ---------------------------------------------------------------------------
+//
+// Contract clause (per `examples/logic-core-host-example`, world
+// `logic-core-component`): the host-llm-agent logic core runs its FULL custom
+// loop through the `host-imports` escape hatch (`call-llm`, `save-state` /
+// `load-state`, `emit-tool-call`, `log-message`). Because the custom hooks
+// actually REFERENCE the `host_*` helpers, the `host-imports` import must
+// SURVIVE component-encoder pruning — this is the activation proof that the
+// escape hatch is wired, not merely declared. The vocabulary interface is a
+// transitive dependency of `host-imports` (its records are consumed via
+// `use vocabulary.{...}`), so it must be imported too. The exported `runner`
+// must still be the identical 16-function swap-able surface. The optional
+// `tool-registry` import is NOT referenced by this example and must be pruned.
+//
+// SKIP (not fail) when the artifact or the tool is absent: the example wasm
+// is a build artifact, not a source unit; CI without `target/` must stay
+// green.
+
+#[test]
+fn logic_core_host_example_imports_host_imports() {
+    let root = repo_root();
+    let wasm_path = root.join(LOGIC_CORE_HOST_EXAMPLE_WASM_REL);
+    if !wasm_path.is_file() {
+        eprintln!("Skipping: {LOGIC_CORE_HOST_EXAMPLE_WASM_REL} not found (build artifact)");
+        return;
+    }
+
+    let Some(wasm_tools) = find_wasm_tools() else {
+        eprintln!(
+            "Skipping: wasm-tools not found in WASM_TOOLS, PATH, \
+             $CARGO_HOME/bin, or $HOME/.cargo/bin"
+        );
+        return;
+    };
+
+    let output = std::process::Command::new(&wasm_tools)
+        .args(["component", "wit"])
+        .arg(&wasm_path)
+        .output()
+        .unwrap_or_else(|e| panic!("failed to execute {wasm_tools:?}: {e}"));
+
+    assert!(
+        output.status.success(),
+        "wasm-tools component wit failed on the logic-core host example (status: {}):\nstdout: {}\nstderr: {}",
+        output.status,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr),
+    );
+
+    let wit_text = String::from_utf8_lossy(&output.stdout);
+
+    // (a) activation proof — the host-imports import SURVIVED encoder pruning
+    // because the custom loop actually references it.
+    assert!(
+        wit_text.contains(HOST_IMPORTS_IMPORT),
+        "logic-core host example world must import `{HOST_IMPORTS_IMPORT}`; \
+         the custom loop references host-imports, so the import must survive \
+         component pruning (activation proof)"
+    );
+
+    // (b) the vocabulary interface is imported as the transitive dependency
+    // of host-imports (its records back the host-imports signatures).
+    assert!(
+        wit_text.contains(VOCABULARY_IMPORT),
+        "logic-core host example world must import `{VOCABULARY_IMPORT}` \
+         (host-imports consumes the vocabulary records via `use`)"
+    );
+
+    // (c) the runner interface is exported with the pinned package id.
+    assert!(
+        wit_text.contains(LOGIC_CORE_RUNNER_EXPORT),
+        "logic-core host example world must export `{LOGIC_CORE_RUNNER_EXPORT}`"
+    );
+
+    // (d) every one of the 16 SDK runner functions is present (identical
+    // swap-able surface), each as a kebab-case declaration.
+    let func_decls: Vec<&str> = wit_text
+        .lines()
+        .map(str::trim)
+        .filter(|line| line.contains(": func("))
+        .collect();
+    for name in LOGIC_CORE_RUNNER_FUNCTIONS {
+        let needle = format!("{name}: func(");
+        assert!(
+            wit_text.contains(&needle),
+            "logic-core host example runner must declare `{needle}`; \
+             rendered runner interface: {}",
+            func_decls.join("\n")
+        );
+    }
+
+    // (e) the optional `tool-registry` import is NOT referenced by this
+    // example and must be pruned by the component encoder.
+    assert!(
+        !wit_text.contains(STANDALONE_IMPORT_TOOL_REGISTRY),
+        "logic-core host example must NOT import `{STANDALONE_IMPORT_TOOL_REGISTRY}`; \
+         this core never touches the toolrunner, so the optional import must be pruned"
+    );
 }
 
 // ---------------------------------------------------------------------------

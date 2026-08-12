@@ -54,9 +54,10 @@
 //! ```
 //!
 //! The artifact exports `antikythera:agent-sdk/runner@1.0.0` (16 functions).
-//! The world declares optional `host-imports` and `tool-registry` imports;
-//! a template that never references them ends up importing nothing (the
-//! component encoder prunes unreferenced imports).
+//! The world declares optional `host-imports` and `tool-registry` imports.
+//! The `host_*` helpers below bind the `host-imports` interface; the import
+//! appears in the artifact only when a `custom_*` hook actually calls one of
+//! them (the component encoder prunes unreferenced imports).
 
 /// Custom `init` behavior.
 ///
@@ -185,6 +186,158 @@ pub fn custom_get_telemetry(_session_id: &str) -> Option<String> {
 /// `None` = `Err` not-implemented.
 pub fn custom_get_slo(_session_id: &str) -> Option<String> {
     None
+}
+
+// ===========================================================================
+// Host-imports plumbing (component build only)
+// ===========================================================================
+//
+// The `host_*` helpers bind the `host-imports` WIT interface
+// (`crate::component::antikythera::agent_sdk::host_imports`): call-llm,
+// save-state, load-state, emit-tool-call, log-message. A host-imports call
+// is the ONLY escape hatch a logic core has to the outside world — the host
+// grants permission by wiring the import; there is no other way out of the
+// component. The helpers are compiled only in the `component` build, so a
+// native build never references the wit-bindgen import shims (which abort
+// via `unreachable!()` on non-wasm targets).
+//
+// JSON keys follow the generated Rust field names (snake_case), matching the
+// JSON-string convention used across the runner surface.
+
+/// Call the host LLM service (`host-imports.call-llm`).
+///
+/// `request_json` mirrors the WIT `llm-request` record with snake_case keys:
+/// `provider`, `model`, `session_id`, `messages_json` (the messages payload;
+/// missing defaults to `[]`), `force_json`, `temperature`, `max_tokens`,
+/// `schema_name`, `metadata_json`. Returns the `llm-response` record
+/// serialized to JSON (snake_case keys).
+#[cfg(feature = "component")]
+pub fn host_call_llm(request_json: &str) -> Result<String, String> {
+    use crate::component::antikythera::agent_sdk::host_imports::call_llm;
+    use crate::component::antikythera::agent_sdk::vocabulary::LlmRequest;
+
+    let request: serde_json::Value = serde_json::from_str(request_json)
+        .map_err(|e| format!("host_call_llm: invalid request-json: {e}"))?;
+
+    let llm_request = LlmRequest {
+        provider: request
+            .get("provider")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string),
+        model: request
+            .get("model")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string),
+        session_id: request
+            .get("session_id")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string),
+        messages_json: request
+            .get("messages_json")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or("[]")
+            .to_string(),
+        force_json: request
+            .get("force_json")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false),
+        temperature: request
+            .get("temperature")
+            .and_then(serde_json::Value::as_f64)
+            .map(|f| f as f32),
+        max_tokens: request
+            .get("max_tokens")
+            .and_then(serde_json::Value::as_u64)
+            .map(|u| u as u32),
+        schema_name: request
+            .get("schema_name")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string),
+        metadata_json: request
+            .get("metadata_json")
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string),
+    };
+
+    let response = call_llm(&llm_request).map_err(|e| format!("host_call_llm: {e}"))?;
+
+    serde_json::to_string(&serde_json::json!({
+        "content": response.content,
+        "model": response.model,
+        "session_id": response.session_id,
+        "message_json": response.message_json,
+        "tokens_used": response.tokens_used,
+        "finish_reason": response.finish_reason,
+        "raw_response_json": response.raw_response_json,
+    }))
+    .map_err(|e| format!("host_call_llm: cannot encode llm-response: {e}"))
+}
+
+/// Persist state with the host (`host-imports.save-state`).
+#[cfg(feature = "component")]
+pub fn host_save_state(context_id: &str, state_json: &str) -> Result<(), String> {
+    use crate::component::antikythera::agent_sdk::host_imports::save_state;
+    save_state(context_id, state_json).map_err(|e| format!("host_save_state: {e}"))
+}
+
+/// Load state previously saved by the host (`host-imports.load-state`).
+///
+/// `Ok(None)` means no state exists under `context_id`.
+#[cfg(feature = "component")]
+pub fn host_load_state(context_id: &str) -> Result<Option<String>, String> {
+    use crate::component::antikythera::agent_sdk::host_imports::load_state;
+    load_state(context_id).map_err(|e| format!("host_load_state: {e}"))
+}
+
+/// Ask the host to execute a tool (`host-imports.emit-tool-call`).
+///
+/// Returns the `tool-execution-result` record serialized to JSON
+/// (`tool_name`, `success`, `output_json`, `error_message`, `step_id`).
+#[cfg(feature = "component")]
+pub fn host_emit_tool_call(
+    tool_name: &str,
+    arguments_json: &str,
+    session_id: &str,
+    step_id: u32,
+) -> Result<String, String> {
+    use crate::component::antikythera::agent_sdk::host_imports::emit_tool_call;
+    use crate::component::antikythera::agent_sdk::vocabulary::ToolCallEvent;
+
+    // `session-id` is optional in WIT; an empty host string maps to `None`.
+    let event = ToolCallEvent {
+        tool_name: tool_name.to_string(),
+        arguments_json: arguments_json.to_string(),
+        session_id: (!session_id.is_empty()).then(|| session_id.to_string()),
+        step_id,
+    };
+
+    let result = emit_tool_call(&event).map_err(|e| format!("host_emit_tool_call: {e}"))?;
+
+    serde_json::to_string(&serde_json::json!({
+        "tool_name": result.tool_name,
+        "success": result.success,
+        "output_json": result.output_json,
+        "error_message": result.error_message,
+        "step_id": result.step_id,
+    }))
+    .map_err(|e| format!("host_emit_tool_call: cannot encode tool-execution-result: {e}"))
+}
+
+/// Send a log line to the host (`host-imports.log-message`).
+///
+/// `level` is one of `"debug" | "info" | "warn" | "error"`; `timestamp` is
+/// left `None` (the host stamps the event).
+#[cfg(feature = "component")]
+pub fn host_log(level: &str, message: &str) {
+    use crate::component::antikythera::agent_sdk::host_imports::log_message;
+    use crate::component::antikythera::agent_sdk::vocabulary::LogEvent;
+
+    let event = LogEvent {
+        level: level.to_string(),
+        message: message.to_string(),
+        timestamp: None,
+    };
+    log_message(&event);
 }
 
 /// WIT export layer for the component world (`logic-core-component`).

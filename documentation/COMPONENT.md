@@ -59,7 +59,13 @@ The pipeline can be customized with host-authored `logic-hooks` components (comp
 
 ## Runner replacement via a drop-in logic core
 
-Beyond composing hooks, the host can replace the runner itself. A host-authored logic core that exports the same `runner` interface (world `logic-core-component`) loads wherever the SDK composite loads, with zero host code changes — the exported runner is identical to the SDK runner (the same 16 functions, the same JSON-string semantics), so the host calls the same API in both cases. `examples/logic-core-template/` is the starting point; `examples/logic-core-example/` proves the swap. See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Drop-in logic core (swap-able runner) and [`BUILD.md`](BUILD.md) — Authoring a drop-in logic core.
+Beyond composing hooks, the host can replace the runner itself. A host-authored logic core that exports the same `runner` interface (world `logic-core-component`) loads wherever the SDK composite loads, with zero host code changes — the exported runner is identical to the SDK runner (the same 16 functions, the same JSON-string semantics), so the host calls the same API in both cases. `examples/logic-core-template/` is the starting point; `examples/logic-core-example/` proves the swap, and `examples/logic-core-host-example/` runs a full custom loop through the `host-imports` escape hatch (the component calls the host for LLM, state, and tool execution). See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Drop-in logic core (swap-able runner) and [`BUILD.md`](BUILD.md) — Authoring a drop-in logic core.
+
+## Hybrid host model
+
+The SDK composite stays **host-push**: the host drives `runner` calls and feeds tool results back through `process-tool-result-for-session`; it never imports `host-imports`. A drop-in logic core may switch to **host-pull** by importing `host-imports` (`call-llm`, `save-state`, `load-state`, `emit-tool-call`, `log-message`) — the component then calls the host for LLM, state, tool execution, and logging. The two models coexist: host-push for the SDK composite, host-pull for logic cores that choose the escape hatch.
+
+The escape hatch is permission-gated by the host. A host that wires `host-imports` MUST implement it behind permission gates (call-llm quota, emit-tool-call allowlist, bounded state storage, log passthrough) and reject anything outside the grant — without permission the component is rejected (fail-closed). `examples/logic-core-host-example/` proves the host-pull loop; `examples/component-harness` proves the gated host (`--probe=full-loop|quota|allowlist|storage`). See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Host-imports (activated for drop-in logic cores) and [`BUILD.md`](BUILD.md) — Host-imports wiring.
 
 ## Why this design is useful
 
