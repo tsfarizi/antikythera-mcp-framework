@@ -27,6 +27,9 @@ members = [
     "antikythera-sdk",
     "antikythera-facade",
 
+    # Layer 5: Server host runtime (U8 — wasmtime + wire bridge)
+    "antikythera-server-runtime",
+
     # Layer 5: Deployment
     "plugin/antikythera-wasm-bindgen",
     "plugin/antikythera-toolrunner",
@@ -51,7 +54,7 @@ members = [
 
 
 [workspace.package]
-version = "1.8.4"
+version = "1.8.5"
 edition = "2024"
 authors = ["tsfarizi"]
 license = "MIT"

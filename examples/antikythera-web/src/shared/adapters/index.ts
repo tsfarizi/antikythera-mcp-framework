@@ -1,3 +1,3 @@
-export { streamOllama, callOllama, getOllamaModel, setOllamaModel } from './llm-adapter'
+export { getModel, setModel } from './model-store'
 export { logMessage } from './log-adapter'
-export { executeBrowserTool, toolsDefinitionJson, BROWSER_TOOLS } from './tool-adapter'
+export { CLIENT_TOOL_ENTRIES } from './tool-adapter'

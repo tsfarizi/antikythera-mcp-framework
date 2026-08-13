@@ -12,17 +12,17 @@ Antikythera is a **Rust-based MCP client framework** designed to:
 - expose agent logic as a portable **server-side WASM component** (wasm32-wasip1)
 - support multiple LLM providers (Ollama, OpenAI, Gemini) via feature-gated facade
 
-No C FFI and no embedded HTTP server are provided by the framework. Browser WASM is supported through the **WASI component transpiled with jco** (`npm/antikythera-sdk/component/`, namespace `runner`); the wasm-bindgen browser path is legacy only. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom).
+No C FFI is provided by the framework. The SDK core crates do not embed an HTTP server — the Runtime Bridge ships one as a separate deployment binary (`antikythera-server-runtime`, HTTP + SSE). Browser WASM is supported through the **WASI component transpiled with jco** (`npm/antikythera-sdk/component/`, namespace `runner`); the wasm-bindgen browser path is legacy only. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom) — or reuses the Runtime Bridge wire protocol (`WIRE_PROTOCOL.md`).
 
 ## Deployment targets
 
 | Target | Build command | Output |
 |:-------|:-------------|:-------|
 | **Framework crates** | `cargo build --workspace` | Library crates |
-| **Server-side WASM component** (composite) | `task build` — SDK + toolrunner + default-hooks components + `wasm-tools compose` → `dist/antikythera-sdk.wasm` | `.wasm` component (exports `runner`, imports only WASI) |
+| **Server-side WASM component** (composite) | `task build` — SDK + toolrunner + default-hooks components + `wasm-tools compose` → `dist/antikythera-sdk.wasm` | `.wasm` component (exports `runner`; imports exactly one non-WASI interface — `runtime-hooks` — plus WASI) |
 | **Browser JS bindings** | `npx jco transpile dist/antikythera-sdk.wasm --out-dir npm/antikythera-sdk/component` | ESM module (namespace `runner`) |
 
-No C FFI and no embedded HTTP server are provided by the framework. Browser WASM is supported through the **WASI component transpiled with jco** (`npm/antikythera-sdk/component/`, namespace `runner`); the wasm-bindgen browser path is legacy only. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom).
+No C FFI is provided by the framework. The SDK core crates do not embed an HTTP server — the Runtime Bridge ships one as a separate deployment binary (`antikythera-server-runtime`, HTTP + SSE). Browser WASM is supported through the **WASI component transpiled with jco** (`npm/antikythera-sdk/component/`, namespace `runner`); the wasm-bindgen browser path is legacy only. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom) — or reuses the Runtime Bridge wire protocol (`WIRE_PROTOCOL.md`).
 
 ## Public SDK surface
 

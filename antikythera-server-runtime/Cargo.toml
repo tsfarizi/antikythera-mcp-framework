@@ -1,0 +1,39 @@
+[package]
+name = "antikythera-server-runtime"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Server host runtime for the Antikythera WASM composite (wasmtime + HTTP/SSE wire bridge)"
+
+[[bin]]
+name = "antikythera-server-runtime"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0"
+wasmtime = "=36.0.13"
+wasmtime-wasi = "=36.0.13"
+axum = { workspace = true, features = ["json", "tokio"] }
+tower-http = { workspace = true, features = ["cors"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "net", "macros", "sync", "time", "io-util", "process", "io-std", "signal"] }
+tokio-stream = { workspace = true, features = ["sync"] }
+async-trait = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+uuid = { workspace = true }
+
+antikythera-config = { path = "../antikythera-config" }
+antikythera-core = { path = "../antikythera-core" }
+antikythera-tooling = { path = "../antikythera-tooling" }
+antikythera-provider-ollama = { path = "../antikythera-provider-ollama" }
+antikythera-provider-openai = { path = "../antikythera-provider-openai" }
+
+[dev-dependencies]
+tempfile = "3.10"
+serde_urlencoded = "0.7"

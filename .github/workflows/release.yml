@@ -48,6 +48,16 @@ jobs:
         with:
           tool: wasm-tools
 
+      - name: Verify release version matches Cargo workspace version
+        run: |
+          VERSION="${{ steps.version.outputs.value }}"
+          CARGO_VERSION="$(cargo run -p build-scripts --bin sync-release-version -- --print)"
+          if [ "$VERSION" != "$CARGO_VERSION" ]; then
+            echo "::error::Release version '${VERSION}' does not match Cargo workspace version '${CARGO_VERSION}'"
+            exit 1
+          fi
+          echo "release version ${VERSION} matches Cargo workspace version ${CARGO_VERSION}"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -200,11 +210,13 @@ jobs:
           name: wasm-component
           path: npm/antikythera-sdk/
 
-      - name: Set version from tag
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Sync version from Cargo workspace
         run: |
-          VERSION="${{ needs.build-wasm-component.outputs.version }}"
-          sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" npm/antikythera-sdk/package.json
-          echo "npm version set to $VERSION"
+          cargo run -p build-scripts --bin sync-release-version
+          echo "npm version set to $(cargo run -p build-scripts --bin sync-release-version -- --print)"
 
       - name: Publish to npm
         working-directory: npm/antikythera-sdk
@@ -233,12 +245,13 @@ jobs:
       - name: Rename WASM binary
         run: mv python/antikythera_agent/antikythera_sdk.wasm python/antikythera_agent/antikythera.wasm
 
-      - name: Set version from tag
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Sync version from Cargo workspace
         run: |
-          VERSION="${{ needs.build-wasm-component.outputs.version }}"
-          sed -i "s/^version = \".*\"/version = \"$VERSION\"/" python/pyproject.toml
-          sed -i "s/__version__ = \".*\"/__version__ = \"$VERSION\"/" python/antikythera_agent/__init__.py
-          echo "Python version set to $VERSION"
+          cargo run -p build-scripts --bin sync-release-version
+          echo "Python version set to $(cargo run -p build-scripts --bin sync-release-version -- --print)"
 
       - name: Install build tools
         run: pip install build twine

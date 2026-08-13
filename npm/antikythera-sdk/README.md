@@ -43,6 +43,8 @@ const state = runner.getState(sessionId);
 
 The `runner` namespace exposes 16 camelCase functions (all payloads are JSON strings): `init`, `prepareUserTurn`, `commitLlmResponse`, `commitLlmStream`, `processLlmResponseForSession`, `processToolResultForSession`, `appendLlmChunk`, `drainEvents`, `getState`, `resetSession`, `sweepIdleSessions`, `registerTools`, `getToolsPrompt`, `setContextPolicy`, `getTelemetrySnapshot`, `getSloSnapshot`.
 
+> The composite also imports one host-supplied interface, `antikythera:agent-sdk/runtime-hooks@1.0.0` (runtime pipeline-hook decisions), which `jco` maps to `component/runtime-hooks.js` (default passthrough stub; inject a provider via `globalThis.__ANTIKYTHERA_RUNTIME_HOOKS_PROVIDER__`). For automatic client–server connectivity (LLM proxy, tool routing, hook decisions over HTTP+SSE), use the high-level host runtime: `createAgentRuntime` from `antikythera-agent/runtime` — see `documentation/WIRE_PROTOCOL.md`.
+
 > Note: the transpiled module uses top-level await — set your bundler build target to ES2022 (e.g. Vite `build.target: 'es2022'`).
 
 ### WASM Initialization (legacy wasm-bindgen, deprecated)

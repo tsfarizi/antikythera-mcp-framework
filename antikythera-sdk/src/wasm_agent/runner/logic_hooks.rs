@@ -81,7 +81,14 @@ pub(super) fn apply_prepare_turn_override(
     default_encoded: &str,
 ) -> Result<String, AgentRunnerError> {
     let Some(override_value) = prepare_turn_override(state, request_json)? else {
-        return Ok(default_encoded.to_string());
+        // Composed provider passed through. Precedence A1a: consult the
+        // host-supplied `runtime-hooks` at the same pipeline point; it is
+        // skipped entirely when `runtime_hooks_enabled` is false.
+        return super::runtime_hooks::apply_prepare_turn_override(
+            state,
+            request_json,
+            default_encoded,
+        );
     };
 
     let default_value: serde_json::Value = serde_json::from_str(default_encoded).map_err(|e| {
@@ -116,7 +123,14 @@ pub(super) fn apply_decide_action_override(
     default_result: &CommitResult,
 ) -> Result<CommitResult, AgentRunnerError> {
     let Some(override_value) = decide_action_override(state, llm_response_json)? else {
-        return Ok(default_result.clone());
+        // Composed provider passed through. Precedence A1a: consult the
+        // host-supplied `runtime-hooks` at the same pipeline point; it is
+        // skipped entirely when `runtime_hooks_enabled` is false.
+        return super::runtime_hooks::apply_decide_action_override(
+            state,
+            llm_response_json,
+            default_result,
+        );
     };
 
     let default_value = serde_json::to_value(default_result).map_err(|e| {
@@ -133,7 +147,10 @@ pub(super) fn apply_decide_action_override(
     wasm_log(
         &state.session_id,
         LogLevel::Debug,
-        &format!("logic-hook decide-action: override applied (action={})", result.action),
+        &format!(
+            "logic-hook decide-action: override applied (action={})",
+            result.action
+        ),
     );
     Ok(result)
 }
@@ -149,7 +166,14 @@ pub(super) fn apply_handle_tool_result_override(
     default_input: &ToolResultInput,
 ) -> Result<ToolResultInput, AgentRunnerError> {
     let Some(override_value) = handle_tool_result_override(state, tool_result_json)? else {
-        return Ok(default_input.clone());
+        // Composed provider passed through. Precedence A1a: consult the
+        // host-supplied `runtime-hooks` at the same pipeline point; it is
+        // skipped entirely when `runtime_hooks_enabled` is false.
+        return super::runtime_hooks::apply_handle_tool_result_override(
+            state,
+            tool_result_json,
+            default_input,
+        );
     };
 
     let input: ToolResultInput = serde_json::from_value(override_value).map_err(|e| {

@@ -112,7 +112,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-config"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-domain",
  "dotenvy",
@@ -125,7 +125,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-core"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-config",
  "antikythera-domain",
@@ -157,14 +157,14 @@ dependencies = [
 
 [[package]]
 name = "antikythera-default-hooks"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "wit-bindgen 0.40.0",
 ]
 
 [[package]]
 name = "antikythera-domain"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-macros",
  "chrono",
@@ -176,7 +176,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-facade"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -193,7 +193,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-log"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "chrono",
  "crossbeam-channel",
@@ -206,7 +206,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-macros"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -217,7 +217,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-observability"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-domain",
  "antikythera-ports",
@@ -231,7 +231,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-ports"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-domain",
  "async-trait",
@@ -243,7 +243,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-provider-gemini"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -258,7 +258,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-provider-ollama"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -273,7 +273,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-provider-openai"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -288,7 +288,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-resilience"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-domain",
  "chrono",
@@ -299,7 +299,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-sdk"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-core",
  "antikythera-log",
@@ -318,7 +318,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-security"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-domain",
  "antikythera-ports",
@@ -331,8 +331,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "antikythera-server-runtime"
+version = "1.8.5"
+dependencies = [
+ "antikythera-config",
+ "antikythera-core",
+ "antikythera-provider-ollama",
+ "antikythera-provider-openai",
+ "antikythera-tooling",
+ "anyhow",
+ "async-trait",
+ "axum",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "serde_urlencoded",
+ "tempfile",
+ "thiserror 2.0.19",
+ "tokio",
+ "tokio-stream",
+ "tower-http 0.7.0",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "wasmtime",
+ "wasmtime-wasi",
+]
+
+[[package]]
 name = "antikythera-session"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-domain",
  "antikythera-log",
@@ -345,7 +373,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-storage"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-domain",
  "antikythera-macros",
@@ -369,7 +397,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-tests"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-core",
  "antikythera-domain",
@@ -395,7 +423,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-tooling"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-config",
  "antikythera-domain",
@@ -408,7 +436,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-toolrunner"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-log",
  "antikythera-macros",
@@ -421,7 +449,7 @@ dependencies = [
 
 [[package]]
 name = "antikythera-wasm-bindgen"
-version = "1.8.4"
+version = "1.8.5"
 dependencies = [
  "antikythera-sdk",
  "serde",
@@ -676,7 +704,7 @@ dependencies = [
 
 [[package]]
 name = "build-scripts"
-version = "1.8.4"
+version = "1.8.5"
 
 [[package]]
 name = "bumpalo"
@@ -2823,6 +2851,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "matchers"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d1525a2a28c7f4fa0fc98bb91ae755d1e2d1505079e05539e35bc876b5d65ae9"
+dependencies = [
+ "regex-automata",
+]
+
+[[package]]
 name = "matchit"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4374,6 +4411,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "sharded-slab"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
+dependencies = [
+ "lazy_static",
+]
+
+[[package]]
 name = "shellexpand"
 version = "3.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5021,6 +5067,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "thread_local"
+version = "1.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ad99c4c6d32803332c548b1af0540b357b3f5fc0be8f6c6bfe8b2e6ae784070"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "time"
 version = "0.3.54"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5132,6 +5187,7 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]
@@ -5327,6 +5383,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a"
 dependencies = [
  "once_cell",
+ "valuable",
+]
+
+[[package]]
+name = "tracing-log"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee855f1f400bd0e5c02d150ae5de3840039a3f54b025156404e34c23c03f47c3"
+dependencies = [
+ "log",
+ "once_cell",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-subscriber"
+version = "0.3.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7f578e5945fb242538965c2d0b04418d38ec25c79d160cd279bf0731c8d319"
+dependencies = [
+ "matchers",
+ "nu-ansi-term",
+ "once_cell",
+ "regex-automata",
+ "sharded-slab",
+ "smallvec",
+ "thread_local",
+ "tracing",
+ "tracing-core",
+ "tracing-log",
 ]
 
 [[package]]
@@ -5465,6 +5551,12 @@ dependencies = [
  "serde_core",
  "wasm-bindgen",
 ]
+
+[[package]]
+name = "valuable"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
 name = "vcpkg"

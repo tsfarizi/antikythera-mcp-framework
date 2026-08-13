@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { getOllamaModel, setOllamaModel } from '@/shared/adapters/llm-adapter'
+import { getModel, setModel } from '@/shared/adapters/model-store'
 
 const isOpen = ref(false)
-const model = ref(getOllamaModel())
+const model = ref(getModel())
 
 const popularModels = [
   'gpt-oss:120b-cloud',
@@ -18,7 +18,7 @@ const popularModels = [
 ]
 
 function save() {
-  setOllamaModel(model.value)
+  setModel(model.value)
   isOpen.value = false
 }
 </script>
@@ -29,7 +29,7 @@ function save() {
   <div v-if="isOpen" class="settings-overlay" @click.self="isOpen = false">
     <div class="settings-panel">
       <h3>Settings</h3>
-      <p class="subtitle">Ollama must be running at localhost:11434</p>
+      <p class="subtitle">LLM requests are proxied through the Antikythera server</p>
 
       <label>
         Model

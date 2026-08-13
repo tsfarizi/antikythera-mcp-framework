@@ -546,10 +546,7 @@ impl AgentRunnerRuntime {
                                 wasm_log(
                                     &prepared.session_id,
                                     LogLevel::Debug,
-                                    &format!(
-                                        "Tool '{}' executed by tool-registry component",
-                                        tool
-                                    ),
+                                    &format!("Tool '{}' executed by tool-registry component", tool),
                                 );
                                 self.emit_pending_event(
                                     &prepared.session_id,
@@ -663,6 +660,16 @@ impl AgentRunnerRuntime {
         #[cfg(all(feature = "component", target_family = "wasm"))]
         if let Some(override_value) =
             super::logic_hooks::decide_action_override(&runtime.state, llm_response_json)?
+        {
+            return serde_json::to_string(&override_value)
+                .map_err(|e| AgentRunnerError::Internal(format!("Failed to encode action: {e}")));
+        }
+        // Composed provider passed through. Precedence A1a: consult the
+        // host-supplied `runtime-hooks` at the same pipeline point; it is
+        // skipped entirely when `runtime_hooks_enabled` is false.
+        #[cfg(all(feature = "component", target_family = "wasm"))]
+        if let Some(override_value) =
+            super::runtime_hooks::decide_action_raw_override(&runtime.state, llm_response_json)?
         {
             return serde_json::to_string(&override_value)
                 .map_err(|e| AgentRunnerError::Internal(format!("Failed to encode action: {e}")));

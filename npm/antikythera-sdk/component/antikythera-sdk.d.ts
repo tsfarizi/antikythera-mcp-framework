@@ -1,4 +1,5 @@
 // world root:component/root
+export type * as AntikytheraAgentSdkRuntimeHooks100 from './interfaces/antikythera-agent-sdk-runtime-hooks.js'; // import antikythera:agent-sdk/runtime-hooks@1.0.0
 export type * as WasiCliEnvironment023 from './interfaces/wasi-cli-environment.js'; // import wasi:cli/environment@0.2.3
 export type * as WasiCliExit023 from './interfaces/wasi-cli-exit.js'; // import wasi:cli/exit@0.2.3
 export type * as WasiCliStderr023 from './interfaces/wasi-cli-stderr.js'; // import wasi:cli/stderr@0.2.3

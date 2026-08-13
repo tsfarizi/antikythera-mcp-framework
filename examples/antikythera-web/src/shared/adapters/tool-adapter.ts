@@ -1,31 +1,13 @@
 /**
- * Browser-side MCP tool definitions and execution.
+ * Client-owned tool declarations.
  *
- * Each tool has:
- * - A definition (JSON Schema) registered with the WASM agent
- * - A handler function that executes in the browser
- *
- * Tools are pure functions — no network, no I/O, just computation.
+ * Each entry is `{ definition, handler }` and is registered with the host
+ * runtime through the `createAgentRuntime` `tools` option. There is no
+ * dispatch switch: the runtime routes a `call_tool` action to the matching
+ * handler by name. Handlers are pure local computation — no network, no I/O.
  */
 
-// ============================================================================
-// Tool Definitions (MCP-compatible JSON Schema)
-// ============================================================================
-
-export interface ToolDefinition {
-  name: string
-  title?: string
-  description: string
-  parameters: ToolParameterSchema[]
-  input_schema?: Record<string, unknown>
-}
-
-interface ToolParameterSchema {
-  name: string
-  param_type: string
-  description: string
-  required: boolean
-}
+import type { ToolDefinition, ToolEntry } from 'antikythera-agent/runtime'
 
 const GET_CURRENT_TIME: ToolDefinition = {
   name: 'get_current_time',
@@ -38,67 +20,6 @@ const GET_CURRENT_TIME: ToolDefinition = {
     required: [],
   },
 }
-
-/** All registered browser-side tools. */
-export const BROWSER_TOOLS: ToolDefinition[] = [
-  GET_CURRENT_TIME,
-]
-
-// ============================================================================
-// Tool Execution
-// ============================================================================
-
-export interface ToolResult {
-  tool_name: string
-  success: boolean
-  output_json: string
-  error_message: string
-  step_id: number
-}
-
-/**
- * Execute a browser-side tool by name.
- *
- * Returns a ToolResult compatible with the WASM agent's
- * `process_tool_result_for_session` input format.
- */
-export function executeBrowserTool(
-  toolName: string,
-  _args: Record<string, unknown>,
-  stepId: number,
-): ToolResult {
-  try {
-    const output = dispatchTool(toolName)
-    return {
-      tool_name: toolName,
-      success: true,
-      output_json: JSON.stringify(output),
-      error_message: '',
-      step_id: stepId,
-    }
-  } catch (e) {
-    return {
-      tool_name: toolName,
-      success: false,
-      output_json: '{}',
-      error_message: e instanceof Error ? e.message : String(e),
-      step_id: stepId,
-    }
-  }
-}
-
-function dispatchTool(name: string): Record<string, unknown> {
-  switch (name) {
-    case 'get_current_time':
-      return handleGetCurrentTime()
-    default:
-      throw new Error(`Unknown browser tool: ${name}`)
-  }
-}
-
-// ============================================================================
-// Tool Handlers
-// ============================================================================
 
 function handleGetCurrentTime(): Record<string, unknown> {
   const now = new Date()
@@ -121,13 +42,7 @@ function handleGetCurrentTime(): Record<string, unknown> {
   }
 }
 
-// ============================================================================
-// Tool Registration (JSON for WASM)
-// ============================================================================
-
-/**
- * Serialize browser tools to JSON for `register_tools()`.
- */
-export function toolsDefinitionJson(): string {
-  return JSON.stringify(BROWSER_TOOLS)
-}
+/** All client-owned tools: definition + handler, one entry per tool. */
+export const CLIENT_TOOL_ENTRIES: ToolEntry[] = [
+  { definition: GET_CURRENT_TIME, handler: handleGetCurrentTime },
+]

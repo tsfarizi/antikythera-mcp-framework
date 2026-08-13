@@ -14,8 +14,12 @@ mod context_manager;
 mod llm_stream;
 #[cfg(all(feature = "component", target_family = "wasm"))]
 mod logic_hooks;
+// No cfg gate on this module: it holds the pure classification/merge/
+// precedence functions compiled and unit-tested on native; only its
+// shim-calling wrappers are gated on the component+wasm cfg.
 mod runner_telemetry;
 mod runner_types;
+mod runtime_hooks;
 mod session_lifecycle;
 #[cfg(test)]
 mod tests;
@@ -182,6 +186,9 @@ impl AgentRunnerRuntime {
         }
         if let Some(value) = input.auto_execute_tools {
             self.default_config.auto_execute_tools = value;
+        }
+        if let Some(value) = input.runtime_hooks_enabled {
+            self.default_config.runtime_hooks_enabled = value;
         }
         if let Some(value) = input.session_timeout_secs {
             self.default_config.session_timeout_secs = value;

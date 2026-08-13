@@ -62,6 +62,36 @@
 //!              shared gate guards save-state — exercised additionally via
 //!              init with the traversal id, visible on host stderr)
 //!
+//! U10 extension (runtime-hooks): the world now ALSO imports
+//! `antikythera:agent-sdk/runtime-hooks@1.0.0`, and `Harness::add_to_linker`
+//! wires the three runtime decision functions (prepare-turn, decide-action,
+//! handle-tool-result) into the linker through the generated `Host` trait.
+//! The host implements them behind a default-deny permission gate selected
+//! by `--runtime-hooks=passthrough|override|deny` (default passthrough):
+//!
+//!   passthrough  all three return Ok `{"passthrough": true}` — the SDK
+//!                default decision is preserved at every pipeline point
+//!   override     decide-action returns Ok
+//!                `{"action":"final","content":"runtime-hook-forced-final"}`,
+//!                which the runner merges over the default commit envelope —
+//!                proves the runtime decision is authoritative
+//!   deny         all three return Err("permission: runtime-hook denied") —
+//!                the pipeline aborts fail-closed, never falling back
+//!
+//! New probes (`--probe=`, run against dist/antikythera-sdk.wasm):
+//!
+//!   runtime-hooks-passthrough  commit(final "standard-final-content") keeps
+//!                              action=final + that content — the old
+//!                              composite behavior is unchanged while the new
+//!                              import is wired as passthrough
+//!   runtime-hooks-override     the same commit yields action=final
+//!                              content="runtime-hook-forced-final"
+//!   runtime-hooks-deny         prepare-user-turn aborts with a message
+//!                              containing "permission: runtime-hook denied"
+//!   runtime-hooks-disabled     init config `runtime_hooks_enabled: false`
+//!                              with a deny-mode provider → the provider is
+//!                              never consulted and the flow completes
+//!
 //! Flow mirrored from tests/sdk/wasm_agent/deterministic_harness_tests.rs
 //! (native Rust path), executed here against the WASM composite via the
 //! wasmtime component API:
@@ -73,6 +103,8 @@
 //! Usage:
 //!   component-harness [COMPONENT_PATH] [--expect default|final|notimpl]
 //!                     [--expect-content=<string>] [--probe full-loop|quota|allowlist|storage]
+//!                     [--probe runtime-hooks-passthrough|runtime-hooks-override|runtime-hooks-deny|runtime-hooks-disabled]
+//!                     [--runtime-hooks=passthrough|override|deny]
 
 use anyhow::{Context, Result};
 use serde_json::Value;
@@ -91,13 +123,51 @@ use antikythera::agent_sdk::host_imports::{
 /// call-llm quota: max 3 calls per host-imports instance.
 const LLM_QUOTA: u32 = 3;
 
+/// Runtime-hooks passthrough signal: use the SDK default at this pipeline
+/// point (identical contract to `logic-hooks`).
+const RUNTIME_HOOK_PASSTHROUGH_JSON: &str = "{\"passthrough\": true}";
+
+/// Runtime-hooks decide-action override: the same envelope the SDK produces
+/// for a terminal action, so the runner's merge over the default
+/// commit-result yields action=final with the forced content (the shape is
+/// the `logic-hooks-example` override, renamed to prove the runtime decision
+/// — not the composed one — is authoritative).
+const RUNTIME_HOOK_OVERRIDE_FINAL_JSON: &str =
+    "{\"action\":\"final\",\"content\":\"runtime-hook-forced-final\"}";
+
+/// Runtime-hooks deny message: every gate rejection must surface as a
+/// `permission:` error (repo invariant, identical to the host-imports gates).
+const RUNTIME_HOOK_DENY_MSG: &str = "permission: runtime-hook denied";
+
+/// Host-supplied `runtime-hooks` provider mode (U10). Default-deny policy:
+/// only `Passthrough`/`Override` grant a decision; `Deny` rejects before any
+/// decision is produced.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum RuntimeHooksMode {
+    Passthrough,
+    Override,
+    Deny,
+}
+
+impl std::fmt::Display for RuntimeHooksMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RuntimeHooksMode::Passthrough => f.write_str("passthrough"),
+            RuntimeHooksMode::Override => f.write_str("override"),
+            RuntimeHooksMode::Deny => f.write_str("deny"),
+        }
+    }
+}
+
 /// Host state: WASI context + resource table + C3a permission-gate state
-/// (per-instance llm call counter, bounded storage root).
+/// (per-instance llm call counter, bounded storage root) + U10 runtime-hooks
+/// provider mode.
 struct HostState {
     ctx: wasmtime_wasi::WasiCtx,
     table: wasmtime_wasi::ResourceTable,
     llm_call_count: u32,
     storage_dir: PathBuf,
+    runtime_hooks_mode: RuntimeHooksMode,
 }
 
 impl wasmtime_wasi::WasiView for HostState {
@@ -126,16 +196,16 @@ impl Host for HostState {
         self.llm_call_count += 1;
         serde_json::from_str::<Value>(&request.messages_json)
             .map_err(|e| format!("stub-llm: cannot parse messages_json: {e}"))?;
-    Ok(LlmResponse {
-        content: "stub-llm-response".to_string(),
-        model: None,
-        session_id: request.session_id,
-        message_json: None,
-        tokens_used: Some(4),
-        finish_reason: Some("stop".to_string()),
-        raw_response_json: None,
-    })
-}
+        Ok(LlmResponse {
+            content: "stub-llm-response".to_string(),
+            model: None,
+            session_id: request.session_id,
+            message_json: None,
+            tokens_used: Some(4),
+            finish_reason: Some("stop".to_string()),
+            raw_response_json: None,
+        })
+    }
 
     /// Allowlist gate: only the builtin `echo` tool may execute. Any other
     /// tool is rejected before execution.
@@ -189,6 +259,60 @@ impl Host for HostState {
 /// host data to implement its (empty) `Host` trait.
 impl antikythera::agent_sdk::vocabulary::Host for HostState {}
 
+/// U10 runtime-hooks implementation with a default-deny permission gate.
+///
+/// The provider mode is fixed per instance (`--runtime-hooks=`), and the
+/// decisions are deterministic so every probe verdict is a pure function of
+/// that mode:
+/// - `Passthrough`: all three return the passthrough signal — the runner
+///   uses the SDK default at every pipeline point;
+/// - `Override`: only `decide-action` returns the forced-final envelope
+///   (prepare-turn and handle-tool-result stay passthrough) — the runtime
+///   decision replaces the SDK default action;
+/// - `Deny`: all three return the `permission:` error — the runner aborts
+///   the operation fail-closed, never falling back to passthrough.
+impl antikythera::agent_sdk::runtime_hooks::Host for HostState {
+    fn prepare_turn(
+        &mut self,
+        _request_json: String,
+        _session_state_json: String,
+    ) -> Result<String, String> {
+        self.runtime_hook_decision("prepare-turn")
+    }
+
+    fn decide_action(
+        &mut self,
+        _session_state_json: String,
+        _llm_response_json: String,
+    ) -> Result<String, String> {
+        self.runtime_hook_decision("decide-action")
+    }
+
+    fn handle_tool_result(
+        &mut self,
+        _session_state_json: String,
+        _tool_result_json: String,
+    ) -> Result<String, String> {
+        self.runtime_hook_decision("handle-tool-result")
+    }
+}
+
+impl HostState {
+    /// Deterministic runtime-hooks decision for a pipeline point, gated by
+    /// the provider mode. `Deny` rejects before any decision is produced;
+    /// the `permission:` prefix is the repo-wide denial invariant shared with
+    /// the host-imports gates.
+    fn runtime_hook_decision(&self, hook_name: &str) -> Result<String, String> {
+        match self.runtime_hooks_mode {
+            RuntimeHooksMode::Deny => Err(RUNTIME_HOOK_DENY_MSG.to_string()),
+            RuntimeHooksMode::Override if hook_name == "decide-action" => {
+                Ok(RUNTIME_HOOK_OVERRIDE_FINAL_JSON.to_string())
+            }
+            _ => Ok(RUNTIME_HOOK_PASSTHROUGH_JSON.to_string()),
+        }
+    }
+}
+
 /// Shared storage-gate validator: a context-id becomes a path segment, so it
 /// must contain no traversal or path syntax. Rejects empty ids, `.`, `..`,
 /// separators, drive/stream syntax, and NUL. Used by both save-state and
@@ -235,6 +359,10 @@ enum Probe {
     Quota,
     Allowlist,
     Storage,
+    RuntimeHooksPassthrough,
+    RuntimeHooksOverride,
+    RuntimeHooksDeny,
+    RuntimeHooksDisabled,
 }
 
 impl std::fmt::Display for Probe {
@@ -244,6 +372,10 @@ impl std::fmt::Display for Probe {
             Probe::Quota => f.write_str("quota"),
             Probe::Allowlist => f.write_str("allowlist"),
             Probe::Storage => f.write_str("storage"),
+            Probe::RuntimeHooksPassthrough => f.write_str("runtime-hooks-passthrough"),
+            Probe::RuntimeHooksOverride => f.write_str("runtime-hooks-override"),
+            Probe::RuntimeHooksDeny => f.write_str("runtime-hooks-deny"),
+            Probe::RuntimeHooksDisabled => f.write_str("runtime-hooks-disabled"),
         }
     }
 }
@@ -253,6 +385,7 @@ fn main() -> Result<()> {
     let mut expect_content = "hook-forced-final".to_string();
     let mut component_path: Option<String> = None;
     let mut probe: Option<Probe> = None;
+    let mut runtime_hooks_mode = RuntimeHooksMode::Passthrough;
     for arg in std::env::args().skip(1) {
         if let Some(mode) = arg.strip_prefix("--expect=") {
             expect = match mode {
@@ -267,15 +400,32 @@ fn main() -> Result<()> {
             expect_content = content.to_string();
         } else if arg == "--expect-final" {
             expect = Expect::Final;
+        } else if let Some(mode) = arg.strip_prefix("--runtime-hooks=") {
+            runtime_hooks_mode = match mode {
+                "passthrough" => RuntimeHooksMode::Passthrough,
+                "override" => RuntimeHooksMode::Override,
+                "deny" => RuntimeHooksMode::Deny,
+                other => {
+                    anyhow::bail!(
+                        "unknown --runtime-hooks mode: {other} (expected passthrough|override|deny)"
+                    )
+                }
+            };
         } else if let Some(mode) = arg.strip_prefix("--probe=") {
             probe = Some(match mode {
                 "full-loop" => Probe::FullLoop,
                 "quota" => Probe::Quota,
                 "allowlist" => Probe::Allowlist,
                 "storage" => Probe::Storage,
+                "runtime-hooks-passthrough" => Probe::RuntimeHooksPassthrough,
+                "runtime-hooks-override" => Probe::RuntimeHooksOverride,
+                "runtime-hooks-deny" => Probe::RuntimeHooksDeny,
+                "runtime-hooks-disabled" => Probe::RuntimeHooksDisabled,
                 other => {
                     anyhow::bail!(
-                        "unknown --probe mode: {other} (expected full-loop|quota|allowlist|storage)"
+                        "unknown --probe mode: {other} (expected full-loop|quota|allowlist|storage|\
+                         runtime-hooks-passthrough|runtime-hooks-override|runtime-hooks-deny|\
+                         runtime-hooks-disabled)"
                     )
                 }
             });
@@ -289,13 +439,27 @@ fn main() -> Result<()> {
     }
 
     if let Some(probe) = probe {
-        let probe_component = component_path.unwrap_or_else(|| {
-            format!(
-                "{}/../../target/wasm32-wasip1/release/logic_core_host_example.wasm",
-                env!("CARGO_MANIFEST_DIR")
-            )
-        });
-        return run_probe(probe, &probe_component);
+        // Runtime-hooks probes exercise the composite (dist) artifact, which
+        // is the only component that imports the runtime-hooks interface; the
+        // C3a probes keep their logic-core default.
+        let probe_component = match probe {
+            Probe::RuntimeHooksPassthrough
+            | Probe::RuntimeHooksOverride
+            | Probe::RuntimeHooksDeny
+            | Probe::RuntimeHooksDisabled => component_path.unwrap_or_else(|| {
+                format!(
+                    "{}/../../dist/antikythera-sdk.wasm",
+                    env!("CARGO_MANIFEST_DIR")
+                )
+            }),
+            _ => component_path.unwrap_or_else(|| {
+                format!(
+                    "{}/../../target/wasm32-wasip1/release/logic_core_host_example.wasm",
+                    env!("CARGO_MANIFEST_DIR")
+                )
+            }),
+        };
+        return run_probe(probe, &probe_component, runtime_hooks_mode);
     }
 
     let component_path = component_path.unwrap_or_else(|| {
@@ -306,18 +470,21 @@ fn main() -> Result<()> {
     });
 
     println!("=== component-harness: wasmtime composite server probe ===");
-    println!("[config] component = {component_path}");
-    println!("[config] expect     = {expect}");
+    println!("[config] component     = {component_path}");
+    println!("[config] expect        = {expect}");
+    println!("[config] runtime-hooks = {runtime_hooks_mode}");
     if expect == Expect::Final {
-        println!("[config] content    = {expect_content}");
+        println!("[config] content       = {expect_content}");
     }
 
     let engine = wasmtime::Engine::default();
     let mut linker = wasmtime::component::Linker::new(&engine);
     wasmtime_wasi::p2::add_to_linker_sync(&mut linker)
         .context("register wasi imports into linker")?;
-    Harness::add_to_linker::<_, wasmtime::component::HasSelf<HostState>>(&mut linker, |state| state)
-        .context("register host-imports into linker")?;
+    Harness::add_to_linker::<_, wasmtime::component::HasSelf<HostState>>(&mut linker, |state| {
+        state
+    })
+    .context("register host-imports into linker")?;
 
     let component_bytes =
         std::fs::read(&component_path).context("read composite component path")?;
@@ -331,6 +498,7 @@ fn main() -> Result<()> {
             table: wasmtime_wasi::ResourceTable::new(),
             llm_call_count: 0,
             storage_dir: c3a_storage_dir(),
+            runtime_hooks_mode,
         },
     );
 
@@ -538,16 +706,20 @@ fn c3a_storage_dir() -> PathBuf {
 /// Instantiate the C3a host-llm-agent component (or any runner-export
 /// component) against the wired linker. The root harness owns the runner
 /// export (its accessor returns a borrow), so it is handed back alongside
-/// the store.
+/// the store. `runtime_hooks_mode` sets the provider gate of the new
+/// instance.
 fn instantiate_runner(
     component_path: &str,
+    runtime_hooks_mode: RuntimeHooksMode,
 ) -> Result<(wasmtime::Store<HostState>, Harness)> {
     let engine = wasmtime::Engine::default();
     let mut linker = wasmtime::component::Linker::new(&engine);
     wasmtime_wasi::p2::add_to_linker_sync(&mut linker)
         .context("register wasi imports into linker")?;
-    Harness::add_to_linker::<_, wasmtime::component::HasSelf<HostState>>(&mut linker, |state| state)
-        .context("register host-imports into linker")?;
+    Harness::add_to_linker::<_, wasmtime::component::HasSelf<HostState>>(&mut linker, |state| {
+        state
+    })
+    .context("register host-imports into linker")?;
 
     let component_bytes = std::fs::read(component_path).context("read component path")?;
     let component = wasmtime::component::Component::new(&engine, &component_bytes)
@@ -560,6 +732,7 @@ fn instantiate_runner(
             table: wasmtime_wasi::ResourceTable::new(),
             llm_call_count: 0,
             storage_dir: c3a_storage_dir(),
+            runtime_hooks_mode,
         },
     );
 
@@ -581,7 +754,12 @@ fn probe_init(runner: &Runner, store: &mut Store, session_id: &str) -> Result<St
     Ok(id)
 }
 
-fn probe_prepare(runner: &Runner, store: &mut Store, session_id: &str, prompt: &str) -> Result<String> {
+fn probe_prepare(
+    runner: &Runner,
+    store: &mut Store,
+    session_id: &str,
+    prompt: &str,
+) -> Result<String> {
     let request = serde_json::json!({
         "prompt": prompt,
         "session_id": session_id,
@@ -592,7 +770,8 @@ fn probe_prepare(runner: &Runner, store: &mut Store, session_id: &str, prompt: &
         .call_prepare_user_turn(store, &request)
         .context("wasmtime trap on prepare-user-turn")?
         .map_err(|e| anyhow::anyhow!("prepare-user-turn failed: {e}"))?;
-    let parsed: Value = serde_json::from_str(&prepared).context("prepared turn is not valid JSON")?;
+    let parsed: Value =
+        serde_json::from_str(&prepared).context("prepared turn is not valid JSON")?;
     println!(
         "[prepare] step={} prompt={}",
         parsed["step"], parsed["prompt"]
@@ -601,11 +780,21 @@ fn probe_prepare(runner: &Runner, store: &mut Store, session_id: &str, prompt: &
 }
 
 fn probe_commit(runner: &Runner, store: &mut Store, prepared_json: &str) -> Result<Value> {
+    probe_commit_with_response(runner, store, prepared_json, "{}")
+}
+
+fn probe_commit_with_response(
+    runner: &Runner,
+    store: &mut Store,
+    prepared_json: &str,
+    llm_response_json: &str,
+) -> Result<Value> {
     let commit_json = runner
-        .call_commit_llm_response(store, prepared_json, "{}")
+        .call_commit_llm_response(store, prepared_json, llm_response_json)
         .context("wasmtime trap on commit-llm-response")?
         .map_err(|e| anyhow::anyhow!("commit-llm-response failed: {e}"))?;
-    let commit: Value = serde_json::from_str(&commit_json).context("commit result is not valid JSON")?;
+    let commit: Value =
+        serde_json::from_str(&commit_json).context("commit result is not valid JSON")?;
     println!(
         "[commit] action={} content={} tool={} fsm={}",
         commit["action"], commit["content"], commit["tool_name"], commit["fsm_state"]
@@ -637,20 +826,44 @@ fn probe_process_tool_result(
     Ok(result)
 }
 
-/// C3a verification probes against the host-imports wiring.
-fn run_probe(probe: Probe, component_path: &str) -> Result<()> {
-    println!("=== component-harness: C3a host-imports permission-gate probe ===");
+/// C3a host-imports + U10 runtime-hooks verification probes.
+///
+/// The runtime-hooks probes force their provider mode so the verdict is a
+/// pure function of the probe (independent of `--runtime-hooks=`); the other
+/// probes keep the configured mode (passthrough by default, irrelevant for
+/// artifacts that do not import runtime-hooks).
+fn run_probe(
+    probe: Probe,
+    component_path: &str,
+    runtime_hooks_mode: RuntimeHooksMode,
+) -> Result<()> {
+    println!("=== component-harness: permission-gate probe (host-imports + runtime-hooks) ===");
     println!("[config] component = {component_path}");
     println!("[config] probe     = {probe}");
+    println!("[config] runtime-hooks = {runtime_hooks_mode}");
 
-    let (mut store, root) = instantiate_runner(component_path)?;
+    let mode = match probe {
+        Probe::RuntimeHooksPassthrough => RuntimeHooksMode::Passthrough,
+        Probe::RuntimeHooksOverride => RuntimeHooksMode::Override,
+        Probe::RuntimeHooksDeny | Probe::RuntimeHooksDisabled => RuntimeHooksMode::Deny,
+        _ => runtime_hooks_mode,
+    };
+    if mode != runtime_hooks_mode {
+        println!("[config] runtime-hooks = {mode} (probe-forced)");
+    }
+
+    let (mut store, root) = instantiate_runner(component_path, mode)?;
     let runner = root.antikythera_agent_sdk_runner();
 
     match probe {
-        Probe::FullLoop => probe_full_loop(&runner, &mut store),
-        Probe::Quota => probe_quota(&runner, &mut store),
-        Probe::Allowlist => probe_allowlist(&runner, &mut store),
-        Probe::Storage => probe_storage(&runner, &mut store),
+        Probe::FullLoop => probe_full_loop(runner, &mut store),
+        Probe::Quota => probe_quota(runner, &mut store),
+        Probe::Allowlist => probe_allowlist(runner, &mut store),
+        Probe::Storage => probe_storage(runner, &mut store),
+        Probe::RuntimeHooksPassthrough => probe_runtime_hooks_passthrough(runner, &mut store),
+        Probe::RuntimeHooksOverride => probe_runtime_hooks_override(runner, &mut store),
+        Probe::RuntimeHooksDeny => probe_runtime_hooks_deny(runner, &mut store),
+        Probe::RuntimeHooksDisabled => probe_runtime_hooks_disabled(runner, &mut store),
     }
 }
 
@@ -677,12 +890,17 @@ fn probe_full_loop(runner: &Runner, store: &mut Store) -> Result<()> {
             commit["content"]
         );
     }
-    println!("[assert] commit action=final content=\"stub-llm-response\" — call-llm import reached");
+    println!(
+        "[assert] commit action=final content=\"stub-llm-response\" — call-llm import reached"
+    );
 
     let tool = probe_process_tool_result(runner, store, &session_id, "echo")?;
     let content = tool["content"].as_str().unwrap_or_default();
     if tool["action"] != "final" {
-        anyhow::bail!("FAIL: expected tool-result action=final, got {}", tool["action"]);
+        anyhow::bail!(
+            "FAIL: expected tool-result action=final, got {}",
+            tool["action"]
+        );
     }
     if !content.contains("success: true") {
         anyhow::bail!(
@@ -777,7 +995,169 @@ fn probe_storage(runner: &Runner, store: &mut Store) -> Result<()> {
     let _ = probe_prepare(runner, store, &ok_session, "storage probe")?;
     println!("[assert] save-state/load-state round-trip with valid id succeeded");
 
-    println!("PASS: storage gate — traversal context-id rejected, valid ids confined to c3a-storage.");
+    println!(
+        "PASS: storage gate — traversal context-id rejected, valid ids confined to c3a-storage."
+    );
+    Ok(())
+}
+
+/// Runtime-hooks passthrough: the composite is driven exactly like the old
+/// default path, and the wired runtime provider (passthrough mode) must leave
+/// the decision unchanged — a committed `final` response keeps its own
+/// content. This proves the composite's old behavior is preserved while the
+/// new import is consulted (precedence A1a: the composed default-hooks passed
+/// through, so the runtime provider saw every pipeline point and passed
+/// through too).
+fn probe_runtime_hooks_passthrough(runner: &Runner, store: &mut Store) -> Result<()> {
+    println!("--- probe: runtime-hooks passthrough (SDK default preserved) ---");
+    let session_id = probe_init(runner, store, "runtime-hooks-passthrough")?;
+    let prepared = probe_prepare(
+        runner,
+        store,
+        &session_id,
+        "runtime hooks passthrough probe",
+    )?;
+
+    let llm_response = serde_json::json!({
+        "action": "final",
+        "content": "standard-final-content",
+    })
+    .to_string();
+    let commit = probe_commit_with_response(runner, store, &prepared, &llm_response)?;
+    if commit["action"] != "final" {
+        anyhow::bail!(
+            "FAIL: expected commit action=final (passthrough keeps the SDK default), got {}",
+            commit["action"]
+        );
+    }
+    if commit["content"] != "standard-final-content" {
+        anyhow::bail!(
+            "FAIL: expected commit content=\"standard-final-content\" (passthrough keeps the \
+             LLM response content), got {}",
+            commit["content"]
+        );
+    }
+    println!("[assert] runtime provider consulted and passed through: decision unchanged");
+    println!(
+        "PASS: runtime-hooks passthrough — commit action=final \
+         content=\"standard-final-content\" (default behavior unchanged)."
+    );
+    Ok(())
+}
+
+/// Runtime-hooks override: the same committed `final` response as the
+/// passthrough probe, but the runtime `decide-action` provider returns the
+/// forced-final envelope. The runner merges it over the default commit
+/// result, so the committed action is `final` with the runtime content — the
+/// runtime decision, not the LLM response, is authoritative.
+fn probe_runtime_hooks_override(runner: &Runner, store: &mut Store) -> Result<()> {
+    println!("--- probe: runtime-hooks decide-action override ---");
+    let session_id = probe_init(runner, store, "runtime-hooks-override")?;
+    let prepared = probe_prepare(runner, store, &session_id, "runtime hooks override probe")?;
+
+    let llm_response = serde_json::json!({
+        "action": "final",
+        "content": "standard-final-content",
+    })
+    .to_string();
+    let commit = probe_commit_with_response(runner, store, &prepared, &llm_response)?;
+    if commit["action"] != "final" {
+        anyhow::bail!(
+            "FAIL: expected commit action=final (runtime override), got {}",
+            commit["action"]
+        );
+    }
+    if commit["content"] != "runtime-hook-forced-final" {
+        anyhow::bail!(
+            "FAIL: expected commit content=\"runtime-hook-forced-final\" (runtime decision \
+             committed), got {}",
+            commit["content"]
+        );
+    }
+    println!("[assert] runtime decide-action override merged into the commit envelope");
+    println!(
+        "PASS: runtime-hooks override — commit action=final \
+         content=\"runtime-hook-forced-final\" (runtime decision authoritative)."
+    );
+    Ok(())
+}
+
+/// Runtime-hooks deny: with a deny-mode provider, prepare-user-turn reaches
+/// the runtime `prepare-turn` gate (the composed default-hooks passed
+/// through) and must abort fail-closed with the `permission:` message — the
+/// runner never falls back to the SDK default when the provider denies.
+fn probe_runtime_hooks_deny(runner: &Runner, store: &mut Store) -> Result<()> {
+    println!("--- probe: runtime-hooks deny (fail-closed) ---");
+    let session_id = probe_init(runner, store, "runtime-hooks-deny")?;
+
+    let request_json = serde_json::json!({
+        "prompt": "runtime hooks deny probe",
+        "session_id": session_id,
+        "correlation_id": "runtime-hooks-deny",
+    })
+    .to_string();
+    match runner.call_prepare_user_turn(store, &request_json) {
+        Ok(Err(e)) => {
+            if !e.contains(RUNTIME_HOOK_DENY_MSG) {
+                anyhow::bail!(
+                    "FAIL: expected prepare-user-turn to abort with a message containing \
+                     {RUNTIME_HOOK_DENY_MSG:?}, got {e:?}"
+                );
+            }
+            println!("[assert] prepare-user-turn aborted fail-closed: {e}");
+        }
+        Ok(Ok(prepared)) => anyhow::bail!(
+            "FAIL: prepare-user-turn succeeded ({prepared:?}) despite deny-mode runtime-hooks"
+        ),
+        Err(trap) => anyhow::bail!("wasmtime trap on prepare-user-turn: {trap}"),
+    }
+    println!(
+        "PASS: runtime-hooks deny — operation aborted with {RUNTIME_HOOK_DENY_MSG:?} (fail-closed)."
+    );
+    Ok(())
+}
+
+/// Runtime-hooks disabled: the provider is in deny mode but init config sets
+/// `runtime_hooks_enabled: false`, so the runner must never consult it. The
+/// flow completes with the SDK default decision and no permission error —
+/// proving the config flag gates the runtime provider out entirely.
+fn probe_runtime_hooks_disabled(runner: &Runner, store: &mut Store) -> Result<()> {
+    println!("--- probe: runtime_hooks_enabled=false (provider not consulted) ---");
+    let config = serde_json::json!({
+        "session_id": "runtime-hooks-disabled",
+        "max_steps": 5,
+        "runtime_hooks_enabled": false,
+    })
+    .to_string();
+    let session_id = runner
+        .call_init(&mut *store, &config)
+        .context("wasmtime trap on init")?
+        .map_err(|e| anyhow::anyhow!("init failed: {e}"))?;
+    println!("[init] session_id = {session_id}");
+
+    let prepared = probe_prepare(runner, store, &session_id, "runtime hooks disabled probe")?;
+    let llm_response = serde_json::json!({
+        "action": "final",
+        "content": "standard-final-content",
+    })
+    .to_string();
+    let commit = probe_commit_with_response(runner, store, &prepared, &llm_response)?;
+    if commit["action"] != "final" {
+        anyhow::bail!(
+            "FAIL: expected commit action=final (SDK default, provider skipped), got {}",
+            commit["action"]
+        );
+    }
+    if commit["content"] != "standard-final-content" {
+        anyhow::bail!(
+            "FAIL: expected commit content=\"standard-final-content\" (provider skipped), got {}",
+            commit["content"]
+        );
+    }
+    println!(
+        "[assert] deny-mode provider not consulted (runtime_hooks_enabled=false): no permission error"
+    );
+    println!("PASS: runtime_hooks_enabled=false — runtime-hooks skipped, flow completes.");
     Ok(())
 }
 

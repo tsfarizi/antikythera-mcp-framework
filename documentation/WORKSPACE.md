@@ -80,6 +80,7 @@ flowchart TD
 |:-----|:-----|
 | `plugin/antikythera-wasm-bindgen/` | **Legacy** wasm-bindgen bindings for browser targets (`wasm32-unknown-unknown`) — deprecated, digantikan jalur WASI component + jco — depends on SDK |
 | `plugin/antikythera-toolrunner/` | In-process tool execution — standalone |
+| `antikythera-server-runtime/` | Server host runtime for the WASM composite — wasmtime core + HTTP/SSE wire bridge (Runtime Bridge) — lib + bin |
 
 ### Supporting directories
 

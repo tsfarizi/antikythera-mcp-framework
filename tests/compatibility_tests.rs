@@ -9,12 +9,13 @@
 //! namespace with 16 camelCase functions whose signatures must match
 //! `npm/antikythera-sdk/component/interfaces/antikythera-agent-sdk-runner.d.ts`.
 //!
-//! Composite-artifact test (`composed_component_world_no_antikythera_imports`)
+//! Composite-artifact test (`composed_component_world_single_runtime_hooks_import`)
 //! shells out to `wasm-tools component wit` on the composite
 //! `dist/antikythera-sdk.wasm` and asserts the composed world imports only
-//! `wasi:` interfaces and exports the pinned runner id. This test SKIPs
-//! (not fails) when the build artifact or the tool is absent — the composite
-//! is a build artifact, not a source unit.
+//! `wasi:` interfaces plus the single host-wired
+//! `antikythera:agent-sdk/runtime-hooks@1.0.0` import, and exports the pinned
+//! runner id. This test SKIPs (not fails) when the build artifact or the tool
+//! is absent — the composite is a build artifact, not a source unit.
 //!
 //! Falsification: if the transpiled d.ts drifts (renamed function, changed
 //! parameter/return type, added/removed export) without the golden being
@@ -62,7 +63,10 @@ fn repo_root() -> PathBuf {
 fn read_repo_file(root: &Path, rel: &str) -> String {
     let path = root.join(rel);
     fs::read_to_string(&path).unwrap_or_else(|e| {
-        panic!("cannot read repo file {rel} (resolved: {}): {e}", path.display())
+        panic!(
+            "cannot read repo file {rel} (resolved: {}): {e}",
+            path.display()
+        )
     })
 }
 
@@ -85,7 +89,11 @@ fn find_wasm_tools() -> Option<PathBuf> {
         }
     }
 
-    let exe_name = if cfg!(windows) { "wasm-tools.exe" } else { "wasm-tools" };
+    let exe_name = if cfg!(windows) {
+        "wasm-tools.exe"
+    } else {
+        "wasm-tools"
+    };
     let mut candidates: Vec<PathBuf> = Vec::new();
 
     if let Some(path_var) = std::env::var_os("PATH") {
@@ -98,7 +106,12 @@ fn find_wasm_tools() -> Option<PathBuf> {
     }
     let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"));
     if let Some(home) = home {
-        candidates.push(PathBuf::from(home).join(".cargo").join("bin").join(exe_name));
+        candidates.push(
+            PathBuf::from(home)
+                .join(".cargo")
+                .join("bin")
+                .join(exe_name),
+        );
     }
 
     candidates.into_iter().find(|p| p.is_file())
@@ -131,9 +144,29 @@ const EXPECTED_LOGIC_HOOK_FUNCTIONS: [&str; 3] =
     ["prepare_turn", "decide_action", "handle_tool_result"];
 
 const GOLDEN_LOGIC_HOOKS_BLOCK: &str = "logic-hooks {";
-const GOLDEN_LOGIC_HOOKS_COMPONENT_WORLD: &str = "world logic-hooks-component { export logic-hooks; }";
-const GOLDEN_SDK_WORLD_WITH_HOOKS: &str =
-    "world antikythera-agent-sdk { import tool-registry; import logic-hooks; export runner; }";
+const GOLDEN_LOGIC_HOOKS_COMPONENT_WORLD: &str =
+    "world logic-hooks-component { export logic-hooks; }";
+const GOLDEN_SDK_WORLD_WITH_HOOKS: &str = "world antikythera-agent-sdk { import tool-registry; import logic-hooks; import runtime-hooks; export runner; }";
+
+/// Bare signatures of the three runtime-hooks functions, exactly as declared
+/// in `wit/antikythera.wit` (interface `runtime-hooks`), in WIT definition
+/// order. Identical to the logic-hooks signatures: `runtime-hooks` is the
+/// runtime-wired twin of the composed `logic-hooks` interface — the same
+/// three decision functions with the same JSON-object semantics, lower
+/// precedence (A1a: the composed provider is consulted first, `runtime-hooks`
+/// runs only on passthrough).
+const EXPECTED_RUNTIME_HOOK_SIGNATURES: [&str; 3] = [
+    "prepare-turn: func(request-json: string, session-state-json: string) -> result<string, string>",
+    "decide-action: func(session-state-json: string, llm-response-json: string) -> result<string, string>",
+    "handle-tool-result: func(session-state-json: string, tool-result-json: string) -> result<string, string>",
+];
+
+/// Snake-case Rust binding names for the three runtime-hooks functions
+/// (kebab-case WIT function names are transpiled by wit-bindgen).
+const EXPECTED_RUNTIME_HOOK_FUNCTIONS: [&str; 3] =
+    ["prepare_turn", "decide_action", "handle_tool_result"];
+
+const GOLDEN_RUNTIME_HOOKS_BLOCK: &str = "runtime-hooks {";
 
 // Logic-core drop-in contract (world `logic-core-component` in
 // `wit/antikythera.wit`). A custom logic core exports a `runner` interface
@@ -177,11 +210,14 @@ const LOGIC_CORE_RUNNER_FUNCTIONS: [&str; 16] = [
 const STANDALONE_SDK_WASM_REL: &str = "target/wasm32-wasip1/release/antikythera_sdk.wasm";
 const STANDALONE_IMPORT_TOOL_REGISTRY: &str = "import antikythera:agent-sdk/tool-registry@1.0.0";
 const STANDALONE_IMPORT_LOGIC_HOOKS: &str = "import antikythera:agent-sdk/logic-hooks@1.0.0";
+const STANDALONE_IMPORT_RUNTIME_HOOKS: &str = "import antikythera:agent-sdk/runtime-hooks@1.0.0";
 const STANDALONE_EXPORT_RUNNER: &str = "export antikythera:agent-sdk/runner@1.0.0";
 
 // Composite-component contract (toolrunner composition).
 const COMPOSED_WASM_REL: &str = "dist/antikythera-sdk.wasm";
 const COMPOSED_EXPECTED_RUNNER_EXPORT: &str = "export antikythera:agent-sdk/runner@1.0.0";
+const COMPOSED_EXPECTED_RUNTIME_HOOKS_IMPORT: &str =
+    "import antikythera:agent-sdk/runtime-hooks@1.0.0";
 const COMPOSED_IMPORT_PREFIX: &str = "import wasi:";
 
 // ---------------------------------------------------------------------------
@@ -299,17 +335,21 @@ fn browser_runner_namespace_reexported_in_sdk_dts() {
 fn payload_contract_shapes_match_golden() {
     let root = repo_root();
     let raw = read_repo_file(&root, GOLDEN_PAYLOAD_CONTRACT);
-    let json: serde_json::Value = serde_json::from_str(&raw)
-        .expect("payload contract golden must be valid JSON");
+    let json: serde_json::Value =
+        serde_json::from_str(&raw).expect("payload contract golden must be valid JSON");
 
     let top = json
         .as_object()
         .expect("payload contract golden must be a JSON object");
 
-    let expected_top: BTreeSet<&str> =
-        ["prepared_turn", "commit_result", "tool_result", "tool_result_inner"]
-            .into_iter()
-            .collect();
+    let expected_top: BTreeSet<&str> = [
+        "prepared_turn",
+        "commit_result",
+        "tool_result",
+        "tool_result_inner",
+    ]
+    .into_iter()
+    .collect();
     let actual_top: BTreeSet<&str> = top.keys().map(String::as_str).collect();
     assert_eq!(
         actual_top, expected_top,
@@ -317,13 +357,10 @@ fn payload_contract_shapes_match_golden() {
     );
 
     for (name, entry) in top {
-        let obj = entry.as_object().unwrap_or_else(|| {
-            panic!("payload contract entry `{name}` must be a JSON object")
-        });
-        let type_name = obj
-            .get("type")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+        let obj = entry
+            .as_object()
+            .unwrap_or_else(|| panic!("payload contract entry `{name}` must be a JSON object"));
+        let type_name = obj.get("type").and_then(|v| v.as_str()).unwrap_or_default();
         assert!(
             !type_name.is_empty(),
             "payload contract entry `{name}` must declare a non-empty `type`"
@@ -347,20 +384,24 @@ fn payload_contract_shapes_match_golden() {
 //
 // Contract clause (per `wit/antikythera.wit` + the `wasm-tools compose` wiring):
 // the composite `dist/antikythera-sdk.wasm` (SDK + toolrunner) MUST expose a
-// single world whose imports are exclusively `wasi:`-prefixed and whose export
-// set pins `antikythera:agent-sdk/runner@1.0.0`. The `tool-registry` interface
-// is consumed internally by the composite and MUST NOT leak as an import.
+// single world whose imports are `wasi:`-prefixed plus EXACTLY ONE antikythera
+// import — `antikythera:agent-sdk/runtime-hooks@1.0.0`, the host-wired runtime
+// bridge (NOT supplied by composition) — and whose export set pins
+// `antikythera:agent-sdk/runner@1.0.0`. The `tool-registry` and `logic-hooks`
+// interfaces are consumed internally by the composite and MUST NOT leak as
+// imports.
 //
 // Falsification: `wasm-tools component wit` renders the composite's world as
-// text; any `import antikythera:` line, any non-wasi import, or a missing
-// runner export goes RED. Assertions are substring searches — never
-// line-order dependent — so the test stays deterministic across tool versions.
+// text; any `import antikythera:` line other than the single runtime-hooks
+// import, any non-wasi import besides it, or a missing runner export goes RED.
+// Assertions are substring searches — never line-order dependent — so the test
+// stays deterministic across tool versions.
 //
 // SKIP (not fail) when the artifact or the tool is absent: the composite is a
 // build artifact, not a source unit; CI without `dist/` must stay green.
 
 #[test]
-fn composed_component_world_no_antikythera_imports() {
+fn composed_component_world_single_runtime_hooks_import() {
     let root = repo_root();
 
     let wasm_path = root.join(COMPOSED_WASM_REL);
@@ -393,15 +434,27 @@ fn composed_component_world_no_antikythera_imports() {
 
     let wit_text = String::from_utf8_lossy(&output.stdout);
 
-    // (a) tool-registry must NOT be imported out of the composite.
-    let leaked_import = wit_text
+    // (a) EXACTLY ONE antikythera import leaks out of the composite, and it
+    // must be the host-wired `runtime-hooks`. `tool-registry` and
+    // `logic-hooks` are consumed internally by composition and MUST NOT leak
+    // as imports.
+    let antikythera_imports: Vec<&str> = wit_text
         .lines()
-        .find(|line| line.trim_start().starts_with("import antikythera:"));
+        .map(str::trim_start)
+        .filter(|line| line.starts_with("import antikythera:"))
+        .collect();
+    assert_eq!(
+        antikythera_imports.len(),
+        1,
+        "composite world must import exactly one antikythera interface \
+         (runtime-hooks); found: {antikythera_imports:?} — tool-registry and \
+         logic-hooks must be consumed internally by the composite, never imported"
+    );
     assert!(
-        leaked_import.is_none(),
-        "composite world leaks an `import antikythera:` line: {:?}; \
-         tool-registry must be consumed internally by the composite, never imported",
-        leaked_import
+        antikythera_imports[0].starts_with(COMPOSED_EXPECTED_RUNTIME_HOOKS_IMPORT),
+        "the composite's single antikythera import must be \
+         `{COMPOSED_EXPECTED_RUNTIME_HOOKS_IMPORT}`; found: {}",
+        antikythera_imports[0]
     );
 
     // (b) the runner interface is exported with the pinned package id.
@@ -410,16 +463,29 @@ fn composed_component_world_no_antikythera_imports() {
         "composite world must export `{COMPOSED_EXPECTED_RUNNER_EXPORT}`"
     );
 
-    // (c) every remaining import is wasi-only.
+    // (c) every remaining import is wasi-only, EXCEPT the single runtime-hooks
+    // import asserted in (a).
     let non_wasi_imports: Vec<&str> = wit_text
         .lines()
         .map(str::trim_start)
-        .filter(|line| line.starts_with("import ") && !line.starts_with(COMPOSED_IMPORT_PREFIX))
+        .filter(|line| {
+            line.starts_with("import ")
+                && !line.starts_with(COMPOSED_IMPORT_PREFIX)
+                && !line.starts_with(COMPOSED_EXPECTED_RUNTIME_HOOKS_IMPORT)
+        })
         .collect();
     assert!(
         non_wasi_imports.is_empty(),
-        "composite world imports a non-wasi interface: {non_wasi_imports:?}"
+        "composite world imports a non-wasi interface besides runtime-hooks: {non_wasi_imports:?}"
     );
+
+    // (d) the runtime-hooks import carries the three pinned decision functions.
+    for signature in EXPECTED_RUNTIME_HOOK_SIGNATURES {
+        assert!(
+            wit_text.contains(signature),
+            "composite world must declare the runtime-hooks function `{signature}`"
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -536,8 +602,7 @@ fn logic_hooks_signatures_match_wit() {
     );
 
     // Leg 2 — the golden documents each signature as an individual line.
-    let golden_lines: BTreeSet<String> =
-        parse_golden_signatures(&golden).into_iter().collect();
+    let golden_lines: BTreeSet<String> = parse_golden_signatures(&golden).into_iter().collect();
     for signature in EXPECTED_LOGIC_HOOK_SIGNATURES {
         assert!(
             golden_lines.contains(signature),
@@ -579,9 +644,8 @@ fn logic_hooks_signatures_match_wit() {
              (generated, gitignored; fresh checkout without a build)"
         );
     } else {
-        let bindings = fs::read_to_string(&bindings_path).unwrap_or_else(|e| {
-            panic!("cannot read generated bindings {SDK_BINDINGS_REL}: {e}")
-        });
+        let bindings = fs::read_to_string(&bindings_path)
+            .unwrap_or_else(|e| panic!("cannot read generated bindings {SDK_BINDINGS_REL}: {e}"));
         assert!(
             bindings.contains("pub mod logic_hooks"),
             "{SDK_BINDINGS_REL} must declare `pub mod logic_hooks`"
@@ -598,14 +662,114 @@ fn logic_hooks_signatures_match_wit() {
 }
 
 // ---------------------------------------------------------------------------
+// Runtime-hooks contract — WIT ↔ golden ↔ generated bindings (two-way)
+// ---------------------------------------------------------------------------
+//
+// Contract clause (per `wit/antikythera.wit`): interface `runtime-hooks`
+// declares exactly three functions with pinned signatures (`prepare-turn`,
+// `decide-action`, `handle-tool-result`) — the runtime-wired twin of
+// `logic-hooks`, with IDENTICAL signatures and JSON-object semantics but
+// lower precedence (A1a: the composed `logic-hooks` provider is consulted
+// first; `runtime-hooks` runs only on passthrough). World
+// `antikythera-agent-sdk` imports `runtime-hooks` alongside `tool-registry`
+// and `logic-hooks` and exports `runner`. The golden
+// `contracts/shared/wit_signatures.golden.txt` must document the interface
+// block and the SDK world line; and the generated bindings
+// (`antikythera-sdk/src/bindings.rs`) must expose the three functions as Rust
+// functions.
+//
+// Falsification: renaming/retyping/removing a runtime-hooks function in the
+// WIT without regenerating the golden, or a wit-bindgen rerun that drops a
+// binding, goes RED.
+//
+// The bindings leg is SKIP-safe: `bindings.rs` is generated and gitignored;
+// when it is absent (fresh checkout without a build) the test still verifies
+// the WIT↔golden legs and only skips the bindings leg.
+
+#[test]
+fn runtime_hooks_signatures_match_wit() {
+    let root = repo_root();
+    let wit = read_repo_file(&root, WIT_ANTIKYTHERA);
+    let golden = read_repo_file(&root, GOLDEN_WIT_SIGS);
+
+    // Leg 1 — the WIT declares exactly the three pinned functions.
+    let body = extract_wit_interface_body(&wit, "runtime-hooks");
+    let wit_signatures = parse_wit_func_signatures(&body);
+    let expected: BTreeSet<&str> = EXPECTED_RUNTIME_HOOK_SIGNATURES.into_iter().collect();
+    let actual: BTreeSet<&str> = wit_signatures.iter().map(String::as_str).collect();
+    assert_eq!(
+        actual, expected,
+        "interface `runtime-hooks` in {WIT_ANTIKYTHERA} must declare exactly \
+         prepare-turn, decide-action, handle-tool-result with the pinned signatures"
+    );
+
+    // Leg 2 — the golden documents each signature as an individual line
+    // (shared with the identical logic-hooks signatures).
+    let golden_lines: BTreeSet<String> = parse_golden_signatures(&golden).into_iter().collect();
+    for signature in EXPECTED_RUNTIME_HOOK_SIGNATURES {
+        assert!(
+            golden_lines.contains(signature),
+            "{GOLDEN_WIT_SIGS} must document `{signature}` as a line"
+        );
+    }
+
+    // Leg 3 — the golden documents the interface block with all three hooks.
+    assert!(
+        golden.contains(GOLDEN_RUNTIME_HOOKS_BLOCK),
+        "{GOLDEN_WIT_SIGS} must document the `runtime-hooks {{ ... }}` interface block"
+    );
+    for signature in EXPECTED_RUNTIME_HOOK_SIGNATURES {
+        assert!(
+            golden.contains(signature),
+            "{GOLDEN_WIT_SIGS} runtime-hooks block must contain `{signature}`"
+        );
+    }
+
+    // Leg 4 — the golden documents the SDK world line importing runtime-hooks.
+    assert!(
+        golden.contains(GOLDEN_SDK_WORLD_WITH_HOOKS),
+        "{GOLDEN_WIT_SIGS} must document `{GOLDEN_SDK_WORLD_WITH_HOOKS}` \
+         (the SDK world imports runtime-hooks)"
+    );
+
+    // Leg 5 — the generated SDK bindings expose the three hooks as Rust
+    // functions (two-way WIT→bindings mapping; kebab-case becomes snake_case).
+    // SKIP-safe: `bindings.rs` is generated and gitignored; absent on a fresh
+    // checkout without a build.
+    let bindings_path = root.join(SDK_BINDINGS_REL);
+    if !bindings_path.is_file() {
+        eprintln!(
+            "Skipping bindings leg: {SDK_BINDINGS_REL} not found \
+             (generated, gitignored; fresh checkout without a build)"
+        );
+    } else {
+        let bindings = fs::read_to_string(&bindings_path)
+            .unwrap_or_else(|e| panic!("cannot read generated bindings {SDK_BINDINGS_REL}: {e}"));
+        assert!(
+            bindings.contains("pub mod runtime_hooks"),
+            "{SDK_BINDINGS_REL} must declare `pub mod runtime_hooks`"
+        );
+        for function in EXPECTED_RUNTIME_HOOK_FUNCTIONS {
+            let needle = format!("pub fn {function}");
+            assert!(
+                bindings.contains(&needle),
+                "{SDK_BINDINGS_REL} must declare `{needle}` (two-way mapping \
+                 from WIT function to generated Rust binding)"
+            );
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Standalone SDK component contract (uncomposed build artifact)
 // ---------------------------------------------------------------------------
 //
 // Contract clause (per `wit/antikythera.wit`, world `antikythera-agent-sdk`):
-// the standalone SDK component imports `tool-registry` AND `logic-hooks`
-// (both supplied by composition) and exports `runner`. This is the
+// the standalone SDK component imports `tool-registry`, `logic-hooks`, AND
+// `runtime-hooks` (the first two are supplied by composition; `runtime-hooks`
+// is wired by the host at runtime) and exports `runner`. This is the
 // pre-composition artifact; the composite (`dist/antikythera-sdk.wasm`) is
-// covered by `composed_component_world_no_antikythera_imports`.
+// covered by `composed_component_world_single_runtime_hooks_import`.
 //
 // SKIP (not fail) when the artifact or the tool is absent: the standalone
 // wasm is a build artifact, not a source unit; CI without `target/` must stay
@@ -651,6 +815,10 @@ fn standalone_sdk_imports_hooks_and_tools() {
     assert!(
         wit_text.contains(STANDALONE_IMPORT_LOGIC_HOOKS),
         "standalone SDK world must import {STANDALONE_IMPORT_LOGIC_HOOKS}"
+    );
+    assert!(
+        wit_text.contains(STANDALONE_IMPORT_RUNTIME_HOOKS),
+        "standalone SDK world must import {STANDALONE_IMPORT_RUNTIME_HOOKS}"
     );
     assert!(
         wit_text.contains(STANDALONE_EXPORT_RUNNER),

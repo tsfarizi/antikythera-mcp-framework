@@ -1,0 +1,139 @@
+{
+  "llm_call_request": {
+    "provider": "ollama",
+    "model": "gpt-oss:120b-cloud",
+    "session_id": "session-123",
+    "messages_json": "[{\"role\":\"user\",\"content\":\"hi\"}]",
+    "force_json": false,
+    "temperature": 0.7,
+    "max_tokens": 512,
+    "schema_name": null,
+    "metadata_json": null
+  },
+  "llm_call_response": {
+    "content": "Hello",
+    "model": "gpt-oss:120b-cloud",
+    "session_id": "session-123",
+    "message_json": null,
+    "tokens_used": 4,
+    "finish_reason": "stop",
+    "raw_response_json": null
+  },
+  "tool_execute_request": {
+    "tool-name": "get_current_time",
+    "arguments-json": "{}",
+    "session-id": "session-123",
+    "step-id": 1
+  },
+  "tool_execute_response": {
+    "tool-name": "get_current_time",
+    "success": true,
+    "output-json": "{\"datetime\":\"2026-08-12T00:00:00Z\"}",
+    "error-message": null,
+    "step-id": 1
+  },
+  "tool_execution_request_event": {
+    "type": "tool-execution-request",
+    "correlation_id": "corr-0001",
+    "session_id": "session-123",
+    "client_id": "client-a",
+    "payload": {
+      "tool-name": "get_current_time",
+      "arguments-json": "{}",
+      "session-id": "session-123",
+      "step-id": 1
+    }
+  },
+  "hook_request_event": {
+    "type": "hook-request",
+    "correlation_id": "corr-0002",
+    "session_id": "session-123",
+    "client_id": "client-a",
+    "payload": {
+      "hook": "decide-action",
+      "session_state_json": "{}",
+      "input_json": "{}"
+    }
+  },
+  "llm_token_event": {
+    "type": "llm-token",
+    "correlation_id": null,
+    "session_id": "session-123",
+    "client_id": "client-a",
+    "payload": {
+      "session_id": "session-123",
+      "chunk": "Hello",
+      "correlation_id": null
+    }
+  },
+  "registry_sync_event": {
+    "type": "registry-sync",
+    "correlation_id": null,
+    "session_id": null,
+    "client_id": "client-a",
+    "payload": [
+      {
+        "name": "get_current_time",
+        "title": "Current Time",
+        "description": "Get the current date and time.",
+        "parameters": [],
+        "input_schema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        },
+        "output_schema": null
+      }
+    ]
+  },
+  "lifecycle_event": {
+    "type": "lifecycle",
+    "correlation_id": null,
+    "session_id": null,
+    "client_id": "client-a",
+    "payload": {
+      "signal": "connected"
+    }
+  },
+  "error_event": {
+    "type": "error",
+    "correlation_id": "corr-0001",
+    "session_id": "session-123",
+    "client_id": "client-a",
+    "payload": {
+      "error": "permission: tool 'rm' not in allowlist"
+    }
+  },
+  "postback_response": {
+    "correlation_id": "corr-0001",
+    "ok": true,
+    "payload": {
+      "tool-name": "get_current_time",
+      "success": true,
+      "output-json": "{\"datetime\":\"2026-08-12T00:00:00Z\"}",
+      "error-message": null,
+      "step-id": 1
+    },
+    "error": null
+  },
+  "postback_gate_denial": {
+    "correlation_id": "corr-0001",
+    "ok": false,
+    "payload": null,
+    "error": "permission: tool 'rm' not in allowlist"
+  },
+  "tools_list_response": [
+    {
+      "name": "get_current_time",
+      "title": "Current Time",
+      "description": "Get the current date and time.",
+      "parameters": [],
+      "input_schema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "output_schema": null
+    }
+  ]
+}

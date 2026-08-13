@@ -12,6 +12,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { createAgentRuntime } = require('./runtime/index.js');
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -374,5 +376,6 @@ class SessionManager {
 
 module.exports = {
   PromptManager,
-  SessionManager
+  SessionManager,
+  createAgentRuntime
 };

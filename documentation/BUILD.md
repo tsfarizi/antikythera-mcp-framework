@@ -18,6 +18,8 @@ flowchart TD
     DIST --> JCO[npx jco transpile dist/antikythera-sdk.wasm --out-dir npm/antikythera-sdk/component]
     JCO --> NPM[npm/antikythera-sdk/component/ ESM bindings]
     DIST --> HARNESS[examples/component-harness - wasmtime server proof]
+    DIST --> SERVER[cargo build -p antikythera-server-runtime - HTTP/SSE wire bridge]
+    SERVER --> RUNTIME[npm/antikythera-sdk/runtime - antikythera-agent/runtime JS host]
 ```
 
 ## What you can build
@@ -28,8 +30,9 @@ flowchart TD
 | `antikythera-sdk` component | ✅ | Standalone intermediate via `cargo-component` + `wasm32-wasip1` (feature `component`); imports `tool-registry` + `logic-hooks` — **not** a consumable deliverable |
 | `antikythera-toolrunner` component | ✅ | Standalone intermediate via `cargo-component` + `wasm32-wasip1` (feature `component`); exports `tool-registry` (builtin tools) |
 | `antikythera-default-hooks` component | ✅ | Standalone intermediate via `cargo-component` + `wasm32-wasip1` (feature `component`); exports `logic-hooks` (no-op passthrough) |
-| **Composite WASM deliverable** | ✅ | `wasm-tools compose` SDK + toolrunner + default-hooks → `dist/antikythera-sdk.wasm` (imports only WASI, exports `runner`) |
+| **Composite WASM deliverable** | ✅ | `wasm-tools compose` SDK + toolrunner + default-hooks → `dist/antikythera-sdk.wasm` (exports `runner`; imports exactly one non-WASI interface — `runtime-hooks` — plus WASI) |
 | Browser JS bindings | ✅ | `jco transpile` of the **composite** → `npm/antikythera-sdk/component/` (ESM, namespace `runner`) |
+| **Server host runtime** | ✅ | `cargo build -p antikythera-server-runtime` — wasmtime host + HTTP/SSE wire bridge (lib + bin) |
 
 ## Prerequisites
 
@@ -110,7 +113,16 @@ dist/antikythera-sdk.wasm
 
 ### Verify the composite server-side
 
-`examples/component-harness` is a wasmtime server binary that loads a component path (default `dist/antikythera-sdk.wasm`) and proves the builtin tool `echo` executes inside the composite with no host round-trip:
+`examples/component-harness` is a wasmtime server binary that loads a component path (default `dist/antikythera-sdk.wasm`) and proves the builtin tool `echo` executes inside the composite with no host round-trip. The harness wires the `runtime-hooks` import into its linker (deterministic provider; default passthrough) and exposes `--runtime-hooks=passthrough|override|deny` plus dedicated probes:
+
+```bash
+cargo run -p component-harness --release -- --probe=runtime-hooks-passthrough
+cargo run -p component-harness --release -- --probe=runtime-hooks-override
+cargo run -p component-harness --release -- --probe=runtime-hooks-deny
+cargo run -p component-harness --release -- --probe=runtime-hooks-disabled
+```
+
+`runtime-hooks-passthrough` proves the default stub keeps the SDK decision; `runtime-hooks-override` proves a runtime `decide-action` override forces `action=final`; `runtime-hooks-deny` proves a denial aborts fail-closed; `runtime-hooks-disabled` proves `runtime_hooks_enabled: false` skips the runtime provider entirely.
 
 ```bash
 cargo run -p component-harness --release
@@ -168,7 +180,7 @@ cargo run -p component-harness --release -- <logic-core>.wasm --expect=final --e
 
 `examples/logic-core-example/` is a deterministic "echo-agent": its commit always returns `{"action":"final","content":"echo-agent-done",...}`, so the command above asserts the committed action is `final` with that content and no tool executes. Use `--expect=notimpl` to probe template holes and assert the structured not-implemented error.
 
-- Verify client-side: because a self-contained logic core imports only WASI, it transpiles with jco like the composite does (same WASI stub mapping, see the transpile section below) and runs in the Node probe and the Vite bundle.
+- Verify client-side: because a self-contained logic core imports only WASI, it transpiles with jco like the composite does (the same 12 WASI stub mappings; the `runtime-hooks` mapping is only needed when the component actually imports it, see the transpile section below) and runs in the Node probe and the Vite bundle.
 
 ### Host-imports wiring
 
@@ -215,6 +227,7 @@ The browser path reuses the **composite** WASI component and transpiles it to br
 
 ```bash
 npx jco transpile dist/antikythera-sdk.wasm --out-dir npm/antikythera-sdk/component \
+  -M "antikythera:agent-sdk/runtime-hooks@1.0.0=./runtime-hooks.js" \
   -M wasi:cli/environment=./wasi-stubs/environment.js \
   -M wasi:cli/exit=./wasi-stubs/exit.js \
   -M wasi:cli/stderr=./wasi-stubs/stderr.js \
@@ -229,7 +242,7 @@ npx jco transpile dist/antikythera-sdk.wasm --out-dir npm/antikythera-sdk/compon
   -M wasi:random/random=./wasi-stubs/random.js
 ```
 
-The 12 `-M` flags map every WASI import (cli, io, clocks, filesystem, random) to a browser-safe stub under `npm/antikythera-sdk/component/wasi-stubs/`. A `transpile` task is available in `Taskfile.yml` as a shortcut.
+The 13 `-M` flags map the one non-WASI import — `antikythera:agent-sdk/runtime-hooks@1.0.0` — to `runtime-hooks.js` and every WASI import (cli, io, clocks, filesystem, random) to a browser-safe stub under `npm/antikythera-sdk/component/wasi-stubs/`. `runtime-hooks.js` is the **default passthrough stub**: each export returns `{"passthrough": true}` unless a host provider is injected via `globalThis.__ANTIKYTHERA_RUNTIME_HOOKS_PROVIDER__` — absence of a provider is never a failure. A `transpile` task is available in `Taskfile.yml` as a shortcut.
 
 Consume from JS as:
 
@@ -239,6 +252,81 @@ const sessionId = runner.init(JSON.stringify({ session_id: 's1' }));
 ```
 
 See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) for the full `runner` contract and jco pitfalls (jco has no `--dts`; ES2022 target required for top-level await).
+
+### Build and run the server host runtime
+
+`antikythera-server-runtime` (Rust crate, lib + bin) embeds the composite via wasmtime and serves the wire protocol over HTTP + SSE (see [`WIRE_PROTOCOL.md`](WIRE_PROTOCOL.md)). Build:
+
+```bash
+cargo build -p antikythera-server-runtime
+# or
+cargo build -p antikythera-server-runtime --release
+```
+
+Run with the composite and a stub LLM (no external provider):
+
+```bash
+cargo run -p antikythera-server-runtime -- \
+  --component dist/antikythera-sdk.wasm \
+  --bind 127.0.0.1:8787 \
+  --server-tool 'get_current_time:{"datetime":"2026-08-12T00:00:00Z"}' \
+  --provider-stub '{"action":"final","content":"smoke-complete"}'
+```
+
+Binary flags:
+
+| Flag | Purpose |
+|:-----|:--------|
+| `--bind <addr>` | HTTP bind address (default `127.0.0.1:8787`) |
+| `--component <path>` | Composite component path (default `dist/antikythera-sdk.wasm`) |
+| `--client-id <id>` | Server-side client identifier for the SSE control channel |
+| `--allow-tool <name>` | Allowlist a tool name (local/remote/mcp destinations) — the gate is default-deny |
+| `--server-tool <name>:<response-json>` | Register a deterministic server-owned tool (registration IS a grant; no `--allow-tool` needed) |
+| `--provider-stub <json>` | Use a stub LLM provider returning the given response JSON |
+| `--smoke` | Run the K1 tool loop against the composite with a stub LLM, then exit |
+
+Verification:
+
+- **Smoke** — `cargo run -p antikythera-server-runtime -- --component dist/antikythera-sdk.wasm --smoke` drives init → prepare → LLM stub → commit and asserts `action=final` (`PASS: smoke — init+prepare+commit with stub LLM reached action=final`).
+- **Wire** — start the server, then hit the endpoints: `GET /antikythera/v1/tools` lists the union registry; `POST /antikythera/v1/llm/call` returns the `llm-response` shape; `POST /antikythera/v1/tools/execute` executes a server-owned tool. A gate denial returns HTTP 403 with `{"error": "permission: ..."}`.
+- **Tests** — `cargo test -p antikythera-server-runtime` runs the wire-bridge and smoke suites (`tests/runtime_bridge.rs`, `tests/smoke.rs`).
+
+### Use the client host runtime
+
+`npm/antikythera-sdk/runtime/` (exported as `antikythera-agent/runtime`) is the JS host runtime. It wraps the jco-transpiled composite, the server wire protocol, the union registry, permission gates, and the runtime-hooks provider. `createAgentRuntime` selects the core placement:
+
+```javascript
+import { createAgentRuntime } from 'antikythera-agent/runtime';
+
+// Client core: owns the runner (jco-transpiled composite) and the tool loop.
+const rt = await createAgentRuntime({
+  core: 'client',
+  serverUrl: 'http://127.0.0.1:8787', // configurable; default 127.0.0.1:8787
+  tools: [
+    {
+      definition: { name: 'my-tool', description: '...' },
+      handler: async (args) => ({ success: true, output: JSON.stringify(args) }),
+    },
+  ],
+  policy: { allow: ['my-tool'] }, // default-deny allowlist for local tools
+  hooks: {
+    // runtime hooks provider — injected into the transpiled runtime-hooks.js
+    decideAction: (sessionStateJson, llmResponseJson) =>
+      '{"passthrough": true}', // or an override object / throw "permission: ..."
+  },
+  llm: { model: 'gpt-oss:120b-cloud' },
+  maxSteps: 10,
+});
+
+await rt.connect();                 // open SSE control channel + init the runner
+const result = await rt.runTurn('hello'); // auto tool-owner loop
+console.log(result.content);
+rt.close();
+```
+
+Client-core surface: `runTurn(prompt, opts?)`, `executeTool(name, args?)`, `getState()`, `getToolsPrompt()`, `resetSession()`, `refreshTools()`, `connect()`, `close()`, `onEvent(listener)` (receives `llm-token`, `tool_requested`, `tool_result`, `error`, ...). Server-core mode (`core: 'server'`) is a control-channel peer without the runner: it answers SSE `tool-execution-request` / `hook-request` events via POST-back and exposes `executeLocalTool(name, args?)`.
+
+Reference flow: `examples/antikythera-web` (`src/slices/chat/flow/send-message.ts`) uses exactly this surface — `VITE_SERVER_URL` / `localStorage['antikythera_server_url']` select the server URL, `onEvent` drives streaming and tool progress, `getState()` enriches the final tool records.
 
 ## Docs site build
 
@@ -305,7 +393,7 @@ The repository includes `Taskfile.yml` for common flows.
 | `task compose-hooks-custom` | Compose SDK + toolrunner with a host-authored logic-hooks component in place of default-hooks |
 | `task build-all` | Build all WASM artifacts (standalone SDK + toolrunner + default-hooks + composite) |
 | `task wit` | Validate WIT conformance |
-| `task transpile` | Transpile the **composite** to JS bindings with jco (depends on `compose`) |
+| `task transpile` | Transpile the **composite** to JS bindings with jco (depends on `compose`; 13 `-M` mappings — `runtime-hooks` + 12 WASI stubs) |
 | `task transpile-clean` | Remove transpiled JS output directory |
 | `task test` | Run workspace tests |
 | `task test-sdk` | Run SDK tests |
@@ -322,6 +410,6 @@ The repository includes `Taskfile.yml` for common flows.
 
 ## Notes
 
-- The composite build (`wasm32-wasip1`, feature `component` on all three crates, then `wasm-tools compose`) is the WASM deployment target for both server and browser. Use `dist/antikythera-sdk.wasm` when embedding agent logic in a host application via wasmtime (`examples/component-harness` proves the builtin tool path), and transpile the composite with jco for browser consumption.
-- The standalone `antikythera-sdk` component is an intermediate artifact: it imports `tool-registry` and `logic-hooks` and must be composed with `antikythera-toolrunner` and a hooks provider (default: `antikythera-default-hooks`) before any consumer (wasmtime harness, jco) touches it.
+- The composite build (`wasm32-wasip1`, feature `component` on all three crates, then `wasm-tools compose`) is the WASM deployment target for both server and browser. Use `dist/antikythera-sdk.wasm` when embedding agent logic in a host application via wasmtime (`examples/component-harness` proves the builtin tool path and the runtime-hooks probes), and transpile the composite with jco for browser consumption. For full client–server connectivity, use the two host runtimes — `antikythera-server-runtime` (Rust, HTTP + SSE) and `npm/antikythera-sdk/runtime` (`antikythera-agent/runtime`) — see the Runtime Bridge sections above and [`WIRE_PROTOCOL.md`](WIRE_PROTOCOL.md).
+- The standalone `antikythera-sdk` component is an intermediate artifact: it imports `tool-registry`, `logic-hooks`, and `runtime-hooks` and must be composed with `antikythera-toolrunner` and a hooks provider (default: `antikythera-default-hooks`) before any consumer (wasmtime harness, jco) touches it. After composition the `runtime-hooks` import remains and the host MUST wire it (default passthrough stub) — see [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Runtime hooks (host-supplied).
 - The legacy wasm-bindgen path (`wasm32-unknown-unknown` + `wasm` feature, `plugin/antikythera-wasm-bindgen`, wasm-pack) is **deprecated**; it is kept only for crate-level compatibility during the transition. Do not use it for new browser integrations.

@@ -325,3 +325,32 @@ export class SessionManager {
  * @returns Version string
  */
 export function getVersion(): string;
+
+// ============================================================================
+// Runtime Bridge (U9) — host runtime for the WASM agent core
+// ============================================================================
+
+export { createAgentRuntime } from './runtime/index';
+export type {
+  AgentRuntime,
+  AgentRuntimeOptions,
+  AgentRuntimeOptionsBase,
+  ClientCoreOptions,
+  ClientCoreRuntime,
+  CoreMode,
+  LlmOptions,
+  PermissionPolicy,
+  RuntimeEvent,
+  RuntimeHooks,
+  RunnerEvent,
+  ServerCoreOptions,
+  ServerCoreRuntime,
+  ToolDefinition,
+  ToolEntry,
+  ToolHandler,
+  ToolHandlerResult,
+  ToolParameterSchema,
+  ToolResultInput,
+  TurnOptions,
+  TurnResult,
+} from './runtime/index';

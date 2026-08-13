@@ -1,6 +1,6 @@
 {
   "name": "antikythera-agent",
-  "version": "1.7.10",
+  "version": "1.8.4",
   "description": "General-purpose agent runtime with multi-agent orchestration, MCP tool integration, and WebAssembly support",
   "main": "index.js",
   "types": "index.d.ts",
@@ -12,10 +12,15 @@
     "antikythera_wasm_bindgen.d.ts",
     "README.md",
     "pkg-nodejs",
-    "component"
+    "component",
+    "runtime"
   ],
   "exports": {
     ".": { "types": "./index.d.ts", "default": "./index.js" },
+    "./runtime": {
+      "types": "./runtime/index.d.ts",
+      "default": "./runtime/index.js"
+    },
     "./component": {
       "types": "./component/antikythera-sdk.d.ts",
       "default": "./component/antikythera-sdk.js"

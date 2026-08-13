@@ -1,0 +1,111 @@
+package antikythera:agent-sdk@1.0.0;
+
+/// Shared vocabulary for the host-facing interfaces, copied verbatim from
+/// `wit/antikythera.wit` (the server runtime must resolve the full type
+/// closure from this single WIT file, mirroring `examples/component-harness`).
+interface vocabulary {
+  record llm-request {
+    provider: option<string>,
+    model: option<string>,
+    session-id: option<string>,
+    messages-json: string,
+    force-json: bool,
+    temperature: option<f32>,
+    max-tokens: option<u32>,
+    schema-name: option<string>,
+    metadata-json: option<string>,
+  }
+
+  record llm-response {
+    content: string,
+    model: option<string>,
+    session-id: option<string>,
+    message-json: option<string>,
+    tokens-used: option<u32>,
+    finish-reason: option<string>,
+    raw-response-json: option<string>,
+  }
+
+  record tool-call-event {
+    tool-name: string,
+    arguments-json: string,
+    session-id: option<string>,
+    step-id: u32,
+  }
+
+  record tool-execution-result {
+    tool-name: string,
+    success: bool,
+    output-json: string,
+    error-message: option<string>,
+    step-id: u32,
+  }
+
+  record log-event {
+    level: string,
+    message: string,
+    timestamp: option<string>,
+  }
+}
+
+/// RuntimeHooks — host-supplied pipeline hook decisions injected at runtime.
+///
+/// Copied verbatim from `wit/antikythera.wit`. The composite imports this
+/// interface; the server host implements it. Each decision travels to the
+/// peer over the SSE control channel (`hook-request`) and is answered by a
+/// POST-back; no client response within the TTL fails closed.
+interface runtime-hooks {
+  prepare-turn: func(request-json: string, session-state-json: string) -> result<string, string>;
+  decide-action: func(session-state-json: string, llm-response-json: string) -> result<string, string>;
+  handle-tool-result: func(session-state-json: string, tool-result-json: string) -> result<string, string>;
+}
+
+/// HostImports — the escape hatch imported by a drop-in logic core
+/// (world `logic-core-component`). The server host wires these five
+/// functions behind permission gates. Copied verbatim from
+/// `wit/antikythera.wit`.
+interface host-imports {
+  use vocabulary.{llm-request, llm-response, tool-call-event, tool-execution-result, log-event};
+
+  call-llm: func(request: llm-request) -> result<llm-response, string>;
+  emit-tool-call: func(event: tool-call-event) -> result<tool-execution-result, string>;
+  log-message: func(event: log-event);
+  save-state: func(context-id: string, state-json: string) -> result<_, string>;
+  load-state: func(context-id: string) -> result<option<string>, string>;
+}
+
+/// Runner — the JSON-string agent API exported by the composite, copied
+/// verbatim from `wit/antikythera.wit` (16 functions, same JSON semantics).
+interface runner {
+  init: func(config-json: string) -> result<string, string>;
+  prepare-user-turn: func(request-json: string) -> result<string, string>;
+  commit-llm-response: func(prepared-turn-json: string, llm-response-json: string) -> result<string, string>;
+  commit-llm-stream: func(prepared-turn-json: string) -> result<string, string>;
+  process-llm-response-for-session: func(session-id: string, llm-response-json: string) -> result<string, string>;
+  process-tool-result-for-session: func(session-id: string, tool-result-json: string) -> result<string, string>;
+  append-llm-chunk: func(session-id: string, chunk: string, correlation-id: option<string>) -> result<bool, string>;
+  drain-events: func(session-id: string) -> result<string, string>;
+  get-state: func(session-id: string) -> result<string, string>;
+  reset-session: func(session-id: string) -> result<bool, string>;
+  sweep-idle-sessions: func(now-unix-ms: option<s64>) -> result<u32, string>;
+  register-tools: func(tools-json: string) -> result<u32, string>;
+  get-tools-prompt: func() -> result<string, string>;
+  set-context-policy: func(policy-json: string) -> result<bool, string>;
+  get-telemetry-snapshot: func(session-id: string) -> result<string, string>;
+  get-slo-snapshot: func(session-id: string) -> result<string, string>;
+}
+
+/// World for the server host runtime. The world deliberately declares NO wasi
+/// imports: bindgen then generates no host code for wasi and the linker
+/// supplies them at instantiation via `wasmtime_wasi::p2::add_to_linker_sync`
+/// (see `examples/component-harness` for the upstream-skew rationale).
+///
+/// `runtime-hooks` is the single non-WASI import of the composite; the
+/// composite never imports `host-imports` (that is a drop-in logic-core
+/// escape hatch), but the world declares it so one linker wiring serves both
+/// the composite and host-imports logic cores.
+world server-runtime {
+  import runtime-hooks;
+  import host-imports;
+  export runner;
+}

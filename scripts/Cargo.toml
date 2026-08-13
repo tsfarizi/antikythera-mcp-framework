@@ -8,5 +8,9 @@ publish = false
 name = "wit-validator"
 path = "build-component.rs"
 
+[[bin]]
+name = "sync-release-version"
+path = "sync-release-version.rs"
+
 [dependencies]
 # No external dependencies needed - use stdlib only

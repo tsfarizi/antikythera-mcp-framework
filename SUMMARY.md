@@ -29,6 +29,8 @@
 - [Streaming](documentation/STREAMING.md)
 - [WASM Agent](documentation/WASM_AGENT.md)
 - [WASM Architecture](documentation/WASM_ARCHITECTURE.md)
+- [Wire Protocol](documentation/WIRE_PROTOCOL.md)
+- [Runtime Bridge Decisions](documentation/DECISIONS_RUNTIME_BRIDGE.md)
 
 # Process
 

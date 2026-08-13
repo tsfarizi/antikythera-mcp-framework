@@ -38,7 +38,7 @@ flowchart TD
 - Multi-provider LLM support: Ollama (default), OpenAI, and Gemini via feature-gated facade.
 - Multi-agent orchestration with guardrails, resilience, and observability hooks.
 - Streaming support for token/event output and buffered delivery policies.
-- WASM component integration path for host-controlled execution (browser via WASI component + jco, WASI Component Model on the server, Wasmtime sandbox).
+- WASM component integration path for host-controlled execution (browser via WASI component + jco, WASI Component Model on the server, Wasmtime sandbox), plus a **Runtime Bridge** for client–server connectivity (Rust server host + JS client host, HTTP + SSE wire protocol).
 - Consolidated documentation under `documentation/`.
 
 ## Workspace Layout
@@ -91,6 +91,7 @@ flowchart TD
 | `plugin/antikythera-wasm-bindgen` | **Legacy** wasm-bindgen browser glue (`wasm32-unknown-unknown`) — digantikan jalur WASI component + jco; dipertahankan untuk kompatibilitas — depends on SDK |
 | `plugin/antikythera-toolrunner` | In-process tool execution and standalone WASM tool-registry component (composed into the SDK deliverable) |
 | `plugin/antikythera-default-hooks` | Default no-op logic-hooks implementation (composed into the SDK deliverable) |
+| `antikythera-server-runtime` | Server host runtime for the WASM composite — wasmtime core + HTTP/SSE wire bridge (lib + bin) |
 
 ### Supporting directories
 
@@ -105,7 +106,10 @@ flowchart TD
 | Path | Role |
 |:-----|:-----|
 | `examples/chat` | Rust chat example using antikythera-facade |
-| `examples/antikythera-web` | TypeScript/Vite web frontend (not a workspace member) |
+| `examples/antikythera-web` | TypeScript/Vite web frontend using the client host runtime (`antikythera-agent/runtime`) (not a workspace member) |
+| `examples/component-harness` | Wasmtime server proof: composite verification, logic-hooks/logic-core/host-imports probes, runtime-hooks probes |
+| `examples/logic-hooks-template` | Host-authored logic-hooks component template (composed in place of default-hooks) |
+| `examples/logic-hooks-example` | Filled-in logic-hooks probe (`decide-action` forces `action=final`) |
 | `examples/logic-core-template` | Drop-in runner template (world logic-core-component) |
 | `examples/logic-core-example` | Deterministic drop-in logic core (echo-agent) + swap proof |
 | `examples/logic-core-host-example` | Full custom loop via host-imports (call-llm/save/load/emit-tool-call/log) + permission-gated host implementations |
@@ -154,6 +158,8 @@ cargo clippy --workspace --lib --bins -- -D warnings -D deprecated
 
 - [WASM Agent](documentation/WASM_AGENT.md) — agent logic inside the component
 - [WASM Architecture](documentation/WASM_ARCHITECTURE.md) — WASM deployment architecture
+- [Wire Protocol](documentation/WIRE_PROTOCOL.md) — Runtime Bridge HTTP + SSE wire contract
+- [Runtime Bridge Decisions](documentation/DECISIONS_RUNTIME_BRIDGE.md) — Runtime Bridge design decision register
 
 ### Process
 

@@ -1,17 +1,6 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { initWasm } from './shared/wasm'
 import ChatView from './slices/chat/components/ChatView.vue'
 import SettingsPanel from './slices/settings/components/SettingsPanel.vue'
-
-onMounted(async () => {
-  try {
-    await initWasm()
-    console.log('WASM initialized successfully')
-  } catch (e) {
-    console.error('Failed to initialize WASM:', e)
-  }
-})
 </script>
 
 <template>

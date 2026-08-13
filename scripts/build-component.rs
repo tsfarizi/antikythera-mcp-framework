@@ -25,9 +25,10 @@ const RESET: &str = "\x1b[0m";
 
 // Interfaces whose implementation lives outside the scanned crates
 // (e.g. `plugin/antikythera-toolrunner`, host-authored hooks
-// components) are not subject to this conformance check; their drift
-// is caught by the real wit-parser during `cargo component build`.
-const SKIPPED_INTERFACES: &[&str] = &["tool-registry", "logic-hooks"];
+// components, host-supplied runtime-hooks wired at runtime) are not
+// subject to this conformance check; their drift is caught by the real
+// wit-parser during `cargo component build`.
+const SKIPPED_INTERFACES: &[&str] = &["tool-registry", "logic-hooks", "runtime-hooks"];
 
 // ── Parsed WIT structures ────────────────────────────────────────────────────
 
@@ -203,7 +204,10 @@ fn run_validate() {
 
         let mut iface_drift = false;
         for wit_fn in &wit_iface.functions {
-            match matching_fns.iter().find(|f| snake_to_kebab(&f.name) == wit_fn.name) {
+            match matching_fns
+                .iter()
+                .find(|f| snake_to_kebab(&f.name) == wit_fn.name)
+            {
                 Some(rust_fn) => {
                     let diffs = compare_function(wit_fn, rust_fn);
                     if diffs.is_empty() {

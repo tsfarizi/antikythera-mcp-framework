@@ -62,6 +62,15 @@ jobs:
       - name: Validate WIT conformance
         run: cargo run -p build-scripts --release -- validate
 
+  version-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Verify npm and python versions match Cargo workspace version
+        run: cargo run -p build-scripts --bin sync-release-version -- --check
+
   docs:
     runs-on: ubuntu-latest
     steps:

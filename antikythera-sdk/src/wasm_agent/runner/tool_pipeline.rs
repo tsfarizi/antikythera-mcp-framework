@@ -80,9 +80,10 @@ impl AgentRunnerRuntime {
                 tool_result_json,
                 &input,
             )?;
-            let output: serde_json::Value = serde_json::from_str(&input.output_json).map_err(
-                |e| AgentRunnerError::ToolFailed(format!("Invalid tool output_json: {e}")),
-            )?;
+            let output: serde_json::Value =
+                serde_json::from_str(&input.output_json).map_err(|e| {
+                    AgentRunnerError::ToolFailed(format!("Invalid tool output_json: {e}"))
+                })?;
             (input, output)
         };
 

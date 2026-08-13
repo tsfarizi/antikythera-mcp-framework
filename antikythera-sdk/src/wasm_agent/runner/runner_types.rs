@@ -7,6 +7,9 @@ pub(super) struct RunnerConfigInput {
     pub max_steps: Option<u32>,
     pub verbose: Option<bool>,
     pub auto_execute_tools: Option<bool>,
+    /// When `false`, the host-supplied `runtime-hooks` interface is never
+    /// consulted and the pipeline behaves as before runtime hooks existed.
+    pub runtime_hooks_enabled: Option<bool>,
     pub session_timeout_secs: Option<u32>,
     pub max_in_memory_sessions: Option<usize>,
     pub session_id: Option<String>,

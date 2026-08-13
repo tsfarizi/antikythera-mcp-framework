@@ -267,6 +267,13 @@ pub struct AgentConfig {
     pub verbose: bool,
     /// Auto-execute tools
     pub auto_execute_tools: bool,
+    /// Consult the host-supplied `runtime-hooks` interface at the pipeline
+    /// points (A1a: after the composed `logic-hooks` provider passes through).
+    /// When `false`, runtime hooks are never called (pre-runtime-hooks
+    /// behavior). Defaults to `true`; the serde default keeps state snapshots
+    /// produced before this flag existed deserializable.
+    #[serde(default = "default_true")]
+    pub runtime_hooks_enabled: bool,
     /// Session timeout (seconds)
     pub session_timeout_secs: u32,
     /// Session ID
@@ -276,12 +283,17 @@ pub struct AgentConfig {
     pub context_policy: ContextPolicy,
 }
 
+fn default_true() -> bool {
+    true
+}
+
 impl Default for AgentConfig {
     fn default() -> Self {
         Self {
             max_steps: 10,
             verbose: false,
             auto_execute_tools: true,
+            runtime_hooks_enabled: true,
             session_timeout_secs: 300,
             session_id: format!("session-{}", antikythera_log::wasm_compat::now_unix_ms()),
             context_policy: ContextPolicy {
@@ -329,6 +341,7 @@ impl From<&antikythera_core::config::schema::AgentConfig> for AgentConfig {
             max_steps: core_config.max_steps,
             verbose: core_config.verbose,
             auto_execute_tools: core_config.auto_execute_tools,
+            runtime_hooks_enabled: true,
             session_timeout_secs: core_config.session_timeout_secs,
             session_id: format!("session-{}", antikythera_log::wasm_compat::now_unix_ms()),
             context_policy: ContextPolicy::default(),

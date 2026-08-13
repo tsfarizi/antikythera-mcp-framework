@@ -203,17 +203,30 @@ tasks:
       - echo "Validating WIT conformance..."
       - cargo run -p build-scripts --release -- validate
 
+  sync-version:
+    desc: Sync npm and python package versions to the Cargo workspace version (single source of truth)
+    cmds:
+      - echo "Syncing npm and python versions from Cargo.toml..."
+      - cargo run -p build-scripts --bin sync-release-version
+
+  sync-version-check:
+    desc: Verify npm and python package versions match the Cargo workspace version (no writes)
+    cmds:
+      - cargo run -p build-scripts --bin sync-release-version -- --check
+
   transpile:
     desc: Transpile composite WASM component to JS bindings with jco
     deps:
       - compose
     cmds:
       - echo "Transpiling composite WASM component with jco..."
-      # jco has no --dts flag (typescript output is default); the 12 -M flags
-      # map every WASI interface the component imports to local stubs under the
-      # output directory (npm/antikythera-sdk/component/wasi-stubs).
+      # jco has no --dts flag (typescript output is default); the 13 -M flags
+      # map the host `runtime-hooks` import to the local runtime-hooks.js stub
+      # plus every WASI interface the component imports to local stubs under
+      # the output directory (npm/antikythera-sdk/component/wasi-stubs).
       - |
         npx jco transpile dist/antikythera-sdk.wasm --out-dir npm/antikythera-sdk/component \
+          -M "antikythera:agent-sdk/runtime-hooks@1.0.0=./runtime-hooks.js" \
           -M "wasi:cli/environment@0.2.3=./wasi-stubs/environment.js" \
           -M "wasi:cli/exit@0.2.3=./wasi-stubs/exit.js" \
           -M "wasi:cli/stderr@0.2.3=./wasi-stubs/stderr.js" \
