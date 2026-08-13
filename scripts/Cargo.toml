@@ -3,6 +3,10 @@ name = "build-scripts"
 version.workspace = true
 edition.workspace = true
 publish = false
+# CI invokes `cargo run -p build-scripts -- release -- validate` without `--bin`;
+# `wit-validator` is the only binary that understands the `validate` argument.
+# `sync-release-version` is always selected explicitly via `--bin` in CI.
+default-run = "wit-validator"
 
 [[bin]]
 name = "wit-validator"
