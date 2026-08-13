@@ -15,6 +15,8 @@
 // wit-bindgen emits pre-2024-edition export shims; the unsafe-op-in-
 // unsafe-fn lint fires inside the generated code, not our wrapper.
 #![allow(unsafe_op_in_unsafe_fn)]
+// Export layer is wasm-gated; dead on native targets.
+#![allow(dead_code)]
 
 wit_bindgen::generate!({
     world: "logic-hooks-component",
@@ -49,4 +51,6 @@ impl exports::antikythera::agent_sdk::logic_hooks::Guest for DefaultHooks {
     }
 }
 
+// Wasm-only: WIT export names break rustc's ld version script on native cdylibs.
+#[cfg(target_family = "wasm")]
 export!(DefaultHooks);

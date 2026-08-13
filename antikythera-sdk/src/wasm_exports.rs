@@ -8,6 +8,10 @@
 // wit-bindgen emits pre-2024-edition export shims; the unsafe-op-in-
 // unsafe-fn lint fires inside the generated code, not our wrapper.
 #![allow(unsafe_op_in_unsafe_fn)]
+// The export layer (Guest impl, unit struct, private helpers) is dead on
+// native targets: `export!` is wasm-gated, so only the generated bindings
+// are consumed there.
+#![allow(dead_code)]
 
 wit_bindgen::generate!({
     world: "antikythera-agent-sdk",
@@ -101,4 +105,10 @@ impl exports::antikythera::agent_sdk::runner::Guest for Runner {
     }
 }
 
+// WIT export names (`antikythera:agent-sdk/runner@1.0.0#...`) contain
+// `:`/`/`/`@`/`#`, which break the GNU ld version script rustc generates for
+// native cdylibs (`; expected, but got :`). The symbols are meaningful only on
+// wasm component targets, so `export!` is gated on the target family; the
+// generated bindings above remain available on native (tests enable `component`).
+#[cfg(target_family = "wasm")]
 export!(Runner);
