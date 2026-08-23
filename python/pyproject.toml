@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "antikythera-agent"
-version = "1.8.4"
+version = "1.8.5"
 description = "General-purpose agent runtime with multi-agent orchestration, MCP tool integration, and WebAssembly support"
 readme = "README.md"
 license = {text = "MIT"}
@@ -38,4 +38,4 @@ Issues = "https://github.com/tsfarizi/antikythera-agent-sdk/issues"
 where = ["."]
 
 [tool.setuptools.package-data]
-antikythera_agent = ["*.pyi", "py.typed", "*.wasm"]
+antikythera_agent = ["*.pyi", "py.typed", "*.wasm", "component/**"]

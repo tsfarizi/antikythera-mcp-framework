@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any, Callable, Optional
 
+from antikythera_agent import host
+
 _WASM_PATH = Path(__file__).parent / "antikythera.wasm"
 
 #: WIT package/interface of the runner export in the composite.
@@ -21,9 +23,12 @@ class WasmRuntime:
 
     Consumes the composite WASM (SDK + toolrunner) through the wasmtime
     component API (``wasmtime.component.Component`` + ``Linker.add_wasip2``),
-    not the core-module ABI. The runner functions are exported under the
-    ``antikythera:agent-sdk/runner@1.0.0`` interface with WIT kebab-case
-    names; ``call`` accepts both snake_case and kebab-case spellings.
+    not the core-module ABI. The composite's single non-WASI import
+    (``antikythera:agent-sdk/runtime-hooks@1.0.0``) is wired from
+    ``antikythera_agent.host`` before instantiation. The runner functions are
+    exported under the ``antikythera:agent-sdk/runner@1.0.0`` interface with
+    WIT kebab-case names; ``call`` accepts both snake_case and kebab-case
+    spellings.
 
     Example:
         >>> runtime = WasmRuntime()
@@ -81,6 +86,7 @@ class WasmRuntime:
 
         self._linker = wasmtime.component.Linker(engine)
         self._linker.add_wasip2()
+        host.add_to_linker(self._linker)
 
         wasi = wasmtime.WasiConfig()
         # WasiConfig.stdout_custom / stderr_custom accept callables invoked

@@ -12,4 +12,4 @@ def get_version() -> str:
     Returns:
         Version string.
     """
-    return "1.8.4"
+    return "1.8.5"

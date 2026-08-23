@@ -94,7 +94,8 @@ class Agent:
         )
 
         try:
-            result_dict = self._runtime.call_checked("agent_run", args)
+            self._runtime.call_checked("init", args)
+            result_dict = self._runtime.call_checked("get_state", args)
             return AgentResult(
                 output=result_dict.get("output", ""),
                 success=result_dict.get("success", False),

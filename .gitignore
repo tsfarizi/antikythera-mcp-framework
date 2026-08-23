@@ -14,3 +14,21 @@ dist/
 app.toml
 antikythera-sdk/src/bindings.rs
 examples/logic-core-template/src/bindings.rs
+
+# Python build artifacts (KONVENSI-01)
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+htmlcov/
+.coverage
+.coverage.*
+.tox/
+.nox/
+.venv/
+venv/
+*.so

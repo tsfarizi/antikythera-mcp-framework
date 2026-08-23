@@ -35,6 +35,12 @@ const wire = require('./types.js');
  * @param {string} [options.systemPrompt] - default system prompt for turns
  * @param {string} [options.continuationPrompt] - prompt used for loop
  *   iterations after a tool result (default '[continue]')
+ * @param {string} [options.componentBase] - absolute URL of the jco bundle
+ *   directory; the entry file is resolved from the server manifest
+ *   (WIRE_PROTOCOL §2.6, decision D5). Client core only; omit to keep the
+ *   bundled component (default).
+ * @param {object} [options.runner] - directly injected runner namespace;
+ *   bypasses the component import entirely (decision D5). Client core only.
  * @returns {Promise<object>} the runtime instance
  */
 async function createAgentRuntime(options = {}) {

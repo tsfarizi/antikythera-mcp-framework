@@ -1,6 +1,6 @@
 {
   "name": "antikythera-agent",
-  "version": "1.8.4",
+  "version": "1.8.5",
   "description": "General-purpose agent runtime with multi-agent orchestration, MCP tool integration, and WebAssembly support",
   "main": "index.js",
   "types": "index.d.ts",

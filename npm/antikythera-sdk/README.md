@@ -47,6 +47,30 @@ The `runner` namespace exposes 16 camelCase functions (all payloads are JSON str
 
 > Note: the transpiled module uses top-level await — set your bundler build target to ES2022 (e.g. Vite `build.target: 'es2022'`).
 
+### Loading the component from a server (`componentBase`)
+
+When the jco bundle is served by an Antikythera server (e.g. the Python
+bridge server) instead of being bundled with this package, point
+`createAgentRuntime` at the bundle directory with `componentBase`:
+
+```javascript
+import { createAgentRuntime } from 'antikythera-agent/runtime';
+
+const runtime = await createAgentRuntime({
+  serverUrl: 'http://localhost:8000',
+  componentBase: 'http://localhost:8000/antikythera/v1/component/',
+});
+```
+
+`componentBase` is the absolute URL of the bundle directory; the entry file
+name is resolved from the server manifest (`GET /antikythera/v1/component/manifest`,
+see `documentation/WIRE_PROTOCOL.md` §2.6), so the client never hardcodes the
+server's bundle layout. When `componentBase` is omitted the runtime keeps
+loading the bundled component (default, backward compatible — the no-option
+path makes no network request). Consumers that already hold a runner namespace
+can inject it directly with the `runner` option to skip the import entirely;
+injection takes precedence over `componentBase`.
+
 ### WASM Initialization (legacy wasm-bindgen, deprecated)
 
 The `antikythera_wasm_bindgen` export is the **legacy** wasm-bindgen browser path (`wasm32-unknown-unknown`). It is deprecated and kept only for compatibility during the transition to the WASI component + jco path above.

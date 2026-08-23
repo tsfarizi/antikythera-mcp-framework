@@ -56,6 +56,12 @@ export {
 /** Where the WASM runner lives. */
 export type CoreMode = 'client' | 'server';
 
+/**
+ * The jco `runner` namespace: the 16 camelCase functions exported by the
+ * component bundle (`antikythera-agent/component`).
+ */
+export type RunnerNamespace = typeof import('../component/interfaces/antikythera-agent-sdk-runner');
+
 export interface LlmOptions {
   provider?: string | null;
   model?: string | null;
@@ -97,6 +103,17 @@ export interface AgentRuntimeOptionsBase {
 export interface ClientCoreOptions extends AgentRuntimeOptionsBase {
   core?: 'client';
   llm?: LlmOptions;
+  /**
+   * Absolute URL of the jco bundle directory; the entry file is resolved from
+   * the server manifest (`GET /antikythera/v1/component/manifest`, WIRE_PROTOCOL
+   * §2.6). Omit to keep the bundled component (default, decision D5).
+   */
+  componentBase?: string;
+  /**
+   * Directly injected runner namespace; bypasses the component import
+   * entirely (decision D5). Takes precedence over `componentBase`.
+   */
+  runner?: RunnerNamespace;
 }
 
 export interface ServerCoreOptions extends AgentRuntimeOptionsBase {

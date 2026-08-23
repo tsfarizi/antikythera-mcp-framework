@@ -17,6 +17,7 @@ const WIRE = {
   TOOLS_EXECUTE: '/antikythera/v1/tools/execute',
   TOOLS_LIST: '/antikythera/v1/tools',
   EVENTS: '/antikythera/v1/events',
+  COMPONENT_MANIFEST: '/antikythera/v1/component/manifest',
   OWNER_CLIENT: 'client',
   OWNER_SERVER: 'server',
   OWNER_MCP: 'mcp',

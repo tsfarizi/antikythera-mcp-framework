@@ -27,6 +27,9 @@ vars:
   LOGIC_CORE_EXAMPLE_BINARY: target/{{.WASM_TARGET}}/release/logic_core_example.wasm
   DIST_SDK: dist/antikythera-sdk.wasm
   DIST_SDK_CUSTOM: dist/antikythera-sdk-custom.wasm
+  # The Python package embeds the composite; runtime.py resolves this exact
+  # path at import time (_WASM_PATH = Path(__file__).parent / "antikythera.wasm").
+  PYTHON_WASM: python/antikythera_agent/antikythera.wasm
   # Path to a built custom logic-hooks component (host-authored override).
   # Empty by default; compose-hooks-custom fails fast until HOOKS_COMPONENT is
   # set explicitly (no silent fallback to an example component).
@@ -65,6 +68,7 @@ tasks:
         echo "  task build-logic-core-example - Build standalone logic-core example WASM artifact"
         echo "  task compose         - Compose SDK + toolrunner + default-hooks into dist/antikythera-sdk.wasm"
         echo "  task compose-hooks-custom - Compose SDK + toolrunner + CUSTOM hooks (HOOKS_COMPONENT=...) into dist/antikythera-sdk-custom.wasm"
+        echo "  task build-python-wasm - Copy composite WASM + jco component bundle into Python package (python/antikythera_agent/)"
         echo "  task build-all       - Build all WASM artifacts (standalone SDK + toolrunner + default-hooks + composite)"
         echo "  task check-wasm      - Check WASM compilation"
         echo "  task transpile       - Transpile composite (dist) to JS bindings with jco"
@@ -188,6 +192,24 @@ tasks:
       - echo ""
       - 'echo "OK composite built: {{.DIST_SDK_CUSTOM}}"'
       - task: size
+
+  build-python-wasm:
+    desc: Copy composite WASM and jco component bundle into the Python package (python/antikythera_agent/)
+    # transpile already depends on compose; depending on both would run compose twice.
+    deps:
+      - transpile
+    cmds:
+      - echo "Copying composite WASM and jco component bundle into Python package..."
+      - cp {{.DIST_SDK}} {{.PYTHON_WASM}}
+      # rm -rf first so a stale transpile output never leaks into the wheel; the
+      # destination is a pure build target, mirroring the release staging step.
+      - |
+        rm -rf python/antikythera_agent/component
+        mkdir -p python/antikythera_agent/component
+        cp -r npm/antikythera-sdk/component/. python/antikythera_agent/component/
+      - echo ""
+      - 'echo "OK composite copied to: {{.PYTHON_WASM}}"'
+      - 'echo "OK jco component bundle copied to: python/antikythera_agent/component"'
 
   build-all:
     desc: Build all WASM artifacts (standalone SDK + toolrunner + default-hooks + composite)

@@ -25,20 +25,119 @@ const { createUnionRegistry } = require('./registry.js');
  * runner from executing tools itself.
  */
 
-let runnerModulePromise = null;
+let bundledRunnerPromise = null;
+const remoteRunnerPromises = new Map();
 
-/** Load the jco-transpiled component once per module instance (WASM singleton). */
-function loadRunnerModule() {
-  if (!runnerModulePromise) {
-    runnerModulePromise = import('../component/antikythera-sdk.js').then((module) => {
-      const runnerNamespace = module.runner;
-      if (!runnerNamespace || typeof runnerNamespace.init !== 'function') {
-        throw new Error('component runner namespace is missing the runner export');
-      }
-      return runnerNamespace;
-    });
+/**
+ * Validate a runner namespace at the entry point (injected or imported). The
+ * runtime calls `init` first, so a missing init must fail here with a clear
+ * message, not mid-session with a TypeError.
+ */
+function assertRunnerNamespace(runnerNamespace, source) {
+  if (!runnerNamespace || typeof runnerNamespace.init !== 'function') {
+    throw new Error(`loadRunnerModule: ${source} runner namespace must expose an init function`);
   }
-  return runnerModulePromise;
+  return runnerNamespace;
+}
+
+/** Load the bundled jco component once per module instance (WASM singleton). */
+function loadBundledRunner() {
+  if (!bundledRunnerPromise) {
+    bundledRunnerPromise = import('../component/antikythera-sdk.js').then((module) =>
+      assertRunnerNamespace(module.runner, 'component'),
+    );
+  }
+  return bundledRunnerPromise;
+}
+
+/** componentBase is an absolute URL directory; exactly one slash precedes the entry file name. */
+function componentEntryUrl(componentBase, entry) {
+  return componentBase.replace(/\/?$/, '/') + entry;
+}
+
+/**
+ * Fetch the jco bundle manifest (WIRE_PROTOCOL §2.6). Called only when the
+ * consumer opted into `componentBase`; any failure here is an explicit error,
+ * never a silent fallback (fallback applies only to the no-option default).
+ */
+async function fetchComponentManifest(serverUrl) {
+  if (typeof serverUrl !== 'string' || !serverUrl) {
+    throw new Error('loadRunnerModule: componentBase requires serverUrl to resolve the manifest');
+  }
+  const url = joinUrl(serverUrl, WIRE.COMPONENT_MANIFEST);
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (err) {
+    throw new Error(
+      `loadRunnerModule: fetch component manifest ${WIRE.COMPONENT_MANIFEST} failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  if (!response.ok) {
+    throw new Error(`loadRunnerModule: component manifest ${WIRE.COMPONENT_MANIFEST} failed (HTTP ${response.status})`);
+  }
+  let manifest;
+  try {
+    manifest = await response.json();
+  } catch (err) {
+    throw new Error(
+      `loadRunnerModule: component manifest ${WIRE.COMPONENT_MANIFEST} is not valid JSON: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  if (typeof manifest.entry !== 'string' || !manifest.entry) {
+    throw new Error('loadRunnerModule: component manifest is missing a non-empty entry field');
+  }
+  return manifest;
+}
+
+/**
+ * Import a component bundle from a resolved URL, cached per URL so two
+ * runtimes sharing one bundle instantiate it once (same singleton semantics
+ * as the bundled path). An import failure is explicit and mentions the URL.
+ */
+function loadRemoteRunner(componentBase, entry) {
+  const url = componentEntryUrl(componentBase, entry);
+  if (!remoteRunnerPromises.has(url)) {
+    remoteRunnerPromises.set(
+      url,
+      import(url).then(
+        (module) => assertRunnerNamespace(module.runner, 'component'),
+        (err) => {
+          throw new Error(
+            `loadRunnerModule: import component bundle '${url}' failed: ${err instanceof Error ? err.message : String(err)}`,
+          );
+        },
+      ),
+    );
+  }
+  return remoteRunnerPromises.get(url);
+}
+
+/**
+ * Load the runner namespace. Priority (D5): injected `runner` > `componentBase`
+ * (entry resolved from the server manifest) > bundled path (default, backward
+ * compatible — the no-option path makes zero network requests).
+ * @param {object} [options]
+ * @param {object} [options.runner] - directly injected runner namespace;
+ *   bypasses the component import
+ * @param {string} [options.componentBase] - absolute URL of the bundle
+ *   directory; the entry file is resolved from the server manifest
+ * @param {string} [options.serverUrl] - server base URL used for the manifest
+ *   fetch; required when `componentBase` is set
+ * @returns {Promise<object>}
+ */
+async function loadRunnerModule(options = {}) {
+  if (options.runner != null) {
+    return assertRunnerNamespace(options.runner, 'injected');
+  }
+  if (options.componentBase != null) {
+    if (typeof options.componentBase !== 'string' || !options.componentBase) {
+      throw new Error('loadRunnerModule: componentBase must be a non-empty absolute URL string');
+    }
+    const manifest = await fetchComponentManifest(options.serverUrl);
+    return loadRemoteRunner(options.componentBase, manifest.entry);
+  }
+  return loadBundledRunner();
 }
 
 /**
@@ -68,6 +167,11 @@ const STREAM_DRAIN_TIMEOUT_MS = 250;
  * @param {number} [options.sessionTimeoutSecs]
  * @param {number} [options.maxInMemorySessions]
  * @param {object} [options.contextPolicy]
+ * @param {string} [options.componentBase] - absolute URL of the jco bundle
+ *   directory; the entry file is resolved from the server manifest
+ *   (WIRE_PROTOCOL §2.6, decision D5). Omit to keep the bundled component.
+ * @param {object} [options.runner] - directly injected runner namespace;
+ *   bypasses the component import entirely (decision D5).
  * @returns {Promise<object>}
  */
 async function createClientCoreRuntime(options) {
@@ -82,7 +186,11 @@ async function createClientCoreRuntime(options) {
   const continuationPrompt = options.continuationPrompt ?? '[continue]';
 
   installRuntimeHooksProvider(options.hooks ?? null);
-  const runner = await loadRunnerModule();
+  const runner = await loadRunnerModule({
+    serverUrl: options.serverUrl,
+    componentBase: options.componentBase,
+    runner: options.runner,
+  });
 
   const listeners = new Set();
   let sessionId = options.sessionId ?? null;

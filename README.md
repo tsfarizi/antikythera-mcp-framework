@@ -38,7 +38,8 @@ flowchart TD
 - Multi-provider LLM support: Ollama (default), OpenAI, and Gemini via feature-gated facade.
 - Multi-agent orchestration with guardrails, resilience, and observability hooks.
 - Streaming support for token/event output and buffered delivery policies.
-- WASM component integration path for host-controlled execution (browser via WASI component + jco, WASI Component Model on the server, Wasmtime sandbox), plus a **Runtime Bridge** for client–server connectivity (Rust server host + JS client host, HTTP + SSE wire protocol).
+- WASM component integration path for host-controlled execution (browser via WASI component + jco, WASI Component Model on the server, Wasmtime sandbox), plus a **Runtime Bridge** (Rust server host + JS client host, HTTP + SSE wire protocol): the core side (client or server) is selected when the runtime is created (`createAgentRuntime({ core: 'client' | 'server' })`), not migrated live, and a running server is required for execution (LLM proxy + SSE control channel).
+- Python SDK bridge (parity 7/7 wire-protocol, E2E jco 3/3): `antikythera_agent.server` (`createAgentServer`, `AgentServer`) is a drop-in peer of the Rust server and serves the jco bundle at `GET /antikythera/v1/component/{path}`; JS clients load it via `createAgentRuntime({ serverUrl, componentBase })` (manifest `GET /antikythera/v1/component/manifest`).
 - Consolidated documentation under `documentation/`.
 
 ## Workspace Layout
@@ -113,6 +114,7 @@ flowchart TD
 | `examples/logic-core-template` | Drop-in runner template (world logic-core-component) |
 | `examples/logic-core-example` | Deterministic drop-in logic core (echo-agent) + swap proof |
 | `examples/logic-core-host-example` | Full custom loop via host-imports (call-llm/save/load/emit-tool-call/log) + permission-gated host implementations |
+| `python/antikythera_agent/server` | Python Runtime Bridge server (drop-in wire-protocol peer + jco component delivery via `GET /antikythera/v1/component/{path}`) |
 
 ## Build and Validate
 

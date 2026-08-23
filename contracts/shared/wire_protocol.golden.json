@@ -135,5 +135,10 @@
       },
       "output_schema": null
     }
-  ]
+  ],
+  "component_manifest": {
+    "base": "/antikythera/v1/component/",
+    "entry": "antikythera-sdk.js",
+    "version": "1.8.5"
+  }
 }

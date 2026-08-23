@@ -7,7 +7,7 @@ composite) MUST conform to this document and to the canonical shapes in
 do not re-define a shape already covered by the golden file or by a WIT
 vocabulary record.
 
-Decision register: see `DECISIONS_RUNTIME_BRIDGE.md`.
+Decision register: see [DECISIONS_RUNTIME_BRIDGE.md](DECISIONS_RUNTIME_BRIDGE.md).
 
 ## 1. Concepts
 
@@ -39,7 +39,8 @@ Decision register: see `DECISIONS_RUNTIME_BRIDGE.md`.
 ## 2. Endpoints
 
 All paths are versioned under `/antikythera/v1`. Content type is
-`application/json` except the SSE stream.
+`application/json` except the SSE stream and the static component files
+(§2.6).
 
 | Method | Path | Purpose | Request body | Response body |
 |---|---|---|---|---|
@@ -50,6 +51,8 @@ All paths are versioned under `/antikythera/v1`. Content type is
 | POST | `/antikythera/v1/events/{correlation-id}/response` | POST-back for server-initiated requests | `{correlation_id, ok, payload, error?}` | empty 204 |
 | POST | `/antikythera/v1/state/{context-id}` | Reserved "future" (decision d, D2) — NOT exposed by this delivery | — | — |
 | GET | `/antikythera/v1/state/{context-id}` | Reserved "future" (decision d, D2) — NOT exposed by this delivery | — | — |
+| GET | `/antikythera/v1/component/manifest` | jco bundle manifest; the client resolves bundle layout from it (D4) | — | `component_manifest` shape |
+| GET | `/antikythera/v1/component/{path}` | Static file serving from the jco bundle directory; MIME by extension (D4) | — | file bytes; MIME per §2.6 |
 
 ### 2.1 `POST /antikythera/v1/llm/call`
 
@@ -147,6 +150,44 @@ POST-back body:
 ```
 
 On gate denial `ok` is `false` and `error` MUST start with `permission:`.
+
+### 2.6 `GET /antikythera/v1/component/manifest` and `GET /antikythera/v1/component/{path}`
+
+Additive jco delivery extension (decision D4 in
+[DECISIONS_RUNTIME_BRIDGE.md](DECISIONS_RUNTIME_BRIDGE.md)). The extension is purely additive: no
+existing endpoint or record shape changes, and existing clients are
+unaffected.
+
+`GET /antikythera/v1/component/manifest` returns the `component_manifest`
+golden shape (canonical example in
+`contracts/shared/wire_protocol.golden.json`):
+
+```json
+{
+  "base": "/antikythera/v1/component/",
+  "entry": "antikythera-sdk.js",
+  "version": "<sdk-version>"
+}
+```
+
+- `base` — URL directory of the jco bundle; every bundle file resolves
+  relative to it.
+- `entry` — file name of the ESM entry inside the bundle.
+- `version` — SDK/bundle version. A mismatch with the client's version is a
+  client-visible skew signal.
+
+`GET /antikythera/v1/component/{path}` serves static files from the bundle
+directory. MIME types are registered here — this endpoint serves file bytes,
+not JSON, so it is the second exception to the §2 content-type rule (after
+the SSE stream):
+
+- `.js` → `text/javascript`
+- `.wasm` → `application/wasm`
+
+The client MUST resolve the bundle layout from the manifest and MUST NOT
+hardcode the directory layout (D4). The resolved `base` can also be injected
+directly via the client option `componentBase` (decision D5) — the detailed
+JS option documentation ships in the JS README (unit U41), not here.
 
 ## 3. Message families
 

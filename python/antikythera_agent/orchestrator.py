@@ -133,7 +133,9 @@ class Orchestrator:
         )
 
         try:
-            result_dict = self._runtime.call_checked("orchestrator_dispatch", args)
+            self._runtime.call_checked("init", args)
+            result_json = self._runtime.call("get_state", args)
+            result_dict = json.loads(result_json)
             return TaskResult(
                 task_id=result_dict.get("task_id", ""),
                 agent_id=result_dict.get("agent_id", ""),
@@ -145,7 +147,7 @@ class Orchestrator:
                 error_kind=result_dict.get("error_kind"),
                 duration_ms=result_dict.get("duration_ms", 0),
             )
-        except WasmRuntimeError as e:
+        except (WasmRuntimeError, json.JSONDecodeError) as e:
             return TaskResult(
                 task_id="",
                 agent_id="",
@@ -213,7 +215,7 @@ class Orchestrator:
     def cancel(self) -> None:
         """Cancel all running tasks."""
         try:
-            self._runtime.call("orchestrator_cancel", "{}")
+            self._runtime.call("reset_session", "{}")
         except WasmRuntimeError:
             pass
 

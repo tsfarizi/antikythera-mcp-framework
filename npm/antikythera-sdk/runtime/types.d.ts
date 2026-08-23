@@ -10,6 +10,7 @@ export const WIRE: {
   TOOLS_EXECUTE: string;
   TOOLS_LIST: string;
   EVENTS: string;
+  COMPONENT_MANIFEST: string;
   OWNER_CLIENT: 'client';
   OWNER_SERVER: 'server';
   OWNER_MCP: 'mcp';

@@ -25,6 +25,20 @@ jobs:
       - run: cargo test --workspace
       - run: cargo clippy --workspace --lib --bins -- -D warnings -D deprecated
 
+  python-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python test dependencies
+        run: pip install -e "python[dev]"
+      - name: Run Python test suite
+        run: python -m pytest python/tests/ -q --basetemp "${{ runner.temp }}/pytest" -p no:cacheprovider
+        env:
+          PYTHONPATH: python
+
   msrv:
     runs-on: ubuntu-latest
     steps:
@@ -120,6 +134,14 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python test dependencies
+        run: pip install -e "python[dev]"
+
       - name: Install npm dependencies
         run: npm install
 
@@ -131,6 +153,9 @@ jobs:
 
       - name: Build default-hooks component
         run: cargo component build -p antikythera-default-hooks --release --target wasm32-wasip1 --no-default-features --features component
+
+      - name: Build logic-core-host-example component
+        run: cargo component build -p logic-core-host-example --release --target wasm32-wasip1 --no-default-features --features component
 
       - name: Compose SDK + toolrunner + default-hooks into dist composite
         shell: bash
@@ -147,10 +172,19 @@ jobs:
             -d target/wasm32-wasip1/release/antikythera-default-hooks.wasm \
             -o dist/antikythera-sdk.wasm
 
+      - name: Build native server-runtime binary (debug)
+        run: |
+          cargo build -p antikythera-server-runtime
+          # runtime-bridge.test.mjs pins the server binary path as
+          # target/debug/antikythera-server-runtime.exe (Windows layout);
+          # cargo emits no .exe suffix on Linux, so alias the native build.
+          cp target/debug/antikythera-server-runtime target/debug/antikythera-server-runtime.exe
+
       - name: Transpile composite WASM component to JS with jco
         run: |
           npx jco transpile dist/antikythera-sdk.wasm \
             --out-dir npm/antikythera-sdk/component \
+            -M "antikythera:agent-sdk/runtime-hooks@1.0.0=./runtime-hooks.js" \
             -M "wasi:cli/environment@0.2.3=./wasi-stubs/environment.js" \
             -M "wasi:cli/exit@0.2.3=./wasi-stubs/exit.js" \
             -M "wasi:cli/stderr@0.2.3=./wasi-stubs/stderr.js" \
@@ -167,6 +201,9 @@ jobs:
       - name: Run composite compatibility tests
         run: cargo test -p antikythera-tests --test compatibility_tests
 
+      - name: Run server runtime bridge acceptance tests
+        run: cargo test -p antikythera-server-runtime --test runtime_bridge
+
       - name: Smoke test transpiled WASM component
         run: |
           node --input-type=module - <<'EOF'
@@ -181,3 +218,9 @@ jobs:
           }
           console.log('NODE_COMPONENT_SMOKE_OK session=' + initResult + ' state_keys=' + Object.keys(state).join(','));
           EOF
+
+      - name: Run Node.js SDK test suites
+        working-directory: npm/antikythera-sdk
+        run: node --test test/
+        env:
+          PYTHONPATH: ${{ github.workspace }}/python

@@ -16,8 +16,9 @@ Locked context (from the audit, findings T1–T5, R1–R6, K1–K2):
 - Transport is HTTP + SSE. SSE is server→client only, so server-initiated
   tool requests to the browser travel over an SSE control channel with
   client POST-back.
-- One active core instance (client OR server); state lives where the core
-  runs. Resources on both sides remain reachable.
+- One active core instance (client OR server); the side is selected when the
+  runtime is created — a running session is not migrated between sides. State
+  lives where the core runs. Resources on both sides remain reachable.
 - Scope = model interaction: LLM routing, tools, hooks. Storage and LLM
   providers stay server-side; ALL LLM calls (including local-dev Ollama)
   proxy through the server.
@@ -118,3 +119,137 @@ assert exactly one non-WASI import.
   (stdio transport is unavailable in the browser) (K2).
 - The tool loop lives in the host runtime, not in the runner
   (`auto_execute_tools=false` pattern) (K1).
+
+## Python Bridge Server + jco Delivery (D1–D6)
+
+Locked for the delivery that adds a drop-in Python bridge server to the
+Runtime Bridge and ships the jco-transpiled bundle to Python users. The
+D-numbers in this section are delivery-local labels and are unrelated to
+the D1/D2 labels inside decision (d).
+
+### Decision D1 — jco bundle delivery to Python users
+
+**Chosen (defensive): ship the jco bundle inside the Python wheel as
+package data; do not transpile at runtime.**
+
+- The transpiled ESM bundle (entry `antikythera-sdk.js`, plus its
+  `runtime-hooks` import stub) is produced once at build time and shipped
+  as package data in the wheel, next to the composite `.wasm` already
+  covered by `[tool.setuptools.package-data]` (`*.wasm`).
+- The wheel is then self-contained: a Python user can serve the bundle to
+  a browser without Node, jco, or any JavaScript toolchain at runtime.
+- **Rejected: transpile at install/runtime** — forces Node and jco onto
+  every Python user, including those who never run the browser path, and
+  moves a build-time concern into install/run.
+- **Rejected: serve the raw composite `.wasm`** — browsers cannot execute
+  a composite WASI component directly; the component must be
+  jco-transpiled before the browser can import it, so the transpiled JS
+  bundle is the unit that ships.
+
+Downstream impact: the wheel gains the jco output as package data and
+grows by the bundle size; the build pipeline gains a jco transpile step
+before packaging; wheel and npm package must be released in lockstep so
+the manifest version always matches the shipped bundle.
+
+### Decision D2 — Python server is a drop-in wire-protocol peer
+
+**Chosen (defensive): the Python server is a drop-in peer of the
+reference server; the wire protocol surface is UNCHANGED.**
+
+- The Python server conforms to `contracts/shared/wire_protocol.golden.json`
+  and [WIRE_PROTOCOL.md](WIRE_PROTOCOL.md); clients cannot tell which
+  implementation answered the request.
+- **Rejected: a new or Python-specific protocol** — would fork the shared
+  contract, force clients to branch per implementation, and invalidate
+  the golden file as the single source of truth.
+
+Downstream impact: any wire-protocol change must be registered here and
+mirrored in BOTH implementations; the Python server must pass the same
+golden contract tests as the reference server; client-side code needs no
+Python-specific branches.
+
+### Decision D3 — Transport default and replaceability
+
+**Chosen (defensive): stdlib `ThreadingHTTPServer` as the default
+transport, behind a transport port/interface.**
+
+- Zero-dependency default: `threading`/`http.server` ship with the
+  stdlib, so the base Python install stays dependency-free.
+- The transport is isolated behind an interface so an asyncio/aiohttp
+  implementation can replace it without touching any other unit.
+- Validity envelope: tens of concurrent SSE clients —
+  `ThreadingHTTPServer` holds one thread per long-lived SSE connection;
+  at or above that scale, swap the transport behind the interface
+  instead of tuning the default.
+- **Rejected: aiohttp as the default transport** — adds a mandatory
+  dependency for a scale this delivery does not target.
+
+Downstream impact: SSE handling must be thread-safe (one long-lived
+connection per handler thread); the transport interface and its
+replacement contract are defined and covered by tests so the swap is
+drop-in.
+
+### Decision D4 — jco delivery as a recorded protocol extension
+
+**Chosen (defensive): additive protocol extension; old shapes unchanged.**
+
+- `GET /antikythera/v1/component/manifest` →
+  `{"base": "/antikythera/v1/component/", "entry": "antikythera-sdk.js",
+  "version": "<sdk-version>"}`.
+- `GET /antikythera/v1/component/{path}` — static file serving; MIME
+  types: `.js` = `text/javascript`, `.wasm` = `application/wasm`.
+- The manifest response shape is added to
+  `contracts/shared/wire_protocol.golden.json` as a new entry; the two
+  endpoints are added to [WIRE_PROTOCOL.md](WIRE_PROTOCOL.md).
+- The extension is additive: it adds endpoints without altering any
+  existing endpoint or record shape.
+- **Rejected: hardcoding the directory layout in the client** — clients
+  would break on any future layout change; the manifest makes the layout
+  a server responsibility that the client resolves at runtime.
+
+Downstream impact: `entry` names the same jco output the npm package
+already ships (`npm/antikythera-sdk/component/antikythera-sdk.js`); the
+server must serve the bundle with the registered MIME types; clients
+resolve bundle paths from the manifest instead of assuming a layout;
+manifest version vs client version skew becomes a client-visible signal.
+
+### Decision D5 — Minimal JS client extension
+
+**Chosen (defensive): additive options on `createAgentRuntime`; default
+behavior unchanged.**
+
+- `componentBase?: string` — absolute URL of the bundle directory; lets
+  the client load the jco bundle from the Python server (resolved from
+  the manifest, or set directly).
+- `runner?: RunnerNamespace` — direct injection of a runner namespace,
+  for consumers that already hold a runner.
+- Defaults remain the bundled path, so existing consumers are untouched
+  (backward compatible).
+- **Rejected: changing the default behavior** — any default change would
+  break existing consumers and violate the drop-in peer property (D2).
+
+Downstream impact: the JS client type declarations gain the two optional
+fields; the client keeps a single code path with the bundled path as the
+fallback; no existing option changes meaning.
+
+### Decision D6 — wasmtime is optional, not mandatory
+
+**Chosen (defensive): core@client does NOT require wasmtime; core@server
+does (optional `[wasm]` extra).**
+
+- core@client mode is static files + HTTP only; it never instantiates a
+  native runtime, so wasmtime is not needed.
+- core@server mode runs the composite on wasmtime, which remains an
+  optional dependency via the existing `[wasm]` extra
+  (`wasmtime>=42.0`).
+- Base install (`pip install antikythera-agent`) stays native-dependency
+  free; the `[wasm]` extra remains the single place where the wasmtime
+  version is pinned.
+- **Rejected: wasmtime as a mandatory dependency** — forces a heavy
+  native dependency on every Python user, including those who only run
+  the client path.
+
+Downstream impact: the server-core path is the only code path that
+touches wasmtime; server-core users must install
+`pip install antikythera-agent[wasm]`; the base wheel keeps its
+zero-dependency install.
