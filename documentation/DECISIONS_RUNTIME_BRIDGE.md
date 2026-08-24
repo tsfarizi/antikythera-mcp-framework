@@ -253,3 +253,31 @@ Downstream impact: the server-core path is the only code path that
 touches wasmtime; server-core users must install
 `pip install antikythera-agent[wasm]`; the base wheel keeps its
 zero-dependency install.
+
+### Decision D7 — Python bridge = server-side peer only (R7)
+
+**Chosen (defensive): the Python package is a server-side wire peer
+only; it ships no SSE-client peer.**
+
+- Context: the Python delivery already serves the LLM proxy, the SSE
+  control channel, and the static jco bundle, with the optional
+  `core@server` loop via wasmtime (D6). That leaves one side of the
+  wire unclaimed: whether the Python package should also embed the
+  SSE-client peer — the host runtime that connects to a server.
+- Decision: it does not. The client-side runtime role stays owned by
+  the JavaScript package (`createAgentRuntime` from
+  `antikythera-agent/runtime`); Python owns the server side of the
+  wire only.
+- Consequences: the wire is asymmetric by design — Python is the
+  server peer, JS is the client peer; there is no SSE-client
+  reimplementation to build or maintain in Python; client-side protocol
+  evolution does not force changes in the Python package beyond shared
+  golden-contract parity (D2); consumers needing a programmatic client
+  compose the JS runtime.
+- This decision is permanent until changed in this register.
+
+Downstream impact: the Python wheel never gains an HTTP/SSE client
+dependency surface; protocol work stays two-sided but role-separated
+(server parity in Python, client behavior in JS); reversing this
+decision requires a new registered entry here plus a deprecation path
+for the JS-only client assumption.

@@ -108,6 +108,10 @@ jobs:
             -M "wasi:io/streams@0.2.3=./wasi-stubs/streams.js" \
             -M "wasi:random/random@0.2.3=./wasi-stubs/random.js"
 
+      # Must run before staging so the published package ships semantic names.
+      - name: Rename transpiled core modules to semantic names
+        run: node scripts/post-transpile-rename.mjs
+
       - name: Stage release artifacts
         shell: bash
         run: |

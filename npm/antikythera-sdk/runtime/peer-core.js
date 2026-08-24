@@ -9,7 +9,7 @@ const {
 } = require('./types.js');
 const { createTransport } = require('./transport.js');
 const { createSseChannel } = require('./sse.js');
-const { createControlHandler, installRuntimeHooksProvider } = require('./control.js');
+const { createControlHandler, acquireRuntimeHooksProvider, releaseRuntimeHooksProvider } = require('./control.js');
 const { createPolicyGate } = require('./policy.js');
 
 /**
@@ -41,7 +41,9 @@ async function createServerCoreRuntime(options) {
   const localEntries = normalizeLocalTools(options.tools);
   const gate = createPolicyGate(options.policy);
 
-  installRuntimeHooksProvider(options.hooks ?? null);
+  // Hooks provider ownership (R3): released only at close() so a coexisting
+  // runtime's provider survives this one's teardown.
+  const hooksOwnerToken = acquireRuntimeHooksProvider(options.hooks ?? null);
 
   const listeners = new Set();
   let connected = false;
@@ -107,7 +109,7 @@ async function createServerCoreRuntime(options) {
       channel = null;
     }
     connected = false;
-    installRuntimeHooksProvider(null);
+    releaseRuntimeHooksProvider(hooksOwnerToken);
   }
 
   return {

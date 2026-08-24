@@ -11,7 +11,7 @@ const { createPolicyGate } = require('./policy.js');
 const { createUnionRegistry } = require('./registry.js');
 const { createTransport } = require('./transport.js');
 const { createSseChannel } = require('./sse.js');
-const { createControlHandler, installRuntimeHooksProvider, wrapHookFunction, invokeHook } = require('./control.js');
+const { createControlHandler, installRuntimeHooksProvider, acquireRuntimeHooksProvider, releaseRuntimeHooksProvider, wrapHookFunction, invokeHook } = require('./control.js');
 const wire = require('./types.js');
 
 /**

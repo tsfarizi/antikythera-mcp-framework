@@ -13,6 +13,12 @@ Kontrak sambungan ke transport (U31):
   percent-encoding bukan urusan unit ini.
 - `is_known_entry(entry)` memverifikasi entry manifest tersedia di bundle.
 
+Amplop fail-fast (desain U1): bundle adalah artefak build, bukan source —
+`manifest()` dan `resolve(ENTRY)` menolak bundle yang belum dibangun
+(`RuntimeError`, remedy: task build-python-wasm). Path non-entry pada
+resolve() dan is_known_entry() tetap lenient (None/False) — pemetaan 404
+tetap urusan transport. Constructor tetap lazy (tanpa I/O).
+
 Batas validitas: file dilayani as-is (dibaca penuh per permintaan, tanpa
 cache atau modifikasi) — sesuai amplop D3 (tens of concurrent clients).
 """
@@ -47,7 +53,10 @@ class ComponentServer:
     """Menyajikan bundle jco (entry + file pendukung) dan manifestnya.
 
     Constructor tidak melakukan I/O (lazy): bundle_dir boleh belum ada di
-    disk — kegagalan baru muncul per permintaan sebagai None dari resolve().
+    disk. Integritas bundle diverifikasi per permintaan oleh
+    `_ensure_entry_available` — manifest() dan resolve(ENTRY) fail-fast;
+    resolve path lain dan is_known_entry() tetap melaporkan ketiadaan
+    sebagai None/False.
     """
 
     def __init__(self, bundle_dir: Optional[Path] = None) -> None:
@@ -55,8 +64,28 @@ class ComponentServer:
             bundle_dir = Path(__file__).resolve().parents[1] / "component"
         self.bundle_dir = Path(bundle_dir).resolve()
 
+    def _ensure_entry_available(self) -> None:
+        """Gate integritas bundle (U1): entry adalah artefak identitas bundle.
+
+        Dua tepi yang ditolak: bundle_dir tidak ada di disk, atau dir ada
+        tetapi ENTRY tidak di dalamnya — keduanya berarti bundle belum
+        dibangun; remedy tunggalnya task build-python-wasm.
+        """
+        if self.bundle_dir.is_dir() and (self.bundle_dir / ENTRY).is_file():
+            return
+        raise RuntimeError(
+            f"Bundle komponen tidak tersedia: {self.bundle_dir} tidak memuat "
+            f"entry {ENTRY!r}. Jalankan task build-python-wasm untuk "
+            f"membangun bundle terlebih dahulu."
+        )
+
     def manifest(self) -> Dict[str, str]:
-        """Manifest bundle — persis shape golden `component_manifest`."""
+        """Manifest bundle — persis shape golden `component_manifest`.
+
+        Raises:
+            RuntimeError: bila bundle belum dibangun (lihat amplop U1).
+        """
+        self._ensure_entry_available()
         return {
             "base": BASE_PATH,
             "entry": ENTRY,
@@ -68,7 +97,12 @@ class ComponentServer:
 
         Menerima path relatif posix-style yang SUDAH di-decode transport.
         Upaya traversal (keluar dari bundle_dir) dikembalikan sebagai None.
+        Permintaan terhadap ENTRY dievaluasi dulu lewat gate integritas
+        (fail-fast U1); path lain mempertahankan perilaku lenient None agar
+        traversal guard dan pemetaan 404 transport tidak berubah.
         """
+        if path == ENTRY:
+            self._ensure_entry_available()
         candidate = self._locate(path)
         if candidate is None:
             return None

@@ -4,14 +4,19 @@
   "description": "General-purpose agent runtime with multi-agent orchestration, MCP tool integration, and WebAssembly support",
   "main": "index.js",
   "types": "index.d.ts",
+  "scripts": {
+    "test": "node --test test/session-manager-remove.test.mjs test/registry-parity.test.mjs test/hooks-ownership.test.mjs test/component-base.test.mjs test/orchestrator-node.test.mjs",
+    "prepublishOnly": "npm run pack-smoke",
+    "pack-smoke": "node ../../scripts/pack-smoke.mjs"
+  },
   "files": [
     "index.js",
     "index.d.ts",
+    "orchestrator.js",
     "antikythera_wasm_bindgen_bg.wasm",
     "antikythera_wasm_bindgen.js",
     "antikythera_wasm_bindgen.d.ts",
     "README.md",
-    "pkg-nodejs",
     "component",
     "runtime"
   ],
@@ -27,7 +32,6 @@
     },
     "./antikythera_wasm_bindgen": {
       "browser": { "types": "./antikythera_wasm_bindgen.d.ts", "default": "./antikythera_wasm_bindgen.js" },
-      "node": { "types": "./pkg-nodejs/antikythera_wasm_bindgen.d.ts", "default": "./pkg-nodejs/antikythera_wasm_bindgen.js" },
       "default": { "types": "./antikythera_wasm_bindgen.d.ts", "default": "./antikythera_wasm_bindgen.js" }
     },
     "./package.json": "./package.json"

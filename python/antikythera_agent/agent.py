@@ -2,19 +2,20 @@
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
-from antikythera_agent.types import AgentConfig, AgentResult
+from antikythera_agent.local_loop import LocalLoopConfig, ToolLoopError, run_local_loop
 from antikythera_agent.runtime import WasmRuntime, WasmRuntimeError
+from antikythera_agent.server.gate import PermissionDeniedError
+from antikythera_agent.types import AgentConfig, AgentResult
 
 
 class Agent:
     """Single agent execution runtime.
 
     Creates and runs an agent with a specific provider and model configuration.
-    Handles prompt processing, tool calls, and response generation.
+    Handles prompt processing, tool calls, and response generation through the
+    local tool loop engine (`antikythera_agent.local_loop`).
 
     Example:
         >>> agent = Agent(provider="openai", model="gpt-4o")
@@ -29,6 +30,8 @@ class Agent:
         system_prompt: Optional[str] = None,
         max_steps: int = 8,
         timeout: int = 60000,
+        session_id: Optional[str] = None,
+        provider_resolver: Optional[Callable[[Optional[str]], Any]] = None,
     ):
         """Create a new Agent instance.
 
@@ -38,7 +41,22 @@ class Agent:
             system_prompt: Optional system prompt override.
             max_steps: Maximum reasoning steps.
             timeout: Request timeout in milliseconds.
+            session_id: Optional session identifier for continuity; when
+                omitted, the runner creates one and it is reused across runs.
+            provider_resolver: Optional resolver `(name) -> LlmProvider`;
+                defaults to `server.provider.resolve_provider`.
         """
+        if not isinstance(provider, str) or not provider:
+            raise ValueError("provider must be a non-empty string")
+        if not isinstance(model, str):
+            raise TypeError("model must be a string")
+        if not model:
+            raise ValueError("model must be a non-empty string")
+        if not isinstance(max_steps, int) or isinstance(max_steps, bool) or max_steps < 0:
+            raise ValueError("max_steps must be a non-negative integer")
+        if not isinstance(timeout, int) or isinstance(timeout, bool) or timeout < 0:
+            raise ValueError("timeout must be a non-negative integer")
+
         self._config = AgentConfig(
             provider=provider,
             model=model,
@@ -46,6 +64,11 @@ class Agent:
             max_steps=max_steps,
             timeout=timeout,
         )
+        # `AgentConfig` has no session field (frozen types contract); the
+        # instance-level session lives here and is refreshed after each
+        # successful run so consecutive runs continue the same session.
+        self._session_id = session_id
+        self._provider_resolver = provider_resolver
         self._runtime = WasmRuntime()
 
     @classmethod
@@ -71,46 +94,57 @@ class Agent:
 
         Args:
             prompt: The user's input prompt.
-            session_id: Optional session ID for conversation continuity.
+            session_id: Optional session ID override for this run.
 
         Returns:
-            Agent execution result.
+            Agent execution result. Infallible per S6: loop/LLM/tool failures
+            surface as `success=False` with `error`, never as an exception.
 
         Raises:
-            RuntimeError: If WASM execution fails.
+            TypeError: If `prompt` is not a string (program error pre-loop).
+            ValueError: If `prompt` is empty (program error pre-loop).
         """
-        args = json.dumps(
-            {
-                "config": {
-                    "provider": self._config.provider,
-                    "model": self._config.model,
-                    "system_prompt": self._config.system_prompt,
-                    "max_steps": self._config.max_steps,
-                    "timeout": self._config.timeout,
-                },
-                "prompt": prompt,
-                "session_id": session_id,
-            }
-        )
+        if not isinstance(prompt, str):
+            raise TypeError("prompt must be a string")
+        if not prompt:
+            raise ValueError("prompt must be a non-empty string")
 
+        effective_session_id = (
+            session_id if session_id is not None else self._session_id
+        )
+        loop_config = LocalLoopConfig(
+            session_id=effective_session_id or "",
+            max_steps=self._config.max_steps,
+            provider=self._config.provider,
+            model=self._config.model,
+            system_prompt=self._config.system_prompt,
+            timeout=self._config.timeout,
+            prompts=[prompt],
+        )
         try:
-            self._runtime.call_checked("init", args)
-            result_dict = self._runtime.call_checked("get_state", args)
-            return AgentResult(
-                output=result_dict.get("output", ""),
-                success=result_dict.get("success", False),
-                steps_used=result_dict.get("steps_used", 0),
-                session_id=result_dict.get("session_id", ""),
-                error=result_dict.get("error"),
+            outcome = run_local_loop(
+                self._runtime,
+                self._provider_resolver,
+                None,
+                None,
+                loop_config,
             )
-        except WasmRuntimeError as e:
+        except (ToolLoopError, WasmRuntimeError, PermissionDeniedError) as e:
             return AgentResult(
                 output="",
                 success=False,
                 steps_used=0,
-                session_id=session_id or "",
+                session_id=effective_session_id or "",
                 error=str(e),
             )
+        self._session_id = outcome.session_id
+        return AgentResult(
+            output=outcome.content or "",
+            success=True,
+            steps_used=outcome.steps,
+            session_id=outcome.session_id,
+            error=None,
+        )
 
     def get_config(self) -> AgentConfig:
         """Get the agent's configuration.

@@ -26,6 +26,27 @@ Suite ini memfalsifikasi klausa kontrak berikut:
 4. API publik Python (konstruktor, `from_config`, `run`/`dispatch`,
    tipe `AgentResult`/`TaskResult` dari `types.py`) dipertahankan.
 
+Status pasca realign E1 (delegasi penuh): `agent.py` tidak lagi memuat
+panggilan runner apa pun; seluruh panggilan ekspor WASM tingkat Agent kini
+dimiliki `antikythera_agent/local_loop.py::run_local_loop`. Klausa statis
+source-contract Agent diganti tiga bentuk baru: (i) source `agent.py` NOL
+panggilan `call`/`call_checked` langsung sama sekali; (ii) semua nama
+ekspor WASM yang dipakai tingkat Agent berada di `local_loop.py` dan
+semuanya anggota 16 ekspor valid WIT; (iii) `agent.py` mengimpor
+`run_local_loop` dari `local_loop`.
+
+Deviasi harness yang dideklarasikan (temuan mekanis pasca-E1, bukan
+penyimpangan klausa): port lama `call_checked` tidak lagi dilalui `Agent`,
+sehingga mock agent-level diperbarui ke protokol runner loop (`init` ->
+`prepare_user_turn` -> `commit_llm_response` -> `drain_events`) pada port
+`call`, resolusi LLM dikontrol lewat kwarg publik `provider_resolver`
+(amanemen kontrak E1), override FailingMock Agent pindah
+`call_checked`->`call`, dan `steps_used` happy-path Agent menjadi 1
+(satu iterasi final; `Agent.run` selalu memakai `registry=None` sehingga
+putaran tool tidak tersedia di unit ini). Klaim tiap test behavioral
+(subset-valid, tanpa nama terlarang, parsing `AgentResult`/`TaskResult`,
+error path infallible S6) dipertahankan apa adanya.
+
 Metode: MOCK `WasmRuntime` (substitusi instance pada port `_runtime`). Tidak
 ada komposit/wasmtime yang dibutuhkan; respons shape JSON dihasilkan oleh
 mock sesuai kontrak ekspor. Hanya test yang ditulis — `agent.py`,
@@ -44,6 +65,7 @@ from antikythera_agent import Agent, Orchestrator
 from antikythera_agent.agent import Agent as AgentClass
 from antikythera_agent.orchestrator import Orchestrator as OrchestratorClass
 from antikythera_agent.runtime import WasmRuntimeError
+from antikythera_agent.server.provider import StubProvider
 from antikythera_agent.types import (
     AgentConfig,
     AgentProfileConfig,
@@ -57,6 +79,8 @@ from antikythera_agent.types import (
 _PYTHON_DIR = Path(__file__).resolve().parents[1]
 _AGENT_SOURCE = _PYTHON_DIR / "antikythera_agent" / "agent.py"
 _ORCHESTRATOR_SOURCE = _PYTHON_DIR / "antikythera_agent" / "orchestrator.py"
+# Pasca-E1: pemilik tunggal panggilan ekspor WASM tingkat Agent.
+_LOCAL_LOOP_SOURCE = _PYTHON_DIR / "antikythera_agent" / "local_loop.py"
 
 # 16 ekspor runner yang SAH (dari `wit/antikythera.wit` interface `runner`
 # dan `antikythera-sdk/src/wasm_exports.rs`).
@@ -102,6 +126,14 @@ class MockRuntime:
     `WasmRuntimeError("Export '<snake>' not found in WASM")` — sehingga
     behavior test memperlakukan panggilan terlarang persis seperti runtime
     nyata, sekaligus merekamnya untuk asersi subset-valid.
+
+    Pasca-E1 (deviasi harness terdeklarasi): port `call` juga mensimulasikan
+    protokol runner yang kini dimiliki `local_loop.run_local_loop` —
+    `init` -> session id, `prepare_user_turn` -> prepared turn,
+    `commit_llm_response` -> aksi final bercontent dari `agent_response`,
+    `drain_events` -> daftar event kosong. Nama lain mempertahankan fallback
+    lama (`json.dumps(task_response)`) sehingga jalur orchestrator
+    (`get_state`, `reset_session`, `call_checked("init")`) tidak berubah.
     """
 
     def __init__(self, agent_response: dict | None = None,
@@ -131,6 +163,19 @@ class MockRuntime:
         if _normalize(func_name) not in VALID_RUNNER_EXPORTS:
             raise WasmRuntimeError(
                 f"Export '{func_name}' not found in WASM")
+        # Protokol runner local_loop pasca-E1 (port `call`).
+        if func_name == "init":
+            return self.agent_response["session_id"]
+        if func_name == "prepare_user_turn":
+            return json.dumps({"messages_json": "[]"})
+        if func_name == "commit_llm_response":
+            return json.dumps({
+                "action": "final",
+                "content": self.agent_response.get("output"),
+            })
+        if func_name == "drain_events":
+            return "[]"
+        # Fallback lama: shape task untuk panggilan non-loop.
         return json.dumps(self.task_response)
 
     def call_checked(self, func_name: str, args: str) -> dict:
@@ -153,7 +198,12 @@ def _install_mock(instance, mock: MockRuntime) -> MockRuntime:
 
 
 # ---------------------------------------------------------------------------
-# 1. STATIC ASSERTION — klausa: hanya ekspor runner sah yang dipanggil.
+# 1. STATIC ASSERTION — klausa source-contract pasca-E1:
+#    (i) agent.py nol panggilan runner langsung;
+#    (iii) agent.py mengimpor run_local_loop dari local_loop;
+#    (ii) seluruh nama ekspor WASM tingkat Agent (kini milik local_loop.py)
+#    adalah anggota 16 ekspor runner sah. Orchestrator tetap:
+#    hanya ekspor sah yang dipanggil.
 # ---------------------------------------------------------------------------
 def _extract_wasm_calls(source: str) -> list[str]:
     """Ekstrak nama fungsi yang diteruskan ke `call(` / `call_checked(`."""
@@ -163,6 +213,22 @@ def _extract_wasm_calls(source: str) -> list[str]:
     return pattern.findall(source)
 
 
+def _extract_import_names(source: str, module: str) -> list[str]:
+    """Ekstrak nama yang diimpor `from <module> import ...` (baris tunggal,
+    dukung kurung satu baris dan alias `as`)."""
+    pattern = re.compile(
+        rf"from\s+{re.escape(module)}\s+import\s+\(?([^\n()]+?)\)?\s*$",
+        re.MULTILINE,
+    )
+    names: list[str] = []
+    for match in pattern.finditer(source):
+        for piece in match.group(1).split(","):
+            name = piece.split(" as ")[0].strip()
+            if name:
+                names.append(name)
+    return names
+
+
 def test_source_agent_does_not_call_forbidden_agent_run():
     """agent.py TIDAK memanggil `agent_run` sebagai nama fungsi WASM."""
     source = _AGENT_SOURCE.read_text(encoding="utf-8")
@@ -170,15 +236,42 @@ def test_source_agent_does_not_call_forbidden_agent_run():
         "agent.py masih memanggil ekspor WASM yang tidak ada: 'agent_run'")
 
 
-def test_source_agent_all_wasm_calls_are_valid_exports():
-    """Setiap `call`/`call_checked` di agent.py menunjuk ekspor runner sah."""
+def test_source_agent_has_no_direct_wasm_runtime_calls():
+    """Klausa (i): pasca-E1 agent.py NOL panggilan `runtime.call`/
+    `call_checked` langsung sama sekali — delegasi penuh ke
+    `local_loop.run_local_loop`."""
     source = _AGENT_SOURCE.read_text(encoding="utf-8")
     calls = _extract_wasm_calls(source)
-    assert calls, "agent.py tidak memanggil fungsi WASM apa pun"
+    assert not calls, (
+        f"agent.py masih memanggil runner secara langsung (literal): {calls} "
+        "(pasca-E1 semua panggilan ekspor harus dimiliki local_loop)")
+    # Ketat: bentuk sintaktik apa pun (termasuk argumen non-literal) juga
+    # dilarang — pemanggilan via variabel akan lolos ekstraksi literal.
+    assert ".call(" not in source and ".call_checked(" not in source, (
+        "agent.py memuat bentuk panggilan `.call(`/`.call_checked(` langsung "
+        "(pasca-E1 harus nol)")
+
+
+def test_source_local_loop_all_wasm_calls_are_valid_exports():
+    """Klausa (ii): semua nama ekspor WASM yang dipakai tingkat Agent —
+    pasca-E1 seluruhnya di local_loop.py — adalah anggota 16 ekspor sah."""
+    source = _LOCAL_LOOP_SOURCE.read_text(encoding="utf-8")
+    calls = _extract_wasm_calls(source)
+    assert calls, "local_loop.py tidak memanggil fungsi WASM apa pun"
     normalized = {_normalize(c) for c in calls}
     assert normalized <= VALID_RUNNER_EXPORTS, (
-        f"agent.py memanggil ekspor WASM tidak sah: "
+        f"local_loop.py memanggil ekspor WASM tidak sah: "
         f"{sorted(normalized - VALID_RUNNER_EXPORTS)}")
+
+
+def test_source_agent_imports_run_local_loop_from_local_loop():
+    """Klausa (iii): agent.py mengimpor `run_local_loop` dari
+    `antikythera_agent.local_loop` — rantai delegasi E1 terhubung."""
+    source = _AGENT_SOURCE.read_text(encoding="utf-8")
+    imported = _extract_import_names(source, "antikythera_agent.local_loop")
+    assert "run_local_loop" in imported, (
+        "agent.py tidak mengimpor 'run_local_loop' dari "
+        "'antikythera_agent.local_loop' — delegasi E1 terputus")
 
 
 def test_source_orchestrator_does_not_call_forbidden_exports():
@@ -205,8 +298,16 @@ def test_source_orchestrator_all_wasm_calls_are_valid_exports():
 # ---------------------------------------------------------------------------
 def test_agent_run_calls_only_valid_exports_and_parses_result(mock_runtime):
     """Agent.run -> semua nama fungsi terekam termasuk ekspor sah, TIDAK
-    termasuk agent-run; AgentResult di-parse dari respons mock."""
-    agent = Agent(provider="openai", model="gpt-4o")
+    termasuk agent-run; AgentResult di-parse dari respons mock.
+
+    Pasca-E1: delegasi penuh ke `run_local_loop` — resolusi LLM dikontrol
+    via kwarg publik `provider_resolver` (seam amanemen E1), dan
+    `steps_used` faktual = 1 (satu iterasi final; `Agent.run` memakai
+    `registry=None` sehingga putaran tool tidak tersedia).
+    """
+    stub = StubProvider("{}")  # content diabaikan; commit dari mock runner
+    agent = Agent(provider="openai", model="gpt-4o",
+                  provider_resolver=lambda name: stub)
     _install_mock(agent, mock_runtime)
 
     result = agent.run("hi")
@@ -222,7 +323,7 @@ def test_agent_run_calls_only_valid_exports_and_parses_result(mock_runtime):
     # Parse respons mock ke AgentResult.
     assert result.success is True
     assert result.output == "mock agent output"
-    assert result.steps_used == 3
+    assert result.steps_used == 1
     assert result.session_id == "sess-agent-1"
     assert result.error is None
 
@@ -230,7 +331,7 @@ def test_agent_run_calls_only_valid_exports_and_parses_result(mock_runtime):
 def test_agent_run_error_path_returns_success_false():
     """Agent.run error path -> AgentResult(success=False, error=...)."""
     class FailingMock(MockRuntime):
-        def call_checked(self, func_name, args):
+        def call(self, func_name, args):  # pasca-E1: loop memakai port `call`
             self.calls.append(func_name)
             raise WasmRuntimeError(f"Export '{func_name}' not found in WASM")
 

@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "allowJs": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": [],
+    "paths": {
+      "node:test": ["./test/shims/node-test.ts"]
+    }
+  },
+  "include": [
+    "index.d.ts",
+    "runtime/**/*.d.ts",
+    "test/shims/**/*.ts",
+    "test/shims/**/*.d.ts",
+    "test/types/**/*.ts"
+  ]
+}

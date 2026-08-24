@@ -261,6 +261,10 @@ tasks:
           -M "wasi:io/error@0.2.3=./wasi-stubs/error.js" \
           -M "wasi:io/streams@0.2.3=./wasi-stubs/streams.js" \
           -M "wasi:random/random@0.2.3=./wasi-stubs/random.js"
+      # jco emits opaque numbered core modules; rename to semantic names
+      # (runner / tool-registry / logic-hooks-passthrough / support-N) and
+      # rewrite the './antikythera-sdk.coreN.wasm' literals in the loader.
+      - node scripts/post-transpile-rename.mjs
       - echo ""
       - echo "✓ Transpiled to npm/antikythera-sdk/component"
 

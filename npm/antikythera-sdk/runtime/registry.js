@@ -8,7 +8,56 @@ const { WIRE } = require('./types.js');
  * owner in {server, client, mcp}; a cross-side name collision is an explicit
  * error. The merged list is pushed to the runner in a single `register-tools`
  * call (register-tools replaces the whole registry).
+ *
+ * Parity contract (mirrors python/antikythera_agent/server/registry.py and
+ * antikythera-server-runtime/src/registry.rs):
+ * - every definition is normalized to the golden 6-key shape;
+ * - stored values are deep copies, so caller-side mutation cannot leak in and
+ *   consumer-side mutation of toDefinitions() output cannot leak back in;
+ * - toDefinitions() is sorted ascending by name (R5 determinism);
+ * - a cross-owner collision throws the canonical Rust message with the
+ *   EXISTING owner named first; same-owner re-registration replaces.
  */
+
+/** Golden default input_schema when a definition provides none. */
+const DEFAULT_INPUT_SCHEMA = Object.freeze({
+  type: 'object',
+  properties: {},
+  required: [],
+});
+
+/**
+ * Canonical R5 collision message (registry.rs:88-93); the existing owner is
+ * always named first, the incoming owner second.
+ */
+function collisionMessage(name, existingOwner, owner) {
+  return `tool registry: name collision for tool '${name}' (owners ${existingOwner}, ${owner})`;
+}
+
+/**
+ * Validate a definition and reduce it to the golden 6-key shape
+ * (`_normalize_definition` parity). Given values are kept as-is; only absent
+ * fields fall back to defaults.
+ */
+function normalizeDefinition(definition) {
+  if (!definition || typeof definition !== 'object') {
+    throw new Error('registry: tool definition requires an object');
+  }
+  if (typeof definition.name !== 'string' || !definition.name) {
+    throw new Error('registry: tool definition requires a name');
+  }
+  if (typeof definition.description !== 'string' || !definition.description) {
+    throw new Error('registry: tool definition requires a description');
+  }
+  return {
+    name: definition.name,
+    title: definition.title ?? null,
+    description: definition.description,
+    parameters: definition.parameters ?? [],
+    input_schema: definition.input_schema ?? DEFAULT_INPUT_SCHEMA,
+    output_schema: definition.output_schema ?? null,
+  };
+}
 
 /**
  * @param {object} options
@@ -26,16 +75,12 @@ function createUnionRegistry(options = {}) {
   const byName = new Map();
 
   function add(definition, owner) {
-    if (!definition || typeof definition.name !== 'string' || !definition.name) {
-      throw new Error('registry: tool definition requires a name');
-    }
-    const existing = byName.get(definition.name);
+    const normalized = structuredClone(normalizeDefinition(definition));
+    const existing = byName.get(normalized.name);
     if (existing && existing.owner !== owner) {
-      throw new Error(
-        `tool registry collision: tool '${definition.name}' owned by '${existing.owner}' and '${owner}'`,
-      );
+      throw new Error(collisionMessage(normalized.name, existing.owner, owner));
     }
-    byName.set(definition.name, { owner, definition });
+    byName.set(normalized.name, { owner, definition: normalized });
   }
 
   for (const entry of options.localEntries ?? []) {
@@ -50,7 +95,9 @@ function createUnionRegistry(options = {}) {
 
   return {
     toDefinitions() {
-      return [...byName.values()].map((entry) => entry.definition);
+      return [...byName.values()]
+        .map((entry) => structuredClone(entry.definition))
+        .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     },
     ownerOf(name) {
       return byName.get(name)?.owner;

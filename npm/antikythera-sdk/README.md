@@ -73,7 +73,7 @@ injection takes precedence over `componentBase`.
 
 ### WASM Initialization (legacy wasm-bindgen, deprecated)
 
-The `antikythera_wasm_bindgen` export is the **legacy** wasm-bindgen browser path (`wasm32-unknown-unknown`). It is deprecated and kept only for compatibility during the transition to the WASI component + jco path above.
+The `antikythera_wasm_bindgen` export is the **legacy** wasm-bindgen browser path (`wasm32-unknown-unknown`). It is deprecated and kept only for compatibility during the transition to the WASI component + jco path above. The package-export `node` condition for this entry has been removed (D3): resolvers can only match its `browser` or `default` condition, both pointing at the deprecated browser glue. There is no Node-native execution path behind this export.
 
 ```javascript
 import init from 'antikythera-agent/antikythera_wasm_bindgen';
@@ -85,30 +85,47 @@ await init();
 ### Multi-Agent Orchestration
 
 ```javascript
-const { PromptManager, Orchestrator } = require('antikythera-agent');
+const { Orchestrator } = require('antikythera-agent');
 
-const prompts = new PromptManager();
-prompts.register({ id: 'coder', name: 'Coder', content: 'You are a software engineer.' });
-prompts.register({ id: 'reviewer', name: 'Reviewer', content: 'You are a code reviewer.' });
-
-const orchestrator = new Orchestrator({ executionMode: 'auto' });
+const orchestrator = new Orchestrator({
+  serverUrl: 'http://localhost:8000', // required
+  executionMode: 'concurrent',
+  maxConcurrentTasks: 2
+});
 
 orchestrator.registerAgent({
   id: 'coder',
   name: 'Coder',
   role: 'developer',
-  systemPrompt: prompts.getContent('coder')
+  systemPrompt: 'You are a software engineer.'
 });
 
 orchestrator.registerAgent({
   id: 'reviewer',
   name: 'Reviewer',
   role: 'reviewer',
-  systemPrompt: prompts.getContent('reviewer')
+  systemPrompt: 'You are a code reviewer.'
 });
 
-const result = await orchestrator.dispatch('Write and review code');
+// Dispatching acquires and connects one client-core runtime per profile
+// automatically — there is no separate connect() step.
+const results = await orchestrator.dispatchMany([
+  'Write a sorting algorithm',
+  'Explain big-O notation'
+]);
+
+for (const result of results) {
+  console.log(result.taskId, result.success, result.output);
+}
+
+console.log(orchestrator.getBudget()); // { consumedSteps, dispatchedTasks, ... }
+
+// Reset every recorded session (idempotent), then close the live runtimes.
+await orchestrator.cancel();
+orchestrator.close();
 ```
+
+`pipeline(tasks)` chains tasks sequentially, feeding each output into the next prompt and stopping at the first failed task. The runtime seam is injectable via the `runtimeFactory` option for consumers that need custom client-core runtimes.
 
 ### Load Prompts from JSON
 
@@ -126,8 +143,9 @@ const prompts = PromptManager.fromJSON('[{"id":"agent","name":"Agent","content":
 
 | File | Description |
 |:-----|:------------|
-| `index.js` | Main exports (PromptManager, SessionManager) |
-| `component/` | Composite WASI component (SDK runner + embedded toolrunner + default-hooks) transpiled with jco — ESM bindings, namespace `runner` (camelCase), WASI stubs under `wasi-stubs/` |
+| `index.js` | Main exports (PromptManager, SessionManager, Orchestrator, createAgentRuntime, getVersion) |
+| `orchestrator.js` | Multi-agent `Orchestrator` (requires `serverUrl`; `dispatch` / `dispatchMany` / `pipeline` / `getBudget` / `cancel` / `close`) |
+| `component/` | Composite WASI component (SDK runner + embedded toolrunner + default-hooks) transpiled with jco — ESM bindings, namespace `runner` (camelCase), semantic core-module names (`runner`, `tool-registry`, `logic-hooks-passthrough`, `support-N`) assigned by `scripts/post-transpile-rename.mjs`, WASI stubs under `wasi-stubs/` |
 | `antikythera_wasm_bindgen.js` | **Legacy** wasm-bindgen WASM glue code for browser (deprecated) |
 | `antikythera_wasm_bindgen_bg.wasm` | **Legacy** browser WASM binary (deprecated) |
 

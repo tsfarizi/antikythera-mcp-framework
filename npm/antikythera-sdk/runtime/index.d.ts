@@ -19,6 +19,8 @@ export {
   ControlHandlerOptions,
   PermissionGate,
   installRuntimeHooksProvider,
+  acquireRuntimeHooksProvider,
+  releaseRuntimeHooksProvider,
   wrapHookFunction,
   invokeHook,
   RuntimeHooks,

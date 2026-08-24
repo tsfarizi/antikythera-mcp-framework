@@ -12,6 +12,12 @@ export function installRuntimeHooksProvider(
   hooks: RuntimeHooks | null,
 ): void;
 
+/** Register a hooks owner and publish it as the active provider; returns an opaque ownership token. */
+export function acquireRuntimeHooksProvider(hooks: RuntimeHooks | null): object;
+
+/** Drop a hooks owner (unknown token = no-op); restores the previous provider, clears at zero owners. */
+export function releaseRuntimeHooksProvider(token: object): boolean;
+
 export interface RuntimeHooks {
   prepareTurn?: (requestJson: string, sessionStateJson: string) => unknown;
   decideAction?: (sessionStateJson: string, llmResponseJson: string) => unknown;

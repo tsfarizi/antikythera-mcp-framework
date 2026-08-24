@@ -340,7 +340,7 @@ test('U62#2 rantai penuh: manifest dari server Python -> bundle nyata -> connect
     assert.ok(entryText.includes('export'), 'served entry must contain ESM exports');
 
     // (4b) bukti HTTP langsung: wasm tersaji (status 200, application/wasm)
-    const wasmRes = await fetch(httpComponentBase + 'antikythera-sdk.core.wasm');
+    const wasmRes = await fetch(httpComponentBase + 'antikythera-sdk.runner.core.wasm');
     assert.equal(wasmRes.status, 200);
     assert.equal(wasmRes.headers.get('content-type'), 'application/wasm');
     const wasmMagic = Buffer.from(await wasmRes.arrayBuffer()).subarray(0, 4).toString('hex');
@@ -422,7 +422,7 @@ test('U62#3 bukti MIME: respons .js = text/javascript dan .wasm = application/wa
     assert.equal(submoduleRes.headers.get('content-type'), 'text/javascript');
 
     // .wasm = application/wasm + magic bytes nyata
-    const wasmRes = await fetch(base + 'antikythera-sdk.core.wasm');
+    const wasmRes = await fetch(base + 'antikythera-sdk.runner.core.wasm');
     assert.equal(wasmRes.status, 200);
     assert.equal(wasmRes.headers.get('content-type'), 'application/wasm');
     const wasmMagic = Buffer.from(await wasmRes.arrayBuffer()).subarray(0, 4).toString('hex');

@@ -604,7 +604,7 @@ def bundle_dir(tmp_path):
     d = tmp_path / "component"
     d.mkdir()
     (d / "antikythera-sdk.js").write_bytes(JS_BYTES)
-    (d / "antikythera-sdk.core.wasm").write_bytes(WASM_BYTES)
+    (d / "antikythera-sdk.runner.core.wasm").write_bytes(WASM_BYTES)
     (d / "my file.js").write_bytes(b"space-file")
     return d
 

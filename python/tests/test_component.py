@@ -40,7 +40,7 @@ _GOLDEN_PATH = (
 GOLDEN = json.loads(_GOLDEN_PATH.read_text(encoding="utf-8"))
 
 ENTRY_NAME = "antikythera-sdk.js"
-WASM_NAME = "antikythera-sdk.core.wasm"
+WASM_NAME = "antikythera-sdk.runner.core.wasm"
 JS_BYTES = b'export const sdk = "test";\n'
 WASM_BYTES = b"\x00asm\x01\x00\x00\x00"
 

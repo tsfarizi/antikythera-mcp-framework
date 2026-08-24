@@ -14,7 +14,7 @@ const {
 } = require('./types.js');
 const { createTransport } = require('./transport.js');
 const { createSseChannel } = require('./sse.js');
-const { createControlHandler, installRuntimeHooksProvider } = require('./control.js');
+const { createControlHandler, acquireRuntimeHooksProvider, releaseRuntimeHooksProvider } = require('./control.js');
 const { createPolicyGate } = require('./policy.js');
 const { createUnionRegistry } = require('./registry.js');
 
@@ -185,7 +185,9 @@ async function createClientCoreRuntime(options) {
   const maxSteps = options.maxSteps ?? 10;
   const continuationPrompt = options.continuationPrompt ?? '[continue]';
 
-  installRuntimeHooksProvider(options.hooks ?? null);
+  // Hooks provider ownership (R3): the token is held for the runtime's whole
+  // lifetime so a coexisting runtime's provider survives this one's teardown.
+  const hooksOwnerToken = acquireRuntimeHooksProvider(options.hooks ?? null);
   const runner = await loadRunnerModule({
     serverUrl: options.serverUrl,
     componentBase: options.componentBase,
@@ -494,7 +496,6 @@ async function createClientCoreRuntime(options) {
     }
     sessionId = null;
     connected = false;
-    installRuntimeHooksProvider(null);
     return removed;
   }
 
@@ -504,7 +505,7 @@ async function createClientCoreRuntime(options) {
       channel = null;
     }
     connected = false;
-    installRuntimeHooksProvider(null);
+    releaseRuntimeHooksProvider(hooksOwnerToken);
   }
 
   const runtime = {

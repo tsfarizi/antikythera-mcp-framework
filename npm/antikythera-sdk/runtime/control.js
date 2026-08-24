@@ -39,31 +39,120 @@ function wrapHookFunction(hook) {
   };
 }
 
+const RUNTIME_HOOKS_PROVIDER_SLOT = '__ANTIKYTHERA_RUNTIME_HOOKS_PROVIDER__';
+const RUNTIME_HOOK_FN_NAMES = ['prepareTurn', 'decideAction', 'handleToolResult'];
+
 /**
- * Inject the client hooks provider into the WASM host stub. Absence of a
- * provider (or of any hook function) REMOVES the global provider — a stale
- * provider from a previous runtime must not leak into the next one.
+ * Hooks provider ownership (R3): several runtimes may coexist in one process,
+ * so the global provider is owned by tokens, not by "whoever installed last".
+ * Owners live in an insertion-ordered ledger; the most recent owner's
+ * provider is what sits in the global slot, and releasing an owner restores
+ * the previous one until zero owners remain.
+ */
+
+/** Insertion-ordered owners: opaque token -> wrapped provider (null = no hook fn given). */
+const runtimeHooksProviderOwners = new Map();
+
+/** Last value this module wrote to the slot; divergence means an external writer reset it. */
+let publishedRuntimeHooksProviderValue;
+
+/** Token of the legacy installRuntimeHooksProvider() install, if any. */
+let legacyHooksOwnerToken = null;
+
+/**
+ * Wrap the caller-provided hooks into a global-slot provider. Returns null
+ * when nothing callable was provided (parity with the legacy install rule:
+ * absence of any hook function removes the provider).
+ */
+function buildRuntimeHooksProvider(hooks) {
+  if (!hooks || typeof hooks !== 'object') return null;
+  const provider = {};
+  let hasHook = false;
+  for (const name of RUNTIME_HOOK_FN_NAMES) {
+    if (typeof hooks[name] === 'function') {
+      provider[name] = wrapHookFunction(hooks[name]);
+      hasHook = true;
+    }
+  }
+  return hasHook ? provider : null;
+}
+
+/**
+ * Reconcile the ledger with the shared slot: an external writer that deleted
+ * or replaced the global invalidates ALL outstanding owners — restoration
+ * state can no longer be trusted, and keeping it would resurrect a stale
+ * provider.
+ */
+function reconcileRuntimeHooksProviders() {
+  if (globalThis[RUNTIME_HOOKS_PROVIDER_SLOT] === publishedRuntimeHooksProviderValue) return;
+  runtimeHooksProviderOwners.clear();
+  publishedRuntimeHooksProviderValue = undefined;
+}
+
+/**
+ * Publish the most recently acquired owner's provider into the global slot,
+ * or clear the slot when no owner remains.
+ */
+function publishRuntimeHooksProvider() {
+  let active = null;
+  for (const provider of runtimeHooksProviderOwners.values()) {
+    active = provider;
+  }
+  if (active) {
+    globalThis[RUNTIME_HOOKS_PROVIDER_SLOT] = active;
+    publishedRuntimeHooksProviderValue = active;
+  } else {
+    delete globalThis[RUNTIME_HOOKS_PROVIDER_SLOT];
+    publishedRuntimeHooksProviderValue = undefined;
+  }
+}
+
+/**
+ * Register a hooks owner and publish its provider as the active one.
+ * @param {{ prepareTurn?: Function, decideAction?: Function, handleToolResult?: Function }|null} hooks
+ * @returns {object} opaque ownership token; pass it to releaseRuntimeHooksProvider()
+ */
+function acquireRuntimeHooksProvider(hooks) {
+  reconcileRuntimeHooksProviders();
+  const token = {};
+  runtimeHooksProviderOwners.set(token, buildRuntimeHooksProvider(hooks));
+  publishRuntimeHooksProvider();
+  return token;
+}
+
+/**
+ * Drop a hooks owner. Unknown/double-released tokens are a safe no-op. When
+ * the released owner was active, the previous surviving owner's provider is
+ * restored; the global slot is removed only when zero owners remain.
+ * @param {object} token - token returned by acquireRuntimeHooksProvider()
+ * @returns {boolean} true when a live owner was released
+ */
+function releaseRuntimeHooksProvider(token) {
+  reconcileRuntimeHooksProviders();
+  if (!runtimeHooksProviderOwners.delete(token)) return false;
+  publishRuntimeHooksProvider();
+  return true;
+}
+
+/**
+ * Legacy single-runtime entry point, re-implemented on top of the same
+ * ownership ledger so both APIs share one mechanism. The install owns its
+ * token; installing again replaces it; installing null/empty releases only
+ * this legacy owner instead of clobbering other runtimes' providers.
  * @param {{ prepareTurn?: Function, decideAction?: Function, handleToolResult?: Function }|null} hooks
  * @returns {void}
  */
 function installRuntimeHooksProvider(hooks) {
-  if (!hooks || typeof hooks !== 'object') {
-    delete globalThis.__ANTIKYTHERA_RUNTIME_HOOKS_PROVIDER__;
+  reconcileRuntimeHooksProviders();
+  if (legacyHooksOwnerToken) {
+    const staleToken = legacyHooksOwnerToken;
+    legacyHooksOwnerToken = null;
+    releaseRuntimeHooksProvider(staleToken);
+  }
+  if (!hooks || typeof hooks !== 'object' || !buildRuntimeHooksProvider(hooks)) {
     return;
   }
-  const provider = {};
-  let any = false;
-  for (const key of ['prepareTurn', 'decideAction', 'handleToolResult']) {
-    if (typeof hooks[key] === 'function') {
-      provider[key] = wrapHookFunction(hooks[key]);
-      any = true;
-    }
-  }
-  if (any) {
-    globalThis.__ANTIKYTHERA_RUNTIME_HOOKS_PROVIDER__ = provider;
-  } else {
-    delete globalThis.__ANTIKYTHERA_RUNTIME_HOOKS_PROVIDER__;
-  }
+  legacyHooksOwnerToken = acquireRuntimeHooksProvider(hooks);
 }
 
 /**
@@ -225,6 +314,8 @@ function parseArgumentsJson(argumentsJson) {
 module.exports = {
   createControlHandler,
   installRuntimeHooksProvider,
+  acquireRuntimeHooksProvider,
+  releaseRuntimeHooksProvider,
   wrapHookFunction,
   invokeHook,
 };

@@ -39,6 +39,20 @@ jobs:
         env:
           PYTHONPATH: python
 
+  static-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install static gate tools
+        run: pip install ruff mypy pytest
+      - name: Ruff lint gates
+        run: ruff check python/antikythera_agent python/tests
+      - name: Mypy type gates
+        run: mypy python/antikythera_agent --config-file python/pyproject.toml
+
   msrv:
     runs-on: ubuntu-latest
     steps:
@@ -197,6 +211,9 @@ jobs:
             -M "wasi:io/error@0.2.3=./wasi-stubs/error.js" \
             -M "wasi:io/streams@0.2.3=./wasi-stubs/streams.js" \
             -M "wasi:random/random@0.2.3=./wasi-stubs/random.js"
+
+      - name: Rename transpiled core modules to semantic names
+        run: node scripts/post-transpile-rename.mjs
 
       - name: Run composite compatibility tests
         run: cargo test -p antikythera-tests --test compatibility_tests

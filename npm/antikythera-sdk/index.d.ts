@@ -317,6 +317,93 @@ export class SessionManager {
 }
 
 // ============================================================================
+// Orchestrator
+// ============================================================================
+
+/**
+ * Multi-agent orchestrator on top of client-core runtimes.
+ *
+ * One runtime per agent profile (session-per-profile); the runtime seam is
+ * injectable via `runtimeFactory` (default: `createAgentRuntime({core:'client'})`
+ * bound to `serverUrl`). Runtimes for all registered profiles are acquired on
+ * the first dispatched task.
+ */
+export class Orchestrator {
+  /**
+   * Create an orchestrator.
+   * @param config - Orchestrator configuration; `serverUrl` is required
+   * @throws Error if serverUrl is missing or empty
+   */
+  constructor(
+    config: OrchestratorConfig & {
+      serverUrl: string;
+      runtimeFactory?: (cfg: ClientCoreOptions) => Promise<ClientCoreRuntime>;
+    }
+  );
+
+  /**
+   * Register an agent profile (stored as a defensive copy).
+   * @param profile - Agent profile
+   * @throws Error if id, name, or role is missing/empty
+   */
+  registerAgent(profile: AgentProfileConfig): void;
+
+  /**
+   * All registered profiles (copies).
+   * @returns Array of agent profiles
+   */
+  listAgents(): AgentProfileConfig[];
+
+  /**
+   * Dispatch one task to the default agent (first registered).
+   * @param task - Task prompt
+   * @param opts - Options; `sessionId` reuses the runtime owning that session
+   * @returns Task result
+   */
+  dispatch(task: string, opts?: { sessionId?: string }): Promise<TaskResult>;
+
+  /**
+   * Dispatch many tasks honouring the configured execution mode.
+   * Results keep input order.
+   * @param tasks - Task prompts
+   * @param opts - Options forwarded per task (sequential mode)
+   * @returns Array of task results
+   */
+  dispatchMany(tasks: string[], opts?: { sessionId?: string }): Promise<TaskResult[]>;
+
+  /**
+   * Run tasks sequentially, feeding each previous output into the next
+   * prompt. Short-circuits at the first failed task.
+   * @param tasks - Task prompts
+   * @returns Pipeline result
+   */
+  pipeline(tasks: string[]): Promise<PipelineResult>;
+
+  /**
+   * Factual budget snapshot (counters update after every executed result).
+   * @returns Budget state
+   */
+  getBudget(): {
+    consumedSteps: number;
+    dispatchedTasks: number;
+    isStepBudgetExhausted: boolean;
+    isTaskBudgetExhausted: boolean;
+  };
+
+  /**
+   * Reset the runner session(s). Idempotent; program errors propagate.
+   * @param sessionId - Session to reset; omit to cancel every recorded session
+   * @returns true when at least one session was removed
+   */
+  cancel(sessionId?: string): Promise<boolean>;
+
+  /**
+   * Close every live runtime (best-effort).
+   */
+  close(): void;
+}
+
+// ============================================================================
 // Utility Functions
 // ============================================================================
 

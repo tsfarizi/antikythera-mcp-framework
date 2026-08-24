@@ -8,6 +8,8 @@
 //!   - python/pyproject.toml                  ->  version = "<v>"
 //!   - python/antikythera_agent/__init__.py   ->  __version__ = "<v>"
 //!   - python/antikythera_agent/utils.py      ->  return "<v>"
+//!   - npm/antikythera-sdk/index.js            ->  return "<v>";  (inside
+//!     function getVersion — may not exist yet, see PENDING TARGETS below)
 //!
 //! Modes:
 //!   (default)  rewrite the target files to the Cargo workspace version
@@ -15,6 +17,18 @@
 //!              write nothing
 //!   --print    print the Cargo workspace version and exit
 //!   --help     usage
+//!
+//! PENDING TARGETS (--check only):
+//!   A target whose file does not contain its marker yet is a *pending*
+//!   target (e.g. `getVersion()` in index.js is owned by another unit and has
+//!   not landed). In --check mode, pending targets are skipped with a notice
+//!   ONLY when SYNC_ALLOW_PENDING_TARGETS=1; every other mode stays strict
+//!   (missing marker => hard error), so a rewrite can never silently skip a
+//!   file it was asked to own. Trade-off: the tolerant mode lets packaging
+//!   gates stay green while the marker-bearing code ships separately, but it
+//!   also means a typo'd marker would be reported as "pending" instead of
+//!   failing — which is why the default remains strict and the escape hatch
+//!   must be opted into explicitly.
 //!
 //! Stdlib only (no external dependencies), matching the rest of the
 //! build-scripts crate. Line-based: it locates the version-bearing line per
@@ -56,6 +70,21 @@ const TARGETS: &[Target] = &[
         rel_path: "python/antikythera_agent/utils.py",
         marker: "return \"",
     },
+    // Pending target: getVersion() does not exist in index.js yet (owned by
+    // another unit). The final line will read exactly `  return "<v>";` inside
+    // function getVersion, so the marker is `return "1.`: unique in index.js
+    // today (zero `return "` lines at all) and stable across 1.x bumps. The
+    // first digit-run token on that line IS the version, which is exactly what
+    // replace_version_token consumes. Envelope: on a major bump (2.x) the
+    // marker must move to `return "2.` — until then a missed marker surfaces
+    // as a strict error (or a pending notice under SYNC_ALLOW_PENDING_TARGETS),
+    // never as silent drift. Kept LAST so pending handling cannot mask any
+    // earlier target's failure ordering.
+    Target {
+        label: "npm index.js getVersion",
+        rel_path: "npm/antikythera-sdk/index.js",
+        marker: "return \"1.",
+    },
 ];
 
 fn main() {
@@ -89,6 +118,11 @@ fn main() {
         return;
     }
 
+    // --check only: tolerate targets whose marker has not landed yet (see the
+    // PENDING TARGETS note in the module docs). Write mode always stays strict.
+    let allow_pending = mode == Mode::Check
+        && env::var("SYNC_ALLOW_PENDING_TARGETS").ok().as_deref() == Some("1");
+
     // Read + rewrite every target in memory first; write only when all
     // rewrites succeeded (no partial updates).
     let mut rewrites: Vec<(String, String, String)> = Vec::new(); // (label, path, new_text)
@@ -109,6 +143,15 @@ fn main() {
         let rewritten = match rewrite_version_line(&text, target.marker, &version) {
             Some(r) => r,
             None => {
+                if allow_pending {
+                    println!(
+                        "pending: {} {} (marker '{}' not present yet; skipped because SYNC_ALLOW_PENDING_TARGETS=1)",
+                        target.label,
+                        target.rel_path,
+                        target.marker
+                    );
+                    continue;
+                }
                 eprintln!(
                     "error: no version-bearing line found in {} (marker '{}')",
                     target.label, target.marker
@@ -169,7 +212,9 @@ fn print_usage() {
          Usage: sync-release-version [--check | --print | --help]\n\
          \n\
          (no flag)  rewrite npm/package.json + python pyproject/__init__/utils\n\
-         --check    verify targets match the Cargo version (no writes)\n\
+          --check    verify targets match the Cargo version (no writes);\n\
+                     targets whose marker has not landed yet are skipped only\n\
+                     when SYNC_ALLOW_PENDING_TARGETS=1 (default: strict)\n\
          --print    print the Cargo workspace version\n\
          --help     this help"
     );

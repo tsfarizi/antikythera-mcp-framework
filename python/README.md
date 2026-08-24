@@ -19,29 +19,25 @@ pip install antikythera-agent[wasm]
 ### Create an Agent
 
 ```python
-from antikythera_agent import Agent, PromptManager, PromptConfig
-
-prompts = PromptManager()
-prompts.register(PromptConfig(
-    id="assistant",
-    name="Assistant",
-    content="You are a helpful assistant.",
-))
+from antikythera_agent import Agent
+from antikythera_agent.server.provider import StubProvider
 
 agent = Agent(
-    provider="openai",
-    model="gpt-4o",
-    system_prompt=prompts.get_content("assistant")
+    provider="stub",
+    model="demo",
+    provider_resolver=lambda name: StubProvider('{"action":"final","content":"hi"}'),
 )
 
-result = agent.run("Hello, how can you help me?")
+result = agent.run("Hello")
 print(result.output)
 ```
+
+Without a `provider_resolver`, the built-in registry is used (default providers: `stub`, `ollama`). Runs execute the local tool loop over the bundled WASM, which requires the optional `[wasm]` extra.
 
 ### Multi-Agent Orchestration
 
 ```python
-from antikythera_agent import Orchestrator, PromptManager, PromptConfig
+from antikythera_agent import AgentProfileConfig, Orchestrator, PromptManager, PromptConfig
 
 prompts = PromptManager()
 prompts.register(PromptConfig(
@@ -57,7 +53,7 @@ prompts.register(PromptConfig(
     tags=["quality"]
 ))
 
-orchestrator = Orchestrator(execution_mode="auto", max_concurrent_tasks=4)
+orchestrator = Orchestrator(execution_mode="concurrent", max_concurrent_tasks=4)
 
 orchestrator.register_agent(AgentProfileConfig(
     id="coder",
@@ -73,8 +69,15 @@ orchestrator.register_agent(AgentProfileConfig(
     system_prompt=prompts.get_content("reviewer")
 ))
 
-result = orchestrator.dispatch("Write and review code")
+results = orchestrator.dispatch_many(["Write a sorting algorithm", "Explain big-O notation"])
+for result in results:
+    print(result.success, result.output)
+
+budget = orchestrator.get_budget()
+print(budget["consumed_steps"], budget["dispatched_tasks"])
 ```
+
+Dispatch runs the local tool loop host-side on a fresh `WasmRuntime` per task; `get_budget()` reports factual counters from executed results.
 
 ### WASM Runtime (Server-Side)
 
@@ -91,6 +94,10 @@ The Python `WasmRuntime` executes the composite WASM locally in-process via wasm
 ## Runtime Bridge Server (Python)
 
 The Python SDK ships a drop-in Runtime Bridge server — a wire-protocol peer of `antikythera-server-runtime` (Rust). It serves the LLM proxy, SSE control channel, and the jco-transpiled bundle so a browser can load the composite from Python without bundling it locally.
+
+### Scope: server-side peer
+
+This package is a **server-side** wire peer only: LLM proxy, SSE control channel, static bundle serving, plus the optional `core@server` loop via wasmtime. It does not provide an SSE-client peer — that role belongs to the JavaScript client runtime (`antikythera-agent/runtime`). This scope decision is permanent until changed in the decision register (`documentation/DECISIONS_RUNTIME_BRIDGE.md`, D7).
 
 ```python
 from antikythera_agent.server import createAgentServer, AgentServerOptions
@@ -136,7 +143,7 @@ python -m antikythera_agent.server --bind 127.0.0.1:0 --provider-stub '{"action"
 
 `--bind` is `<addr>:<port>` (`:0` = ephemeral, actual port is printed in the `listening on` line); `--provider-stub` replaces the `stub` provider and makes it the default; `--component-dir` points at the jco bundle directory (omit to use the wheel's bundled `antikythera_agent/component`). Other flags mirror the Rust server: `--server-tool <name>:<json>` (registration = grant), `--allow-tool <name>`, `--client-id`, `--wasm-path`, `--max-steps`.
 
-Wire contract: `documentation/WIRE_PROTOCOL.md`; decision register: `documentation/DECISIONS_RUNTIME_BRIDGE.md` (D1–D6).
+Wire contract: `documentation/WIRE_PROTOCOL.md`; decision register: `documentation/DECISIONS_RUNTIME_BRIDGE.md` (D1–D7).
 
 ### Load Prompts from JSON
 
