@@ -141,7 +141,10 @@ impl syn::parse::Parse for FsmTransitionsAttr {
 /// Parse the `#[fsm_transitions(...)]` attribute and return an ordered list of
 /// (source, targets) pairs in the order they appear in the attribute.
 fn parse_fsm_transitions(input: &DeriveInput) -> syn::Result<Vec<(String, Vec<String>)>> {
-    let mut attr_iter = input.attrs.iter().filter(|a| a.path().is_ident("fsm_transitions"));
+    let mut attr_iter = input
+        .attrs
+        .iter()
+        .filter(|a| a.path().is_ident("fsm_transitions"));
 
     let attr = attr_iter.next().ok_or_else(|| {
         syn::Error::new_spanned(

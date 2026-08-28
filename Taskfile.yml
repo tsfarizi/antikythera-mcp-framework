@@ -10,7 +10,7 @@ dotenv:
   - config/.env
 
 vars:
-  WASM_TARGET: wasm32-wasip1
+  WASM_TARGET: wasm32-wasip2
   WASM_BINARY: target/{{.WASM_TARGET}}/release/antikythera_sdk.wasm
   TOOLRUNNER_BINARY: target/{{.WASM_TARGET}}/release/antikythera_toolrunner.wasm
   # wasm-tools compose rejects crate names with underscores; the toolrunner
@@ -108,7 +108,7 @@ tasks:
       - task: compose
 
   build-wasm-harness:
-    desc: Build standalone SDK WASM component (wasm32-wasip1, feature component)
+    desc: Build standalone SDK WASM component (wasm32-wasip2, feature component)
     deps:
       - wit
     cmds:
@@ -119,7 +119,7 @@ tasks:
       - task: size
 
   build-toolrunner:
-    desc: Build standalone toolrunner WASM component (wasm32-wasip1, feature component)
+    desc: Build standalone toolrunner WASM component (wasm32-wasip2, feature component)
     cmds:
       - echo "Building standalone toolrunner WASM component..."
       - cargo component build -p antikythera-toolrunner --target {{.WASM_TARGET}} --release --no-default-features --features component
@@ -128,7 +128,7 @@ tasks:
       - task: size
 
   build-default-hooks:
-    desc: Build standalone default-hooks WASM component (wasm32-wasip1, feature component)
+    desc: Build standalone default-hooks WASM component (wasm32-wasip2, feature component)
     cmds:
       - echo "Building standalone default-hooks WASM component..."
       - cargo component build -p antikythera-default-hooks --target {{.WASM_TARGET}} --release --no-default-features --features component
@@ -137,7 +137,7 @@ tasks:
       - task: size
 
   build-logic-core-template:
-    desc: Build standalone logic-core template WASM component (wasm32-wasip1, feature component)
+    desc: Build standalone logic-core template WASM component (wasm32-wasip2, feature component)
     cmds:
       - echo "Building standalone logic-core template WASM component..."
       - cargo component build -p logic-core-template --target {{.WASM_TARGET}} --release --no-default-features --features component
@@ -146,7 +146,7 @@ tasks:
       - task: size
 
   build-logic-core-example:
-    desc: Build standalone logic-core example WASM component (wasm32-wasip1, feature component)
+    desc: Build standalone logic-core example WASM component (wasm32-wasip2, feature component)
     cmds:
       - echo "Building standalone logic-core example WASM component..."
       - cargo component build -p logic-core-example --target {{.WASM_TARGET}} --release --no-default-features --features component
@@ -172,7 +172,7 @@ tasks:
       - task: size
 
   compose-hooks-custom:
-    desc: Compose SDK + toolrunner + CUSTOM hooks into dist/antikythera-sdk-custom.wasm. Requires HOOKS_COMPONENT=<path to a built custom logic-hooks .wasm>; the file must be kebab-case named because wasm-tools compose rejects underscore filenames (build the hooks crate with the component feature first, e.g. cargo component build -p logic-hooks-example --target wasm32-wasip1 --release --no-default-features --features component, then cp target/wasm32-wasip1/release/logic_hooks_example.wasm target/wasm32-wasip1/release/logic-hooks-example.wasm).
+    desc: Compose SDK + toolrunner + CUSTOM hooks into dist/antikythera-sdk-custom.wasm. Requires HOOKS_COMPONENT=<path to a built custom logic-hooks .wasm>; the file must be kebab-case named because wasm-tools compose rejects underscore filenames (build the hooks crate with the component feature first, e.g. cargo component build -p logic-hooks-example --target wasm32-wasip2 --release --no-default-features --features component, then cp target/wasm32-wasip2/release/logic_hooks_example.wasm target/wasm32-wasip2/release/logic-hooks-example.wasm).
     deps:
       - build-wasm-harness
       - build-toolrunner
@@ -181,8 +181,8 @@ tasks:
         if [ -z "{{.HOOKS_COMPONENT}}" ]; then
           echo "ERROR: HOOKS_COMPONENT is required." >&2
           echo "Set it to the path of a built custom logic-hooks WASM component (kebab-case filename), e.g.:" >&2
-          echo "  cp target/wasm32-wasip1/release/logic_hooks_example.wasm target/wasm32-wasip1/release/logic-hooks-example.wasm" >&2
-          echo "  task compose-hooks-custom HOOKS_COMPONENT=target/wasm32-wasip1/release/logic-hooks-example.wasm" >&2
+          echo "  cp target/wasm32-wasip2/release/logic_hooks_example.wasm target/wasm32-wasip2/release/logic-hooks-example.wasm" >&2
+          echo "  task compose-hooks-custom HOOKS_COMPONENT=target/wasm32-wasip2/release/logic-hooks-example.wasm" >&2
           exit 1
         fi
       - echo "Composing SDK + toolrunner + custom hooks into composite..."

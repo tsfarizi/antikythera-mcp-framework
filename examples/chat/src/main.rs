@@ -3,7 +3,9 @@ use std::io::{self, Write};
 
 #[tokio::main]
 async fn main() {
-    let model = std::env::args().nth(1).unwrap_or_else(|| "gpt-oss:120b-cloud".to_string());
+    let model = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "gpt-oss:120b-cloud".to_string());
 
     println!("Antikythera Chat Agent");
     println!("Model: {model}");

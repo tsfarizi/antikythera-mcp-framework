@@ -8,7 +8,7 @@ use quote::quote;
 use syn::{Data, DeriveInput, Fields};
 
 use crate::attr_utils::has_serde_default;
-use crate::type_mapping::{is_option_type, json_type_kind, unwrap_option_type, JsonTypeKind};
+use crate::type_mapping::{JsonTypeKind, is_option_type, json_type_kind, unwrap_option_type};
 
 pub(crate) fn impl_json_schema(input: &DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &input.ident;
@@ -116,9 +116,7 @@ pub(crate) fn impl_json_schema(input: &DeriveInput) -> syn::Result<TokenStream> 
 /// decision table lives in one place shared with `ToolDef`; this function only
 /// renders the richer shapes (`items` for collections, definitions for nested
 /// custom types).
-fn field_type_schema(
-    ty: &syn::Type,
-) -> syn::Result<(TokenStream, Vec<(String, TokenStream)>)> {
+fn field_type_schema(ty: &syn::Type) -> syn::Result<(TokenStream, Vec<(String, TokenStream)>)> {
     // Option<T> is transparent for rendering: `Option<Vec<T>>` is an array of
     // T, so the unwrapped type owns the generic arguments.
     let target = unwrap_option_type(ty);

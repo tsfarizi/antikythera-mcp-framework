@@ -1,9 +1,9 @@
-use std::sync::Arc;
+use crate::error::FacadeError;
 use antikythera_core::application::agent::{Agent, AgentOptions, AgentOutcome};
-use antikythera_core::application::client::{McpClient, ClientConfig};
+use antikythera_core::application::client::{ClientConfig, McpClient};
 use antikythera_core::infrastructure::model::DynamicModelProvider;
 use antikythera_core::infrastructure::model::traits::ModelClient;
-use crate::error::FacadeError;
+use std::sync::Arc;
 
 /// Agent sederhana — entry point tercepat untuk membangun AI agent.
 ///
@@ -42,7 +42,8 @@ impl SimpleAgent {
     pub async fn ollama_with_endpoint(endpoint: &str, model: &str) -> Result<Self, FacadeError> {
         #[cfg(feature = "ollama")]
         {
-            let provider = antikythera_provider_ollama::OllamaClient::with_endpoint(endpoint, model);
+            let provider =
+                antikythera_provider_ollama::OllamaClient::with_endpoint(endpoint, model);
             Self::from_client("ollama", model, Box::new(provider))
         }
         #[cfg(not(feature = "ollama"))]
@@ -89,7 +90,11 @@ impl SimpleAgent {
         } else {
             AgentOptions::default()
         };
-        let outcome = self.agent.run(prompt.to_string(), options).await.map_err(FacadeError::Agent)?;
+        let outcome = self
+            .agent
+            .run(prompt.to_string(), options)
+            .await
+            .map_err(FacadeError::Agent)?;
         Ok(extract_text(&outcome.response))
     }
 
@@ -99,7 +104,10 @@ impl SimpleAgent {
             max_steps: 10,
             ..Default::default()
         };
-        self.agent.run(prompt.to_string(), options).await.map_err(FacadeError::Agent)
+        self.agent
+            .run(prompt.to_string(), options)
+            .await
+            .map_err(FacadeError::Agent)
     }
 
     /// Chat dengan custom options.
@@ -108,7 +116,10 @@ impl SimpleAgent {
         prompt: &str,
         options: AgentOptions,
     ) -> Result<AgentOutcome, FacadeError> {
-        self.agent.run(prompt.to_string(), options).await.map_err(FacadeError::Agent)
+        self.agent
+            .run(prompt.to_string(), options)
+            .await
+            .map_err(FacadeError::Agent)
     }
 
     /// Set session ID untuk kontinuitas percakapan.
@@ -122,11 +133,8 @@ impl SimpleAgent {
         model: &str,
         client: Box<dyn ModelClient>,
     ) -> Result<Self, FacadeError> {
-        let provider = DynamicModelProvider::new().register(
-            provider_name,
-            vec![model.to_string()],
-            client,
-        );
+        let provider =
+            DynamicModelProvider::new().register(provider_name, vec![model.to_string()], client);
         let config = ClientConfig::new(provider_name, model);
         let mcp_client = McpClient::new(provider, config, None);
         let agent = Agent::new(Arc::new(mcp_client));
@@ -140,14 +148,13 @@ impl SimpleAgent {
 fn extract_text(response: &serde_json::Value) -> String {
     match response {
         serde_json::Value::String(s) => s.clone(),
-        serde_json::Value::Object(map) => {
-            map.get("content")
-                .or_else(|| map.get("text"))
-                .or_else(|| map.get("response"))
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string()
-        }
+        serde_json::Value::Object(map) => map
+            .get("content")
+            .or_else(|| map.get("text"))
+            .or_else(|| map.get("response"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
         _ => response.to_string(),
     }
 }

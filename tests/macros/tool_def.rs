@@ -31,14 +31,18 @@ fn test_tool_schema() {
         schema["properties"]["count"]["description"],
         "Optional count"
     );
-    assert!(schema["required"]
-        .as_array()
-        .unwrap()
-        .contains(&serde_json::json!("input")));
-    assert!(!schema["required"]
-        .as_array()
-        .unwrap()
-        .contains(&serde_json::json!("count")));
+    assert!(
+        schema["required"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("input"))
+    );
+    assert!(
+        !schema["required"]
+            .as_array()
+            .unwrap()
+            .contains(&serde_json::json!("count"))
+    );
 }
 
 #[test]
@@ -59,7 +63,10 @@ struct ToolTargetConfig {
 }
 
 #[derive(ToolDef, Serialize)]
-#[tool(name = "custom_ref_tool", description = "Tool with a custom nested type")]
+#[tool(
+    name = "custom_ref_tool",
+    description = "Tool with a custom nested type"
+)]
 struct CustomRefTool {
     #[tool_param(description = "Target configuration")]
     target: ToolTargetConfig,
@@ -116,7 +123,10 @@ fn test_serde_default_not_required() {
 // === Explicit required = true overrides #[serde(default)] ===
 
 #[derive(ToolDef, Serialize)]
-#[tool(name = "override_tool", description = "Tool with explicit required override")]
+#[tool(
+    name = "override_tool",
+    description = "Tool with explicit required override"
+)]
 struct OverrideTool {
     #[tool_param(description = "Retry limit", required = true)]
     #[serde(default)]

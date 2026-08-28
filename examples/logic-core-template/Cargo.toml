@@ -7,7 +7,7 @@ description = "Host-authored drop-in logic core component template: exports the 
 
 [lib]
 # rlib:   native Rust builds (lets the host author unit-test custom_* logic).
-# cdylib: required by cargo-component to emit the wasm32-wasip1 component
+# cdylib: required by cargo-component to emit the wasm32-wasip2 component
 #         artifact (same dual crate-type as examples/logic-hooks-template).
 crate-type = ["rlib", "cdylib"]
 
@@ -24,7 +24,7 @@ world = "logic-core-component"
 
 [features]
 default = []
-# Server-side WASM Component Model support (wasm32-wasip1 WASI).
+# Server-side WASM Component Model support (wasm32-wasip2 WASI).
 component = ["dep:wit-bindgen", "dep:serde_json"]
 
 [dependencies]

@@ -56,7 +56,7 @@ shellexpand.workspace = true
 tokio = { version = "1.53.1", features = ["macros", "rt", "sync", "time", "io-util"] }
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
-# Browser WASM needs JS bindings for uuid randomness via wasm-bindgen
+# Browser WASI needs JS bindings for uuid randomness (via WASI random, jco stub)
 uuid = { workspace = true, features = ["js"] }
 
 [dev-dependencies]

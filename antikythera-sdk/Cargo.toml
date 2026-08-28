@@ -9,10 +9,7 @@ readme = "README.md"
 description = "High-level API wrapper with FFI and WASM bindings"
 
 [lib]
-# rlib:   required for native Rust builds, server-side WASM component, and tests.
-# cdylib: serves the legacy `wasm` lane (wasm-bindgen, wasm32-unknown-unknown)
-#         only — retained for jobs that expect target/.../antikythera_sdk.wasm output.
-crate-type = ["rlib", "cdylib"]
+crate-type = ["rlib"]
 
 [package.metadata.component]
 package = "antikythera:agent-sdk"
@@ -28,11 +25,8 @@ world = "antikythera-agent-sdk"
 [features]
 default = []
 
-# Server-side WASM Component Model support (wasm32-wasip1 WASI).
+# Server-side WASM Component Model support (wasm32-wasip2 WASI).
 component = ["dep:wit-bindgen"]
-
-# Browser WASM support (wasm32-unknown-unknown).
-wasm = ["antikythera-log/wasm"]
 
 # In-process tool execution via antikythera-toolrunner
 toolrunner = ["dep:antikythera-toolrunner"]

@@ -5,8 +5,8 @@
 
 #![allow(dead_code)]
 
-use antikythera_macros::{ToolDef, WasmBridge, JsonSchema, FsmComplete, PortValidate};
-use serde::{Serialize, Deserialize};
+use antikythera_macros::{FsmComplete, JsonSchema, PortValidate, ToolDef, WasmBridge};
+use serde::{Deserialize, Serialize};
 
 // ============================================================================
 // WasmBridge trait: must be in scope for the macro-generated impl
@@ -47,7 +47,10 @@ fn e2e_tool_def_schema() {
     assert_eq!(schema["properties"]["input"]["type"], "string");
     assert_eq!(schema["properties"]["input"]["description"], "Input text");
     assert_eq!(schema["properties"]["count"]["type"], "integer");
-    assert_eq!(schema["properties"]["count"]["description"], "Optional count");
+    assert_eq!(
+        schema["properties"]["count"]["description"],
+        "Optional count"
+    );
 
     let required = schema["required"].as_array().unwrap();
     assert!(required.contains(&serde_json::json!("input")));
@@ -74,10 +77,7 @@ struct E2eBridge {
 
 #[test]
 fn e2e_wasm_bridge_type_name() {
-    assert_eq!(
-        <E2eBridge as WasmBridge>::WASM_TYPE_NAME,
-        "E2eBridge"
-    );
+    assert_eq!(<E2eBridge as WasmBridge>::WASM_TYPE_NAME, "E2eBridge");
 }
 
 #[test]
@@ -262,8 +262,7 @@ fn tool_definition_parses_as_consumer_type() {
     // (title, parameters, input_schema, output_schema, annotations, execution)
     // carries #[serde(default)].
     let tool: antikythera_sdk::wasm_agent::types::tool_registry::ToolDefinition =
-        serde_json::from_value(def)
-            .expect("definition() must parse as consumer ToolDefinition");
+        serde_json::from_value(def).expect("definition() must parse as consumer ToolDefinition");
 
     assert_eq!(tool.name, "contract_weather");
     assert_eq!(tool.description, "Get weather for a city");

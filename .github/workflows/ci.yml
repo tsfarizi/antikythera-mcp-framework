@@ -61,25 +61,14 @@ jobs:
       - run: cargo check --workspace
 
   wasm-check:
-    strategy:
-      matrix:
-        include:
-          # legacy (wasm-bindgen path, retained for compatibility)
-          - target: wasm32-unknown-unknown
-            check_cmd: |
-              cargo check -p antikythera-sdk --target wasm32-unknown-unknown --no-default-features --features wasm
-              cargo check -p antikythera-wasm-bindgen --target wasm32-unknown-unknown
-          - target: wasm32-wasip1
-            check_cmd: |
-              cargo check -p antikythera-sdk --target wasm32-wasip1 --no-default-features --features component
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: wasm32-wasip2
       - uses: Swatinem/rust-cache@v2
-      - run: ${{ matrix.check_cmd }}
+      - run: cargo check -p antikythera-sdk --target wasm32-wasip2 --no-default-features --features component
 
   contract-tests:
     runs-on: ubuntu-latest
@@ -131,7 +120,7 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-wasip1
+          targets: wasm32-wasip2
 
       - name: Install cargo-component
         uses: taiki-e/install-action@v2
@@ -160,16 +149,16 @@ jobs:
         run: npm install
 
       - name: Build SDK component
-        run: cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component
+        run: cargo component build -p antikythera-sdk --release --target wasm32-wasip2 --no-default-features --features component
 
       - name: Build toolrunner component
-        run: cargo component build -p antikythera-toolrunner --release --target wasm32-wasip1 --no-default-features --features component
+        run: cargo component build -p antikythera-toolrunner --release --target wasm32-wasip2 --no-default-features --features component
 
       - name: Build default-hooks component
-        run: cargo component build -p antikythera-default-hooks --release --target wasm32-wasip1 --no-default-features --features component
+        run: cargo component build -p antikythera-default-hooks --release --target wasm32-wasip2 --no-default-features --features component
 
       - name: Build logic-core-host-example component
-        run: cargo component build -p logic-core-host-example --release --target wasm32-wasip1 --no-default-features --features component
+        run: cargo component build -p logic-core-host-example --release --target wasm32-wasip2 --no-default-features --features component
 
       - name: Compose SDK + toolrunner + default-hooks into dist composite
         shell: bash
@@ -177,13 +166,13 @@ jobs:
           set -euo pipefail
           mkdir -p dist
           # wasm-tools compose rejects underscore crate names; use kebab-case copies.
-          cp target/wasm32-wasip1/release/antikythera_toolrunner.wasm \
-            target/wasm32-wasip1/release/antikythera-toolrunner.wasm
-          cp target/wasm32-wasip1/release/antikythera_default_hooks.wasm \
-            target/wasm32-wasip1/release/antikythera-default-hooks.wasm
-          wasm-tools compose target/wasm32-wasip1/release/antikythera_sdk.wasm \
-            -d target/wasm32-wasip1/release/antikythera-toolrunner.wasm \
-            -d target/wasm32-wasip1/release/antikythera-default-hooks.wasm \
+          cp target/wasm32-wasip2/release/antikythera_toolrunner.wasm \
+            target/wasm32-wasip2/release/antikythera-toolrunner.wasm
+          cp target/wasm32-wasip2/release/antikythera_default_hooks.wasm \
+            target/wasm32-wasip2/release/antikythera-default-hooks.wasm
+          wasm-tools compose target/wasm32-wasip2/release/antikythera_sdk.wasm \
+            -d target/wasm32-wasip2/release/antikythera-toolrunner.wasm \
+            -d target/wasm32-wasip2/release/antikythera-default-hooks.wasm \
             -o dist/antikythera-sdk.wasm
 
       - name: Build native server-runtime binary (debug)

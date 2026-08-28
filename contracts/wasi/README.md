@@ -1,6 +1,6 @@
-# WASI Component Contract
+﻿# WASI Component Contract
 
-This directory contains the contract definition for the WASI Component Model target (`wasm32-wasip1`).
+This directory contains the contract definition for the WASI Component Model target (`wasm32-wasip2`).
 
 ## Contract Files
 
@@ -9,9 +9,9 @@ This directory contains the contract definition for the WASI Component Model tar
 
 ## Build Target
 
-- `wasm32-wasip1`
+- `wasm32-wasip2`
 - Feature flag: `component`
-- Build command: `cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component`
+- Build command: `cargo component build -p antikythera-sdk --release --target wasm32-wasip2 --no-default-features --features component`
 
 ## Interface
 

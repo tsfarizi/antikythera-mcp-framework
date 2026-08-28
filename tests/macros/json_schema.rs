@@ -107,10 +107,7 @@ fn test_nested_struct_ref() {
     let schema = Outer::json_schema();
 
     // Inner should be a $ref.
-    assert_eq!(
-        schema["properties"]["inner"]["$ref"],
-        "#/definitions/Inner"
-    );
+    assert_eq!(schema["properties"]["inner"]["$ref"], "#/definitions/Inner");
 
     // Definitions should contain Inner.
     let defs = schema["definitions"].as_object().unwrap();
@@ -148,10 +145,7 @@ fn test_multiple_nested_types() {
         schema["properties"]["server"]["$ref"],
         "#/definitions/ServerConfig"
     );
-    assert_eq!(
-        schema["properties"]["db"]["$ref"],
-        "#/definitions/DbConfig"
-    );
+    assert_eq!(schema["properties"]["db"]["$ref"], "#/definitions/DbConfig");
 }
 
 // === Vec of nested types ===

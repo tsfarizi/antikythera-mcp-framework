@@ -7,7 +7,7 @@ description = "Host-llm-agent: standalone logic core running the FULL CUSTOM LOO
 
 [lib]
 # rlib:   native Rust builds (compiles the native stubs of the custom_* surface).
-# cdylib: required by cargo-component to emit the wasm32-wasip1 component
+# cdylib: required by cargo-component to emit the wasm32-wasip2 component
 #         artifact (same dual crate-type as examples/logic-core-example).
 crate-type = ["rlib", "cdylib"]
 
@@ -24,7 +24,7 @@ world = "logic-core-component"
 
 [features]
 default = []
-# Server-side WASM Component Model support (wasm32-wasip1 WASI).
+# Server-side WASM Component Model support (wasm32-wasip2 WASI).
 # The host-imports loop (host_call_llm, host_save_state, host_load_state,
 # host_emit_tool_call, host_log) and the session-state JSON only compile in
 # this mode; the native rlib compiles `None` stubs for the active hooks.

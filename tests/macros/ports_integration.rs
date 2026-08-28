@@ -3,9 +3,9 @@
 
 #![allow(dead_code)]
 
-use antikythera_macros::{PortValidate, ToolDef, JsonSchema};
-use antikythera_ports::{AppLogger, LogProvider, LogQueryPort};
+use antikythera_macros::{JsonSchema, PortValidate, ToolDef};
 use antikythera_ports::types::{LogEntry, LogFilter};
+use antikythera_ports::{AppLogger, LogProvider, LogQueryPort};
 
 #[derive(PortValidate)]
 #[implements(AppLogger)]
@@ -30,7 +30,10 @@ fn port_validate_compiles_with_app_logger() {
 // ============================================================================
 
 #[derive(ToolDef, serde::Serialize)]
-#[tool(name = "ports_test_tool", description = "Tool defined in ports integration test")]
+#[tool(
+    name = "ports_test_tool",
+    description = "Tool defined in ports integration test"
+)]
 struct PortsTestTool {
     #[tool_param(description = "Query string")]
     query: String,
@@ -68,7 +71,10 @@ fn tool_def_cross_crate_definition() {
 
 // ToolDef struct with a cross-crate custom field type: maps to $ref.
 #[derive(ToolDef)]
-#[tool(name = "ports_custom_tool", description = "Tool with a cross-crate custom field")]
+#[tool(
+    name = "ports_custom_tool",
+    description = "Tool with a cross-crate custom field"
+)]
 struct PortsCustomTool {
     #[tool_param(description = "Log filter to apply")]
     filter: LogFilter,
@@ -91,7 +97,10 @@ fn tool_def_custom_type_is_ref() {
 
 // ToolDef struct with a #[serde(default)] non-Option field: not required.
 #[derive(ToolDef, serde::Serialize)]
-#[tool(name = "ports_default_tool", description = "Tool with a serde default field")]
+#[tool(
+    name = "ports_default_tool",
+    description = "Tool with a serde default field"
+)]
 struct PortsDefaultTool {
     #[tool_param(description = "Query string")]
     query: String,
@@ -150,10 +159,7 @@ fn port_traits_are_accessible() {
 #[test]
 fn port_types_use_domain_types() {
     // Verify that ports crate types depend on domain types correctly.
-    let entry = LogEntry::new(
-        antikythera_ports::types::LogLevel::Info,
-        "integration test",
-    );
+    let entry = LogEntry::new(antikythera_ports::types::LogLevel::Info, "integration test");
     assert_eq!(entry.level, antikythera_ports::types::LogLevel::Info);
     assert_eq!(entry.message, "integration test");
 

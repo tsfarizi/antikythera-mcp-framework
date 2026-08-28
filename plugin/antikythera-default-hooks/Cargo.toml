@@ -9,7 +9,7 @@ description = "Default no-op passthrough implementation of the logic-hooks inter
 
 [lib]
 # rlib:   native Rust builds.
-# cdylib: required by cargo-component to emit the wasm32-wasip1 component
+# cdylib: required by cargo-component to emit the wasm32-wasip2 component
 #         artifact (same dual crate-type as antikythera-toolrunner).
 crate-type = ["rlib", "cdylib"]
 
@@ -26,7 +26,7 @@ world = "logic-hooks-component"
 
 [features]
 default = []
-# Server-side WASM Component Model support (wasm32-wasip1 WASI).
+# Server-side WASM Component Model support (wasm32-wasip2 WASI).
 # No `wasm` bridge feature: this crate has no in-process WASM logic, the
 # component is a pure passthrough export layer.
 component = ["dep:wit-bindgen"]

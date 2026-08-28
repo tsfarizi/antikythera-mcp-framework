@@ -38,7 +38,7 @@ flowchart TD
 - Multi-provider LLM support: Ollama (default), OpenAI, and Gemini via feature-gated facade.
 - Multi-agent orchestration with guardrails, resilience, and observability hooks.
 - Streaming support for token/event output and buffered delivery policies.
-- WASM component integration path for host-controlled execution (browser via WASI component + jco, WASI Component Model on the server, Wasmtime sandbox), plus a **Runtime Bridge** (Rust server host + JS client host, HTTP + SSE wire protocol): the core side (client or server) is selected when the runtime is created (`createAgentRuntime({ core: 'client' | 'server' })`), not migrated live, and a running server is required for execution (LLM proxy + SSE control channel).
+- WASM component integration path for host-controlled execution (WASI Component Model `wasm32-wasip2` on the server and browser via `jco`), plus a **Runtime Bridge** (Rust server host + JS client host, HTTP + SSE wire protocol): the core side (client or server) is selected when the runtime is created (`createAgentRuntime({ core: 'client' | 'server' })`), not migrated live, and a running server is required for execution (LLM proxy + SSE control channel).
 - Python SDK bridge (parity 7/7 wire-protocol, E2E jco 3/3): `antikythera_agent.server` (`createAgentServer`, `AgentServer`) is a drop-in peer of the Rust server and serves the jco bundle at `GET /antikythera/v1/component/{path}`; JS clients load it via `createAgentRuntime({ serverUrl, componentBase })` (manifest `GET /antikythera/v1/component/manifest`).
 - Consolidated documentation under `documentation/`.
 
@@ -89,7 +89,6 @@ flowchart TD
 
 | Crate | Role |
 |:------|:-----|
-| `plugin/antikythera-wasm-bindgen` | **Legacy** wasm-bindgen browser glue (`wasm32-unknown-unknown`) — digantikan jalur WASI component + jco; dipertahankan untuk kompatibilitas — depends on SDK |
 | `plugin/antikythera-toolrunner` | In-process tool execution and standalone WASM tool-registry component (composed into the SDK deliverable) |
 | `plugin/antikythera-default-hooks` | Default no-op logic-hooks implementation (composed into the SDK deliverable) |
 | `antikythera-server-runtime` | Server host runtime for the WASM composite — wasmtime core + HTTP/SSE wire bridge (lib + bin) |

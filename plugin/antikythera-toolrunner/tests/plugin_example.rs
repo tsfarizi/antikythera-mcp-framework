@@ -56,7 +56,10 @@ fn plugin_definition_json_is_canonical() {
     assert_eq!(json["name"], "multiply");
     assert_eq!(json["description"], "Multiply two numbers");
     assert!(json["parameters"].as_array().unwrap().is_empty());
-    assert_eq!(json["input_schema"]["required"].as_array().unwrap().len(), 2);
+    assert_eq!(
+        json["input_schema"]["required"].as_array().unwrap().len(),
+        2
+    );
 }
 
 #[test]

@@ -9,7 +9,7 @@ description = "MCP tool registration, validation, and in-process execution for n
 
 [lib]
 # rlib:   native Rust builds and tests.
-# cdylib: required by cargo-component to emit the wasm32-wasip1 component
+# cdylib: required by cargo-component to emit the wasm32-wasip2 component
 #         artifact (same dual crate-type as antikythera-sdk).
 crate-type = ["rlib", "cdylib"]
 
@@ -27,11 +27,8 @@ world = "tool-registry-component"
 [features]
 default = []
 log = ["dep:antikythera-log"]
-wasm = []
-# Server-side WASM Component Model support (wasm32-wasip1 WASI).
-# Implies `wasm` so the component bridge reuses the existing
-# handle_tool_call / tool_result_to_json adapter instead of duplicating it.
-component = ["dep:wit-bindgen", "wasm"]
+# Server-side WASM Component Model support (wasm32-wasip2 WASI).
+component = ["dep:wit-bindgen"]
 
 [dependencies]
 serde.workspace = true

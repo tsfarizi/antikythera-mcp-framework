@@ -28,18 +28,30 @@ struct ExampleHooks;
 
 impl exports::antikythera::agent_sdk::logic_hooks::Guest for ExampleHooks {
     fn prepare_turn(request_json: String, session_state_json: String) -> Result<String, String> {
-        Ok(crate::custom_prepare_turn(&request_json, &session_state_json)
-            .unwrap_or_else(|| PASSTHROUGH_JSON.to_string()))
+        Ok(
+            crate::custom_prepare_turn(&request_json, &session_state_json)
+                .unwrap_or_else(|| PASSTHROUGH_JSON.to_string()),
+        )
     }
 
-    fn decide_action(session_state_json: String, llm_response_json: String) -> Result<String, String> {
-        Ok(crate::custom_decide_action(&session_state_json, &llm_response_json)
-            .unwrap_or_else(|| PASSTHROUGH_JSON.to_string()))
+    fn decide_action(
+        session_state_json: String,
+        llm_response_json: String,
+    ) -> Result<String, String> {
+        Ok(
+            crate::custom_decide_action(&session_state_json, &llm_response_json)
+                .unwrap_or_else(|| PASSTHROUGH_JSON.to_string()),
+        )
     }
 
-    fn handle_tool_result(session_state_json: String, tool_result_json: String) -> Result<String, String> {
-        Ok(crate::custom_handle_tool_result(&session_state_json, &tool_result_json)
-            .unwrap_or_else(|| PASSTHROUGH_JSON.to_string()))
+    fn handle_tool_result(
+        session_state_json: String,
+        tool_result_json: String,
+    ) -> Result<String, String> {
+        Ok(
+            crate::custom_handle_tool_result(&session_state_json, &tool_result_json)
+                .unwrap_or_else(|| PASSTHROUGH_JSON.to_string()),
+        )
     }
 }
 

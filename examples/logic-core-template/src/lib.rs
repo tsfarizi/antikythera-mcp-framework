@@ -50,7 +50,7 @@
 //! Build the component:
 //!
 //! ```text
-//! cargo component build -p logic-core-template --release --target wasm32-wasip1 --no-default-features --features component
+//! cargo component build -p logic-core-template --release --target wasm32-wasip2 --no-default-features --features component
 //! ```
 //!
 //! The artifact exports `antikythera:agent-sdk/runner@1.0.0` (16 functions).

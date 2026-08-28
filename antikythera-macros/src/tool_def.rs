@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use syn::{Data, DeriveInput, Fields};
 
 use crate::attr_utils::{has_serde_default, parse_meta_bool, parse_meta_string};
-use crate::type_mapping::{is_option_type, json_type_kind, JsonTypeKind};
+use crate::type_mapping::{JsonTypeKind, is_option_type, json_type_kind};
 
 pub(crate) fn impl_tool_def(input: &DeriveInput) -> syn::Result<TokenStream> {
     let struct_name = &input.ident;
@@ -222,7 +222,10 @@ pub(crate) fn extract_tool_attrs(input: &DeriveInput) -> syn::Result<(String, St
     }
 
     let name = name.ok_or_else(|| {
-        syn::Error::new_spanned(input, "ToolDef requires `#[tool(name = \"...\")]` attribute")
+        syn::Error::new_spanned(
+            input,
+            "ToolDef requires `#[tool(name = \"...\")]` attribute",
+        )
     })?;
     let description = description.unwrap_or_default();
 
@@ -247,7 +250,8 @@ pub(crate) fn extract_tool_param_attrs(
             } else if meta.path.is_ident("required") {
                 required = Some(parse_meta_bool(&meta, "required")?);
             } else {
-                return Err(meta.error("unknown tool_param attribute, expected `description` or `required`"));
+                return Err(meta
+                    .error("unknown tool_param attribute, expected `description` or `required`"));
             }
             Ok(())
         })?;

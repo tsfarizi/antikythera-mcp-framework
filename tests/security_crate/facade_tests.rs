@@ -15,7 +15,10 @@ fn facade_creates_with_default_config() {
 fn facade_validator_works() {
     let facade = SecurityFacade::from_config(SecurityConfig::default()).unwrap();
     let result = facade.validator.validate_size("hello");
-    assert!(matches!(result, antikythera_security::ValidationResult::Valid));
+    assert!(matches!(
+        result,
+        antikythera_security::ValidationResult::Valid
+    ));
 }
 
 #[tokio::test]

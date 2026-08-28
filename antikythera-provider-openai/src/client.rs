@@ -1,8 +1,8 @@
-use antikythera_core::domain::types::{ChatMessage, MessageRole};
-use antikythera_core::infrastructure::model::{ModelError, ModelRequest, ModelResponse};
-use antikythera_core::infrastructure::model::traits::ModelClient;
-use antikythera_macros::PortValidate;
 use crate::types::*;
+use antikythera_core::domain::types::{ChatMessage, MessageRole};
+use antikythera_core::infrastructure::model::traits::ModelClient;
+use antikythera_core::infrastructure::model::{ModelError, ModelRequest, ModelResponse};
+use antikythera_macros::PortValidate;
 
 #[derive(PortValidate)]
 #[implements(antikythera_core::infrastructure::model::traits::ModelClient)]
@@ -138,10 +138,7 @@ impl ModelClient for OpenAiClient {
             .map(|c| c.message.content.clone())
             .unwrap_or_default();
 
-        let tokens = completion
-            .usage
-            .map(|u| u.total_tokens as u64)
-            .unwrap_or(0);
+        let tokens = completion.usage.map(|u| u.total_tokens as u64).unwrap_or(0);
 
         Ok(ModelResponse {
             message: ChatMessage::new(MessageRole::Assistant, content),

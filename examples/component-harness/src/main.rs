@@ -46,7 +46,7 @@
 //!   log-message    passthrough to host stderr
 //!
 //! Probe modes (`--probe=`), run against the C3a host-llm-agent artifact
-//! (`target/wasm32-wasip1/release/logic_core_host_example.wasm`):
+//! (`target/wasm32-wasip2/release/logic_core_host_example.wasm`):
 //!
 //!   full-loop  init → prepare → commit(prompt WITHOUT "tool") asserts
 //!              action=final content="stub-llm-response" (proves call-llm
@@ -454,7 +454,7 @@ fn main() -> Result<()> {
             }),
             _ => component_path.unwrap_or_else(|| {
                 format!(
-                    "{}/../../target/wasm32-wasip1/release/logic_core_host_example.wasm",
+                    "{}/../../target/wasm32-wasip2/release/logic_core_host_example.wasm",
                     env!("CARGO_MANIFEST_DIR")
                 )
             }),

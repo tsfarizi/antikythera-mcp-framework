@@ -29,10 +29,7 @@ const PASSTHROUGH_JSON: &str = "{\"passthrough\": true}";
 struct DefaultHooks;
 
 impl exports::antikythera::agent_sdk::logic_hooks::Guest for DefaultHooks {
-    fn prepare_turn(
-        _request_json: String,
-        _session_state_json: String,
-    ) -> Result<String, String> {
+    fn prepare_turn(_request_json: String, _session_state_json: String) -> Result<String, String> {
         Ok(PASSTHROUGH_JSON.to_string())
     }
 

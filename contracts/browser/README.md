@@ -1,6 +1,6 @@
-# Browser WASM Contract
+﻿# Browser WASM Contract
 
-This directory defines the contract for the **browser/WASM target** of the SDK: a WASI component (`wasm32-wasip1`) transpiled to JavaScript bindings with `jco`.
+This directory defines the contract for the **browser/WASM target** of the SDK: a WASI component (`wasm32-wasip2`) transpiled to JavaScript bindings with `jco`.
 
 ## Contract Files
 
@@ -14,12 +14,12 @@ The **source of truth for the transpiled output** is the generated TypeScript ar
 
 ## Build Target
 
-- Component target: `wasm32-wasip1` (WASI Component Model)
+- Component target: `wasm32-wasip2` (WASI Component Model)
 - Feature flag: `component`
 - Build command:
 
 ```bash
-cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component
+cargo component build -p antikythera-sdk --release --target wasm32-wasip2 --no-default-features --features component
 ```
 
 - Transpile to JS bindings (jco emits TypeScript by default; there is no `--dts` flag — use `--no-typescript` only to suppress it):

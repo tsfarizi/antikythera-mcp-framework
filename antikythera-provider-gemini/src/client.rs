@@ -1,8 +1,8 @@
-use antikythera_core::domain::types::{ChatMessage, MessageRole};
-use antikythera_core::infrastructure::model::{ModelError, ModelRequest, ModelResponse};
-use antikythera_core::infrastructure::model::traits::ModelClient;
-use antikythera_macros::PortValidate;
 use crate::types::*;
+use antikythera_core::domain::types::{ChatMessage, MessageRole};
+use antikythera_core::infrastructure::model::traits::ModelClient;
+use antikythera_core::infrastructure::model::{ModelError, ModelRequest, ModelResponse};
+use antikythera_macros::PortValidate;
 
 #[derive(PortValidate)]
 #[implements(antikythera_core::infrastructure::model::traits::ModelClient)]

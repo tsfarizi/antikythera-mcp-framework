@@ -1,4 +1,4 @@
-# Product Scope
+﻿# Product Scope
 
 This document defines what the Antikythera Agent SDK is, what deployment targets it supports, and what surfaces its public API exposes.
 
@@ -9,10 +9,10 @@ Antikythera is a **Rust-based MCP client framework** designed to:
 - prepare and process LLM message flows while leaving the actual model API call to the embedding host
 - connect to MCP tool servers over STDIO and HTTP transports
 - run agent and tool-calling flows with structured step management
-- expose agent logic as a portable **server-side WASM component** (wasm32-wasip1)
+- expose agent logic as a portable **server-side WASM component** (wasm32-wasip2)
 - support multiple LLM providers (Ollama, OpenAI, Gemini) via feature-gated facade
 
-No C FFI is provided by the framework. The SDK core crates do not embed an HTTP server — the Runtime Bridge ships one as a separate deployment binary (`antikythera-server-runtime`, HTTP + SSE). Browser WASM is supported through the **WASI component transpiled with jco** (`npm/antikythera-sdk/component/`, namespace `runner`); the wasm-bindgen browser path is legacy only. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom) — or reuses the Runtime Bridge wire protocol (`WIRE_PROTOCOL.md`).
+No C FFI is provided by the framework. The SDK core crates do not embed an HTTP server — the Runtime Bridge ships one as a separate deployment binary (`antikythera-server-runtime`, HTTP + SSE). Browser WASM is supported through the **WASI component transpiled with jco** (`npm/antikythera-sdk/component/`, namespace `runner`). A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom) — or reuses the Runtime Bridge wire protocol (`WIRE_PROTOCOL.md`).
 
 ## Deployment targets
 
@@ -21,8 +21,6 @@ No C FFI is provided by the framework. The SDK core crates do not embed an HTTP 
 | **Framework crates** | `cargo build --workspace` | Library crates |
 | **Server-side WASM component** (composite) | `task build` — SDK + toolrunner + default-hooks components + `wasm-tools compose` → `dist/antikythera-sdk.wasm` | `.wasm` component (exports `runner`; imports exactly one non-WASI interface — `runtime-hooks` — plus WASI) |
 | **Browser JS bindings** | `npx jco transpile dist/antikythera-sdk.wasm --out-dir npm/antikythera-sdk/component` | ESM module (namespace `runner`) |
-
-No C FFI is provided by the framework. The SDK core crates do not embed an HTTP server — the Runtime Bridge ships one as a separate deployment binary (`antikythera-server-runtime`, HTTP + SSE). Browser WASM is supported through the **WASI component transpiled with jco** (`npm/antikythera-sdk/component/`, namespace `runner`); the wasm-bindgen browser path is legacy only. A host that embeds the WASM component is responsible for its own transport layer (REST, gRPC, WebSocket, or custom) — or reuses the Runtime Bridge wire protocol (`WIRE_PROTOCOL.md`).
 
 ## Public SDK surface
 
@@ -68,8 +66,7 @@ The WASM component handles agent reasoning, session continuity, history shaping,
 
 | Flag | Purpose | Status |
 |:-----|:--------|:-------|
-| `component` | Server-side WASM Component Model support (wasm32-wasip1 WASI) — basis untuk server dan browser-via-jco | Active |
-| `wasm` | Browser WASM support (wasm32-unknown-unknown), enables `antikythera-log/wasm` — **legacy**, digantikan jalur component + jco | Deprecated |
+| `component` | WASM Component Model support (wasm32-wasip2 WASI) — basis untuk server dan browser-via-jco | Active |
 | `toolrunner` | In-process tool execution via `antikythera-toolrunner` | Active |
 | `wasm-sandbox` | Wasmtime-based sandbox execution | Active |
 
@@ -86,7 +83,6 @@ The WASM component handles agent reasoning, session continuity, history shaping,
 
 | Flag | Purpose | Status |
 |:-----|:--------|:-------|
-| `wasm` | Browser-safe time via js-sys (wasm32-unknown-unknown) — **legacy** (digantikan jalur WASI component + jco) | Deprecated |
 | `subscriber` | Real-time log streaming via tokio + crossbeam-channel | Stable |
 | `lint` | Compile-time lint blocking println!, eprintln!, dbg!, tracing | Stable |
 
@@ -99,7 +95,6 @@ The WASM component handles agent reasoning, session continuity, history shaping,
 | `postgres` | PostgreSQL backend | Stable |
 | `standalone` | REST API server mode | Stable |
 | `sse` | SSE backup service | Stable |
-| `wasm` | WASM component integration | Stable |
 
 ### `antikythera-observability`
 
@@ -122,7 +117,6 @@ The WASM component handles agent reasoning, session continuity, history shaping,
 | Flag | Purpose | Status |
 |:-----|:--------|:-------|
 | `log` | Enables `antikythera-log` integration | Stable |
-| `wasm` | WASM target support | Stable |
 
 ### `antikythera-core`
 

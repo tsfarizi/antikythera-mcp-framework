@@ -12,6 +12,5 @@ Structured logging foundation for the Antikythera Agent SDK.
 
 ## Feature Flags
 
-- `wasm` — wasm-bindgen support (**legacy**; dipertahankan untuk kompatibilitas crate, bukan lagi jalur browser utama — browser kini memakai WASI component + jco)
 - `subscriber` — tokio + crossbeam-channel for real-time log streaming
 - `lint` — shadows println!/eprintln!/dbg!/tracing macros with compile errors

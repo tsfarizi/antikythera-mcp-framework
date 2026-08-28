@@ -3,7 +3,7 @@
 //! # Architecture — WASM boundary
 //!
 //! This module defines the LLM provider *contract* (traits + types) that is
-//! safe to compile into any target including `wasm32-wasip1` (WASM component).
+//! safe to compile into any target including `wasm32-wasip2` (WASM component).
 //!
 //! The framework no longer ships built-in HTTP model clients as an active
 //! runtime path. All model dispatch is delegated to the embedding host through

@@ -1,4 +1,4 @@
-# BUILD
+﻿# BUILD
 
 This guide covers the commands that match the current workspace layout and tooling.
 
@@ -27,9 +27,9 @@ flowchart TD
 | Target | Status | Notes |
 |:-------|:------:|:------|
 | Workspace crates | ✅ | `cargo build --workspace` — all framework crates + tests + scripts |
-| `antikythera-sdk` component | ✅ | Standalone intermediate via `cargo-component` + `wasm32-wasip1` (feature `component`); imports `tool-registry` + `logic-hooks` — **not** a consumable deliverable |
-| `antikythera-toolrunner` component | ✅ | Standalone intermediate via `cargo-component` + `wasm32-wasip1` (feature `component`); exports `tool-registry` (builtin tools) |
-| `antikythera-default-hooks` component | ✅ | Standalone intermediate via `cargo-component` + `wasm32-wasip1` (feature `component`); exports `logic-hooks` (no-op passthrough) |
+| `antikythera-sdk` component | ✅ | Standalone intermediate via `cargo-component` + `wasm32-wasip2` (feature `component`); imports `tool-registry` + `logic-hooks` — **not** a consumable deliverable |
+| `antikythera-toolrunner` component | ✅ | Standalone intermediate via `cargo-component` + `wasm32-wasip2` (feature `component`); exports `tool-registry` (builtin tools) |
+| `antikythera-default-hooks` component | ✅ | Standalone intermediate via `cargo-component` + `wasm32-wasip2` (feature `component`); exports `logic-hooks` (no-op passthrough) |
 | **Composite WASM deliverable** | ✅ | `wasm-tools compose` SDK + toolrunner + default-hooks → `dist/antikythera-sdk.wasm` (exports `runner`; imports exactly one non-WASI interface — `runtime-hooks` — plus WASI) |
 | Browser JS bindings | ✅ | `jco transpile` of the **composite** → `npm/antikythera-sdk/component/` (ESM, namespace `runner`) |
 | **Server host runtime** | ✅ | `cargo build -p antikythera-server-runtime` — wasmtime host + HTTP/SSE wire bridge (lib + bin) |
@@ -71,11 +71,11 @@ This validates the checked-in WIT file against Rust source types.
 The WASM deliverable is **composite** (three members): the SDK component imports `tool-registry` and `logic-hooks`; the toolrunner component exports `tool-registry`; the default-hooks component exports `logic-hooks` (no-op passthrough). `wasm-tools compose` wires all three. Build the three components, then compose:
 
 ```bash
-cargo component build -p antikythera-sdk --release --target wasm32-wasip1 \
+cargo component build -p antikythera-sdk --release --target wasm32-wasip2 \
   --no-default-features --features component
-cargo component build -p antikythera-toolrunner --release --target wasm32-wasip1 \
+cargo component build -p antikythera-toolrunner --release --target wasm32-wasip2 \
   --no-default-features --features component
-cargo component build -p antikythera-default-hooks --release --target wasm32-wasip1 \
+cargo component build -p antikythera-default-hooks --release --target wasm32-wasip2 \
   --no-default-features --features component
 ```
 
@@ -84,20 +84,20 @@ The helper binary in `scripts/build-component.rs` validates WIT conformance agai
 Expected component output is produced under:
 
 ```text
-target/wasm32-wasip1/release/
+target/wasm32-wasip2/release/
 ```
 
 Compose into the canonical composite artifact (the component artifacts are copied to kebab-case names first because `wasm-tools compose` rejects underscores):
 
 ```bash
 mkdir -p dist
-cp target/wasm32-wasip1/release/antikythera_toolrunner.wasm \
-  target/wasm32-wasip1/release/antikythera-toolrunner.wasm
-cp target/wasm32-wasip1/release/antikythera_default_hooks.wasm \
-  target/wasm32-wasip1/release/antikythera-default-hooks.wasm
-wasm-tools compose target/wasm32-wasip1/release/antikythera_sdk.wasm \
-  -d target/wasm32-wasip1/release/antikythera-toolrunner.wasm \
-  -d target/wasm32-wasip1/release/antikythera-default-hooks.wasm \
+cp target/wasm32-wasip2/release/antikythera_toolrunner.wasm \
+  target/wasm32-wasip2/release/antikythera-toolrunner.wasm
+cp target/wasm32-wasip2/release/antikythera_default_hooks.wasm \
+  target/wasm32-wasip2/release/antikythera-default-hooks.wasm
+wasm-tools compose target/wasm32-wasip2/release/antikythera_sdk.wasm \
+  -d target/wasm32-wasip2/release/antikythera-toolrunner.wasm \
+  -d target/wasm32-wasip2/release/antikythera-default-hooks.wasm \
   -o dist/antikythera-sdk.wasm
 ```
 
@@ -109,7 +109,7 @@ dist/antikythera-sdk.wasm
 
 `task compose` wraps the copy + compose steps (and depends on the component builds); `task build` runs the full composite build (WIT validation + all three components + compose).
 
-> **Never transpile or embed the standalone SDK component.** `target/wasm32-wasip1/release/antikythera_sdk.wasm` still imports `tool-registry` and `logic-hooks`; jco transpilation of it yields a module with unmet imports that fails Node smoke tests. Always consume the composite.
+> **Never transpile or embed the standalone SDK component.** `target/wasm32-wasip2/release/antikythera_sdk.wasm` still imports `tool-registry` and `logic-hooks`; jco transpilation of it yields a module with unmet imports that fails Node smoke tests. Always consume the composite.
 
 ### Verify the composite server-side
 
@@ -142,7 +142,7 @@ The composite calls three plug-and-play pipeline hooks (`prepare-turn`, `decide-
 - Build the component:
 
 ```bash
-cargo component build -p logic-hooks-template --release --target wasm32-wasip1 \
+cargo component build -p logic-hooks-template --release --target wasm32-wasip2 \
   --no-default-features --features component
 ```
 
@@ -170,7 +170,7 @@ task build-logic-core-template
 task build-logic-core-example
 ```
 
-(The tasks wrap `cargo component build -p logic-core-template|logic-core-example --release --target wasm32-wasip1 --no-default-features --features component`; artifacts land under `target/wasm32-wasip1/release/` — `logic_core_template.wasm` / `logic_core_example.wasm`. Unlike the composite members, no kebab-case copy is needed: the logic core is never composed.)
+(The tasks wrap `cargo component build -p logic-core-template|logic-core-example --release --target wasm32-wasip2 --no-default-features --features component`; artifacts land under `target/wasm32-wasip2/release/` — `logic_core_template.wasm` / `logic_core_example.wasm`. Unlike the composite members, no kebab-case copy is needed: the logic core is never composed.)
 
 - Verify server-side with the harness final probe:
 
@@ -189,17 +189,17 @@ A logic core that uses the `host-imports` escape hatch (world `logic-core-compon
 Build the host-imports probe artifact (no task wraps this crate; use the direct command):
 
 ```bash
-cargo component build -p logic-core-host-example --release --target wasm32-wasip1 \
+cargo component build -p logic-core-host-example --release --target wasm32-wasip2 \
   --no-default-features --features component
 ```
 
-Artifact: `target/wasm32-wasip1/release/logic_core_host_example.wasm` (exports `runner`; imports `antikythera:agent-sdk/host-imports@1.0.0`).
+Artifact: `target/wasm32-wasip2/release/logic_core_host_example.wasm` (exports `runner`; imports `antikythera:agent-sdk/host-imports@1.0.0`).
 
 **Server.** `examples/component-harness` registers the import into the wasmtime linker with `wasmtime::component::bindgen!` plus the generated `add_to_linker` (in the harness: `Harness::add_to_linker::<_, wasmtime::component::HasSelf<HostState>>(&mut linker, |state| state)`), alongside `wasmtime_wasi::p2::add_to_linker_sync` for WASI; a manual `Linker::func_wrap` per function is the equivalent when wiring by hand. The `Host` impl applies the permission gates (call-llm quota, emit-tool-call allowlist, bounded storage with traversal rejection, log passthrough). Prove the wiring with the probe modes:
 
 ```bash
 cargo run -p component-harness --release -- \
-  target/wasm32-wasip1/release/logic_core_host_example.wasm \
+  target/wasm32-wasip2/release/logic_core_host_example.wasm \
   --probe=full-loop|quota|allowlist|storage
 ```
 
@@ -410,6 +410,5 @@ The repository includes `Taskfile.yml` for common flows.
 
 ## Notes
 
-- The composite build (`wasm32-wasip1`, feature `component` on all three crates, then `wasm-tools compose`) is the WASM deployment target for both server and browser. Use `dist/antikythera-sdk.wasm` when embedding agent logic in a host application via wasmtime (`examples/component-harness` proves the builtin tool path and the runtime-hooks probes), and transpile the composite with jco for browser consumption. For full client–server connectivity, use the two host runtimes — `antikythera-server-runtime` (Rust, HTTP + SSE) and `npm/antikythera-sdk/runtime` (`antikythera-agent/runtime`) — see the Runtime Bridge sections above and [`WIRE_PROTOCOL.md`](WIRE_PROTOCOL.md).
-- The standalone `antikythera-sdk` component is an intermediate artifact: it imports `tool-registry`, `logic-hooks`, and `runtime-hooks` and must be composed with `antikythera-toolrunner` and a hooks provider (default: `antikythera-default-hooks`) before any consumer (wasmtime harness, jco) touches it. After composition the `runtime-hooks` import remains and the host MUST wire it (default passthrough stub) — see [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Runtime hooks (host-supplied).
-- The legacy wasm-bindgen path (`wasm32-unknown-unknown` + `wasm` feature, `plugin/antikythera-wasm-bindgen`, wasm-pack) is **deprecated**; it is kept only for crate-level compatibility during the transition. Do not use it for new browser integrations.
+- The composite build (`wasm32-wasip2`, feature `component` on all three crates, then `wasm-tools compose`) is the WASM deployment target for both server and browser. Use `dist/antikythera-sdk.wasm` when embedding agent logic in a host application via wasmtime (`examples/component-harness` proves the builtin tool path and the runtime-hooks probes), and transpile the composite with jco for browser consumption. For full client–server connectivity, use the two host runtimes -- `antikythera-server-runtime` (Rust, HTTP + SSE) and `npm/antikythera-sdk/runtime` (`antikythera-agent/runtime`) -- see the Runtime Bridge sections above and [`WIRE_PROTOCOL.md`](WIRE_PROTOCOL.md).
+- The standalone `antikythera-sdk` component is an intermediate artifact: it imports `tool-registry`, `logic-hooks`, and `runtime-hooks` and must be composed with `antikythera-toolrunner` and a hooks provider (default: `antikythera-default-hooks`) before any consumer (wasmtime harness, jco) touches it. After composition the `runtime-hooks` import remains and the host MUST wire it (default passthrough stub) -- see [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) -- Runtime hooks (host-supplied).

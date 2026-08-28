@@ -53,7 +53,6 @@ pub mod api;
 /// SSE backup service for independent backup processing.
 pub mod sse;
 
-#[cfg(feature = "wasm")]
 /// WASM integration for embedded storage.
 pub mod wasm;
 

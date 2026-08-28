@@ -53,7 +53,7 @@
 //! Build the component:
 //!
 //! ```text
-//! cargo component build -p logic-core-host-example --release --target wasm32-wasip1 --no-default-features --features component
+//! cargo component build -p logic-core-host-example --release --target wasm32-wasip2 --no-default-features --features component
 //! ```
 //!
 //! The artifact exports `antikythera:agent-sdk/runner@1.0.0` (16 functions)
@@ -107,13 +107,19 @@ pub fn custom_prepare_turn(_request_json: &str) -> Option<String> {
 /// The `llm_response_json` parameter forwarded by the runner is ignored by
 /// design: the host-imports call is the loop's source of truth.
 #[cfg(feature = "component")]
-pub fn custom_commit_response(prepared_turn_json: &str, _llm_response_json: &str) -> Option<String> {
+pub fn custom_commit_response(
+    prepared_turn_json: &str,
+    _llm_response_json: &str,
+) -> Option<String> {
     host_loop::commit_response(prepared_turn_json)
 }
 
 /// Native-build stub: `None` = `Err` not-implemented (template default).
 #[cfg(not(feature = "component"))]
-pub fn custom_commit_response(_prepared_turn_json: &str, _llm_response_json: &str) -> Option<String> {
+pub fn custom_commit_response(
+    _prepared_turn_json: &str,
+    _llm_response_json: &str,
+) -> Option<String> {
     None
 }
 
@@ -268,12 +274,21 @@ mod host_loop {
             }
             Ok(None) => match host_save_state(&session_id, &fresh_session_state(&session_id)) {
                 Ok(()) => host_log("info", "session created"),
-                Err(e) => host_log("error", &format!("session created but save-state failed: {e}")),
+                Err(e) => host_log(
+                    "error",
+                    &format!("session created but save-state failed: {e}"),
+                ),
             },
             Err(e) => {
-                host_log("warn", &format!("load-state failed, creating fresh session: {e}"));
+                host_log(
+                    "warn",
+                    &format!("load-state failed, creating fresh session: {e}"),
+                );
                 if let Err(e2) = host_save_state(&session_id, &fresh_session_state(&session_id)) {
-                    host_log("error", &format!("session created but save-state failed: {e2}"));
+                    host_log(
+                        "error",
+                        &format!("session created but save-state failed: {e2}"),
+                    );
                 }
             }
         }
@@ -382,7 +397,7 @@ mod host_loop {
                 return Some(error_envelope(
                     "commit-llm-response",
                     &format!("host_call_llm: {e}"),
-                ))
+                ));
             }
         };
 
@@ -392,7 +407,7 @@ mod host_loop {
                 return Some(error_envelope(
                     "commit-llm-response",
                     &format!("cannot parse llm-response: {e}"),
-                ))
+                ));
             }
         };
         let content = llm
@@ -404,7 +419,12 @@ mod host_loop {
         // echo tool; anything else → final with the LLM content.
         let wants_tool = prompt.contains("tool");
         let (action, tool_name, tool_input, fsm_state) = if wants_tool {
-            ("call_tool", Some("echo".to_string()), Some(serde_json::json!({})), "awaiting_tool")
+            (
+                "call_tool",
+                Some("echo".to_string()),
+                Some(serde_json::json!({})),
+                "awaiting_tool",
+            )
         } else {
             ("final", None, None, "final")
         };
@@ -416,7 +436,7 @@ mod host_loop {
                 return Some(error_envelope(
                     "commit-llm-response",
                     &format!("load-state: {e}"),
-                ))
+                ));
             }
         };
         let step = state
@@ -485,7 +505,7 @@ mod host_loop {
                 return Some(error_envelope(
                     "process-tool-result-for-session",
                     &format!("load-state: {e}"),
-                ))
+                ));
             }
         };
         let step = state
@@ -500,7 +520,7 @@ mod host_loop {
                 return Some(error_envelope(
                     "process-tool-result-for-session",
                     &format!("host_emit_tool_call: {e}"),
-                ))
+                ));
             }
         };
 
@@ -510,7 +530,7 @@ mod host_loop {
                 return Some(error_envelope(
                     "process-tool-result-for-session",
                     &format!("cannot parse tool-execution-result: {e}"),
-                ))
+                ));
             }
         };
         let executed_name = execution

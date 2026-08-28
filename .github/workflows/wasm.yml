@@ -20,7 +20,7 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-wasip1
+          targets: wasm32-wasip2
 
       - name: Install cargo-component
         uses: taiki-e/install-action@v2
@@ -36,13 +36,13 @@ jobs:
         run: cargo run -p build-scripts --release -- validate
 
       - name: Build SDK component
-        run: cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component
+        run: cargo component build -p antikythera-sdk --release --target wasm32-wasip2 --no-default-features --features component
 
       - name: Build toolrunner component
-        run: cargo component build -p antikythera-toolrunner --release --target wasm32-wasip1 --no-default-features --features component
+        run: cargo component build -p antikythera-toolrunner --release --target wasm32-wasip2 --no-default-features --features component
 
       - name: Build default-hooks component
-        run: cargo component build -p antikythera-default-hooks --release --target wasm32-wasip1 --no-default-features --features component
+        run: cargo component build -p antikythera-default-hooks --release --target wasm32-wasip2 --no-default-features --features component
 
       - name: Compose SDK + toolrunner + default-hooks into dist composite
         shell: bash
@@ -51,14 +51,14 @@ jobs:
           mkdir -p dist
 
           # wasm-tools compose rejects underscore crate names; use kebab-case copies.
-          cp target/wasm32-wasip1/release/antikythera_toolrunner.wasm \
-            target/wasm32-wasip1/release/antikythera-toolrunner.wasm
-          cp target/wasm32-wasip1/release/antikythera_default_hooks.wasm \
-            target/wasm32-wasip1/release/antikythera-default-hooks.wasm
+          cp target/wasm32-wasip2/release/antikythera_toolrunner.wasm \
+            target/wasm32-wasip2/release/antikythera-toolrunner.wasm
+          cp target/wasm32-wasip2/release/antikythera_default_hooks.wasm \
+            target/wasm32-wasip2/release/antikythera-default-hooks.wasm
 
-          wasm-tools compose target/wasm32-wasip1/release/antikythera_sdk.wasm \
-            -d target/wasm32-wasip1/release/antikythera-toolrunner.wasm \
-            -d target/wasm32-wasip1/release/antikythera-default-hooks.wasm \
+          wasm-tools compose target/wasm32-wasip2/release/antikythera_sdk.wasm \
+            -d target/wasm32-wasip2/release/antikythera-toolrunner.wasm \
+            -d target/wasm32-wasip2/release/antikythera-default-hooks.wasm \
             -o dist/antikythera-sdk.wasm
 
           cp wit/antikythera.wit dist/antikythera.wit

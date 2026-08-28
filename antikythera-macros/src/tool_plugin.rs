@@ -147,9 +147,7 @@ pub(crate) fn impl_tool_plugin(input: &DeriveInput) -> syn::Result<TokenStream> 
 /// Returns `(handler, definition_type, definition_is_json_value)`. Every
 /// malformed form — missing handler, unknown key, duplicate key or attribute,
 /// or a value that is not a valid Rust path/type — is a `syn::Error`.
-fn extract_plugin_attrs(
-    input: &DeriveInput,
-) -> syn::Result<(syn::Path, syn::Type, bool)> {
+fn extract_plugin_attrs(input: &DeriveInput) -> syn::Result<(syn::Path, syn::Type, bool)> {
     let mut handler: Option<syn::Path> = None;
     let mut definition: Option<syn::Type> = None;
     let mut attr_seen = false;
@@ -188,9 +186,9 @@ fn extract_plugin_attrs(
                     ))
                 })?);
             } else {
-                return Err(meta.error(
-                    "unknown plugin attribute, expected `handler` or `definition`",
-                ));
+                return Err(
+                    meta.error("unknown plugin attribute, expected `handler` or `definition`")
+                );
             }
             Ok(())
         })?;
@@ -210,7 +208,8 @@ fn extract_plugin_attrs(
 
     let default_type: syn::Type = syn::parse_str("serde_json::Value")
         .expect("static parsing of the serde_json::Value type cannot fail");
-    let definition_is_json_value = quote!(#definition).to_string() == quote!(#default_type).to_string();
+    let definition_is_json_value =
+        quote!(#definition).to_string() == quote!(#default_type).to_string();
 
     Ok((handler, definition, definition_is_json_value))
 }

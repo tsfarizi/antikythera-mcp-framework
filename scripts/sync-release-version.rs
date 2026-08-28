@@ -120,8 +120,8 @@ fn main() {
 
     // --check only: tolerate targets whose marker has not landed yet (see the
     // PENDING TARGETS note in the module docs). Write mode always stays strict.
-    let allow_pending = mode == Mode::Check
-        && env::var("SYNC_ALLOW_PENDING_TARGETS").ok().as_deref() == Some("1");
+    let allow_pending =
+        mode == Mode::Check && env::var("SYNC_ALLOW_PENDING_TARGETS").ok().as_deref() == Some("1");
 
     // Read + rewrite every target in memory first; write only when all
     // rewrites succeeded (no partial updates).
@@ -146,9 +146,7 @@ fn main() {
                 if allow_pending {
                     println!(
                         "pending: {} {} (marker '{}' not present yet; skipped because SYNC_ALLOW_PENDING_TARGETS=1)",
-                        target.label,
-                        target.rel_path,
-                        target.marker
+                        target.label, target.rel_path, target.marker
                     );
                     continue;
                 }

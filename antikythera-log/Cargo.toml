@@ -9,7 +9,6 @@ readme = "README.md"
 description = "Unified logging system for Antikythera Agent SDK"
 
 [features]
-wasm = ["dep:wasm-bindgen", "dep:js-sys"]
 subscriber = ["dep:tokio", "dep:crossbeam-channel"]
 # Enable compile-time lint that blocks println!, eprintln!, dbg!, and tracing macros
 lint = []
@@ -18,10 +17,6 @@ lint = []
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }
-
-# WASM support
-wasm-bindgen = { workspace = true, optional = true }
-js-sys = { version = "0.3", optional = true }
 
 # Subscriber support (real-time streaming)
 tokio = { workspace = true, features = ["sync", "macros"], optional = true }

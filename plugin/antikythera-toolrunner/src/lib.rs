@@ -60,7 +60,7 @@ pub mod registry;
 pub mod runner;
 pub mod types;
 
-#[cfg(feature = "wasm")]
+#[cfg(feature = "component")]
 pub mod wasm;
 
 /// WIT export layer for the component world (`antikythera:agent-sdk/tool-registry-component`)

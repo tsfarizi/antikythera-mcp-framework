@@ -2,7 +2,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum FacadeError {
-    #[error("No provider configured. Use SimpleAgent::ollama(), SimpleAgent::openai(), or SimpleAgent::gemini()")]
+    #[error(
+        "No provider configured. Use SimpleAgent::ollama(), SimpleAgent::openai(), or SimpleAgent::gemini()"
+    )]
     MissingProvider,
 
     #[error("Provider '{0}' not available. Enable the corresponding feature flag.")]

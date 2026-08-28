@@ -33,19 +33,19 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use antikythera_config::{ServerConfig, TransportType};
+use antikythera_server_runtime::RuntimeServer;
 use antikythera_server_runtime::config::{HookName, LlmProviderSpec, ServerRuntimeConfig};
 use antikythera_server_runtime::core::CoreSession;
 use antikythera_server_runtime::llm::{LlmError, LlmProvider};
-use antikythera_server_runtime::loop_owner::{run_tool_loop, ToolLoopConfig};
+use antikythera_server_runtime::loop_owner::{ToolLoopConfig, run_tool_loop};
 use antikythera_server_runtime::registry::{Destination, ToolOwner};
 use antikythera_server_runtime::routing::ToolRouter;
 use antikythera_server_runtime::wire::{LlmRequest, LlmResponse, ToolDefinition};
-use antikythera_server_runtime::RuntimeServer;
 use async_trait::async_trait;
 use axum::extract::State;
 use axum::routing::post;
 use axum::{Json, Router};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tokio_stream::StreamExt;
 
 // ---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ fn component_path() -> PathBuf {
 
 fn logic_core_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../target/wasm32-wasip1/release/logic_core_host_example.wasm")
+        .join("../target/wasm32-wasip2/release/logic_core_host_example.wasm")
 }
 
 fn golden_path() -> PathBuf {
@@ -157,7 +157,9 @@ async fn spawn_http_server(server: &RuntimeServer) -> String {
         .expect("bind ephemeral port");
     let addr = listener.local_addr().expect("ephemeral local addr");
     tokio::spawn(async move {
-        axum::serve(listener, router).await.expect("wire http server");
+        axum::serve(listener, router)
+            .await
+            .expect("wire http server");
     });
     format!("http://{addr}")
 }
@@ -221,10 +223,10 @@ fn spawn_sse_client(
                     if corr.is_empty() {
                         continue;
                     }
-                    let post_url =
-                        format!("{base_url}/antikythera/v1/events/{corr}/response");
+                    let post_url = format!("{base_url}/antikythera/v1/events/{corr}/response");
                     let _ = client.post(post_url).json(&body).send().await;
-                }            }
+                }
+            }
         }
     });
     (handle, events)
@@ -371,10 +373,7 @@ async fn builtin_echo_executes_in_band_without_host_execution() {
     let mut config = stub_config();
     config.policy.allow_tool(Destination::Local, "echo");
     let provider = scripted_provider(call_then_final("echo", json!({"hi": 1})));
-    let server = build_server(
-        config,
-        HashMap::from([("scripted".to_string(), provider)]),
-    );
+    let server = build_server(config, HashMap::from([("scripted".to_string(), provider)]));
 
     // The local handler counts host executions. The composite must execute
     // `echo` IN-BAND inside commit (tool-registry builtin), so the loop must
@@ -431,10 +430,7 @@ async fn server_local_tool_executes_via_handler_through_the_loop() {
     let mut config = stub_config();
     config.policy.allow_tool(Destination::Local, "server_time");
     let provider = scripted_provider(call_then_final("server_time", json!({"tz": "UTC"})));
-    let server = build_server(
-        config,
-        HashMap::from([("scripted".to_string(), provider)]),
-    );
+    let server = build_server(config, HashMap::from([("scripted".to_string(), provider)]));
 
     let handler_calls = Arc::new(AtomicU32::new(0));
     let counter = handler_calls.clone();
@@ -498,12 +494,11 @@ async fn client_tool_routes_remote_via_sse_request_and_postback() {
         return;
     }
     let mut config = stub_config();
-    config.policy.allow_tool(Destination::Remote, "client_secret");
+    config
+        .policy
+        .allow_tool(Destination::Remote, "client_secret");
     let provider = scripted_provider(call_then_final("client_secret", json!({"ask": "secret"})));
-    let server = build_server(
-        config,
-        HashMap::from([("scripted".to_string(), provider)]),
-    );
+    let server = build_server(config, HashMap::from([("scripted".to_string(), provider)]));
     server
         .router()
         .register_client_tools(vec![ToolDefinition::simple(
@@ -517,27 +512,31 @@ async fn client_tool_routes_remote_via_sse_request_and_postback() {
 
     // The wire client: connect over SSE and answer the tool-execution-request
     // with a canned tool-execution-result POST-back.
-    let (sse_task, events) = spawn_sse_client(&base_url, &client_id, None, move |envelope: Value| {
-        if envelope["type"] == "tool-execution-request"
-            && envelope["payload"]["tool-name"] == "client_secret"
-        {
-            let corr = envelope["correlation_id"].as_str().unwrap_or_default().to_string();
-            Some(json!({
-                "correlation_id": corr,
-                "ok": true,
-                "payload": {
-                    "tool-name": "client_secret",
-                    "success": true,
-                    "output-json": "{\"secret\":\"opensecret\"}",
-                    "error-message": null,
-                    "step-id": 0,
-                },
-                "error": null,
-            }))
-        } else {
-            None
-        }
-    });
+    let (sse_task, events) =
+        spawn_sse_client(&base_url, &client_id, None, move |envelope: Value| {
+            if envelope["type"] == "tool-execution-request"
+                && envelope["payload"]["tool-name"] == "client_secret"
+            {
+                let corr = envelope["correlation_id"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
+                Some(json!({
+                    "correlation_id": corr,
+                    "ok": true,
+                    "payload": {
+                        "tool-name": "client_secret",
+                        "success": true,
+                        "output-json": "{\"secret\":\"opensecret\"}",
+                        "error-message": null,
+                        "step-id": 0,
+                    },
+                    "error": null,
+                }))
+            } else {
+                None
+            }
+        });
     wait_until_connected(&server, &client_id).await;
 
     let shared = server.shared.clone();
@@ -565,12 +564,9 @@ async fn client_tool_routes_remote_via_sse_request_and_postback() {
     let request = events
         .iter()
         .find(|e| {
-            e["type"] == "tool-execution-request"
-                && e["payload"]["tool-name"] == "client_secret"
+            e["type"] == "tool-execution-request" && e["payload"]["tool-name"] == "client_secret"
         })
-        .unwrap_or_else(|| {
-            panic!("no tool-execution-request received; envelopes: {events:?}")
-        });
+        .unwrap_or_else(|| panic!("no tool-execution-request received; envelopes: {events:?}"));
     assert_eq!(request["type"], "tool-execution-request");
     assert!(request["correlation_id"].as_str().is_some());
     assert_eq!(request["client_id"].as_str(), Some(client_id.as_str()));
@@ -609,30 +605,34 @@ async fn hook_request_roundtrips_over_sse_and_override_is_committed() {
     let provider = scripted_provider(vec![
         json!({"action": "final", "content": "server-default"}).to_string(),
     ]);
-    let server = build_server(
-        config,
-        HashMap::from([("scripted".to_string(), provider)]),
-    );
+    let server = build_server(config, HashMap::from([("scripted".to_string(), provider)]));
 
     let base_url = spawn_http_server(&server).await;
     let client_id = server.client_id().to_string();
 
     // The wire client answers hook-requests: passthrough for prepare-turn,
     // an action/content override for decide-action.
-    let (sse_task, events) = spawn_sse_client(&base_url, &client_id, None, move |envelope: Value| {
-        if envelope["type"] == "hook-request" {
-            let corr = envelope["correlation_id"].as_str().unwrap_or_default().to_string();
-            let hook = envelope["payload"]["hook"].as_str().unwrap_or_default().to_string();
-            let payload = if hook == "decide-action" {
-                json!({"action": "final", "content": "client-hook-decision"})
+    let (sse_task, events) =
+        spawn_sse_client(&base_url, &client_id, None, move |envelope: Value| {
+            if envelope["type"] == "hook-request" {
+                let corr = envelope["correlation_id"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
+                let hook = envelope["payload"]["hook"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
+                let payload = if hook == "decide-action" {
+                    json!({"action": "final", "content": "client-hook-decision"})
+                } else {
+                    json!({"passthrough": true})
+                };
+                Some(json!({"correlation_id": corr, "ok": true, "payload": payload, "error": null}))
             } else {
-                json!({"passthrough": true})
-            };
-            Some(json!({"correlation_id": corr, "ok": true, "payload": payload, "error": null}))
-        } else {
-            None
-        }
-    });
+                None
+            }
+        });
     wait_until_connected(&server, &client_id).await;
 
     let shared = server.shared.clone();
@@ -689,10 +689,7 @@ async fn mcp_tool_routes_through_mcp_transport_into_the_loop() {
     let mut config = stub_config();
     config.policy.allow_tool(Destination::Mcp, "mcp_greet");
     let provider = scripted_provider(call_then_final("mcp_greet", json!({"name": "world"})));
-    let server = build_server(
-        config,
-        HashMap::from([("scripted".to_string(), provider)]),
-    );
+    let server = build_server(config, HashMap::from([("scripted".to_string(), provider)]));
 
     let router = server.router();
     connect_mcp(router.clone(), mcp_server_config("mock-mcp", &mcp_url))
@@ -756,10 +753,7 @@ async fn tool_outside_allowlist_denied_with_permission_error() {
         json!({"action": "call_tool", "tool": "restricted_tool", "input": {}}).to_string(),
         json!({"action": "final", "content": "unreachable"}).to_string(),
     ]);
-    let server = build_server(
-        config,
-        HashMap::from([("scripted".to_string(), provider)]),
-    );
+    let server = build_server(config, HashMap::from([("scripted".to_string(), provider)]));
     server
         .router()
         .register_local_tool(
@@ -838,10 +832,7 @@ async fn llm_quota_gate_denies_when_session_exceeds_quota() {
     // Two LLM calls are needed to reach final (call_tool echo, then final);
     // the quota allows exactly one, so the second check must fail closed.
     let provider = scripted_provider(call_then_final("echo", json!({})));
-    let server = build_server(
-        config,
-        HashMap::from([("scripted".to_string(), provider)]),
-    );
+    let server = build_server(config, HashMap::from([("scripted".to_string(), provider)]));
     // echo is builtin in-band; registration only makes the union validate.
     server
         .router()
@@ -878,7 +869,11 @@ async fn llm_quota_gate_denies_when_session_exceeds_quota() {
 /// `process-tool-result-for-session` call; the core's custom hook asks the
 /// host to execute `tool` via `host-imports.emit-tool-call`, which routes
 /// through the server's tool router. Returns the committed summary content.
-fn drive_logic_core_tool(server: &RuntimeServer, session: &str, tool: &str) -> Result<String, String> {
+fn drive_logic_core_tool(
+    server: &RuntimeServer,
+    session: &str,
+    tool: &str,
+) -> Result<String, String> {
     let shared = server.shared.clone();
     let path = logic_core_path();
     let session = session.to_string();
@@ -918,7 +913,7 @@ async fn logic_core_emit_tool_call_routes_local_remote_mcp() {
         eprintln!(
             "SKIP: logic-core-host-example artifact {} not built; run \
              `cargo component build -p logic-core-host-example --release \
-             --target wasm32-wasip1 --no-default-features --features component`",
+             --target wasm32-wasip2 --no-default-features --features component`",
             path.display()
         );
         return;
@@ -927,7 +922,9 @@ async fn logic_core_emit_tool_call_routes_local_remote_mcp() {
     let (mcp_url, _mcp_state) = spawn_mock_mcp().await;
     let mut config = stub_config();
     config.policy.allow_tool(Destination::Local, "echo");
-    config.policy.allow_tool(Destination::Remote, "client_secret");
+    config
+        .policy
+        .allow_tool(Destination::Remote, "client_secret");
     config.policy.allow_tool(Destination::Mcp, "mcp_greet");
     let server = build_server(config, HashMap::new());
     server
@@ -959,27 +956,31 @@ async fn logic_core_emit_tool_call_routes_local_remote_mcp() {
     //     tool-execution-request and the POST-back result comes back.
     let base_url = spawn_http_server(&server).await;
     let client_id = server.client_id().to_string();
-    let (sse_task, _events) = spawn_sse_client(&base_url, &client_id, None, move |envelope: Value| {
-        if envelope["type"] == "tool-execution-request"
-            && envelope["payload"]["tool-name"] == "client_secret"
-        {
-            let corr = envelope["correlation_id"].as_str().unwrap_or_default().to_string();
-            Some(json!({
-                "correlation_id": corr,
-                "ok": true,
-                "payload": {
-                    "tool-name": "client_secret",
-                    "success": true,
-                    "output-json": "{\"secret\":\"opensecret\"}",
-                    "error-message": null,
-                    "step-id": 0,
-                },
-                "error": null,
-            }))
-        } else {
-            None
-        }
-    });
+    let (sse_task, _events) =
+        spawn_sse_client(&base_url, &client_id, None, move |envelope: Value| {
+            if envelope["type"] == "tool-execution-request"
+                && envelope["payload"]["tool-name"] == "client_secret"
+            {
+                let corr = envelope["correlation_id"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string();
+                Some(json!({
+                    "correlation_id": corr,
+                    "ok": true,
+                    "payload": {
+                        "tool-name": "client_secret",
+                        "success": true,
+                        "output-json": "{\"secret\":\"opensecret\"}",
+                        "error-message": null,
+                        "step-id": 0,
+                    },
+                    "error": null,
+                }))
+            } else {
+                None
+            }
+        });
     wait_until_connected(&server, &client_id).await;
     let content = drive_logic_core_tool(&server, "lc-remote", "client_secret")
         .unwrap_or_else(|e| panic!("logic core remote drive failed: {e}"));
@@ -1012,7 +1013,9 @@ async fn wire_shapes_match_golden_contract() {
         return;
     }
     let mut config = stub_config();
-    config.policy.allow_tool(Destination::Local, "get_current_time");
+    config
+        .policy
+        .allow_tool(Destination::Local, "get_current_time");
     let server = RuntimeServer::new(config, tokio::runtime::Handle::current())
         .expect("build server runtime");
     server
@@ -1072,8 +1075,15 @@ async fn wire_shapes_match_golden_contract() {
         response.status()
     );
     let body: Value = response.json().await.expect("tools/execute body");
-    assert_live_fields_exact_golden("tool_execute_response", &body, &golden["tool_execute_response"]);
-    assert_eq!(body["output-json"], "{\"datetime\":\"2026-08-12T00:00:00Z\"}");
+    assert_live_fields_exact_golden(
+        "tool_execute_response",
+        &body,
+        &golden["tool_execute_response"],
+    );
+    assert_eq!(
+        body["output-json"],
+        "{\"datetime\":\"2026-08-12T00:00:00Z\"}"
+    );
 
     // GET /tools -> array of ToolDefinition; every live field is declared in
     // the golden tool shape and the required fields are present.
@@ -1085,7 +1095,10 @@ async fn wire_shapes_match_golden_contract() {
     assert!(response.status().is_success(), "GET /tools status");
     let tools: Value = response.json().await.expect("tools list body");
     let tools = tools.as_array().expect("tools list is an array");
-    assert!(!tools.is_empty(), "peer tools list must expose server tools");
+    assert!(
+        !tools.is_empty(),
+        "peer tools list must expose server tools"
+    );
     let golden_tool = &golden["tools_list_response"][0];
     for tool in tools {
         assert_live_fields_within_golden("tool_definition", tool, golden_tool);

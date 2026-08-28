@@ -9,16 +9,16 @@
 
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
 
+use antikythera_server_runtime::RuntimeServer;
 use antikythera_server_runtime::config::{HookName, LlmProviderSpec, ServerRuntimeConfig};
 use antikythera_server_runtime::llm::{LlmError, LlmProvider};
-use antikythera_server_runtime::loop_owner::{run_tool_loop, ToolLoopConfig};
+use antikythera_server_runtime::loop_owner::{ToolLoopConfig, run_tool_loop};
 use antikythera_server_runtime::registry::Destination;
 use antikythera_server_runtime::wire::{LlmRequest, LlmResponse, PostbackBody, ToolDefinition};
-use antikythera_server_runtime::{RuntimeServer};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 fn component_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../dist/antikythera-sdk.wasm")
@@ -270,7 +270,12 @@ async fn local_tool_executes_through_the_loop() {
     config.policy.allow_tool(Destination::Local, "echo_local");
     let server = RuntimeServer::new_with_providers(
         config,
-        HashMap::from([("two-step".to_string(), Arc::new(TwoStepStub { calls: AtomicU32::new(0) }) as Arc<dyn LlmProvider>)]),
+        HashMap::from([(
+            "two-step".to_string(),
+            Arc::new(TwoStepStub {
+                calls: AtomicU32::new(0),
+            }) as Arc<dyn LlmProvider>,
+        )]),
         tokio::runtime::Handle::current(),
     )
     .expect("build server runtime");

@@ -31,7 +31,6 @@ members = [
     "antikythera-server-runtime",
 
     # Layer 5: Deployment
-    "plugin/antikythera-wasm-bindgen",
     "plugin/antikythera-toolrunner",
     "plugin/antikythera-default-hooks",
 
@@ -96,9 +95,6 @@ chrono = { version = "0.4.45", features = ["serde", "wasmbind"] }
 sysinfo = "0.38.4"
 dotenvy = "0.15.7"
 shellexpand = "3.1.2"
-
-# WASM support (for SDK)
-wasm-bindgen = "0.2.126"
 
 # Internal crates
 antikythera-domain = { path = "antikythera-domain" }

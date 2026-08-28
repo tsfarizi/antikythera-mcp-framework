@@ -17,7 +17,7 @@
 //! Build the component:
 //!
 //! ```text
-//! cargo component build -p logic-hooks-example --release --target wasm32-wasip1 --no-default-features --features component
+//! cargo component build -p logic-hooks-example --release --target wasm32-wasip2 --no-default-features --features component
 //! ```
 //!
 //! The artifact exports `antikythera:agent-sdk/logic-hooks@1.0.0` and can be
@@ -38,7 +38,10 @@ pub fn custom_decide_action(_session_state_json: &str, _llm_response_json: &str)
 }
 
 /// Custom `handle-tool-result` behavior (unchanged from template: passthrough).
-pub fn custom_handle_tool_result(_session_state_json: &str, _tool_result_json: &str) -> Option<String> {
+pub fn custom_handle_tool_result(
+    _session_state_json: &str,
+    _tool_result_json: &str,
+) -> Option<String> {
     None
 }
 

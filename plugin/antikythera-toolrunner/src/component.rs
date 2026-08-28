@@ -73,10 +73,7 @@ struct ToolRegistryComponent;
 
 impl exports::antikythera::agent_sdk::tool_registry::Guest for ToolRegistryComponent {
     fn list_tools_json() -> Result<String, String> {
-        runner()
-            .registry()
-            .to_json()
-            .map_err(|e| e.to_string())
+        runner().registry().to_json().map_err(|e| e.to_string())
     }
 
     fn validate_tool_call(tool_name: String, arguments_json: String) -> Result<(), String> {
@@ -109,8 +106,8 @@ impl exports::antikythera::agent_sdk::tool_registry::Guest for ToolRegistryCompo
 
         let arguments: serde_json::Value = serde_json::from_str(&arguments_json)
             .map_err(|e| format!("invalid arguments JSON: {e}"))?;
-        let result =
-            handle_tool_call(runner(), &tool_name, arguments, step_id).map_err(|e| e.to_string())?;
+        let result = handle_tool_call(runner(), &tool_name, arguments, step_id)
+            .map_err(|e| e.to_string())?;
         Ok(tool_result_to_json(&result))
     }
 }

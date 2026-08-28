@@ -2,10 +2,10 @@
 //!
 //! These tests are deliberately **text-only**: they read the golden files under
 //! `contracts/` and the real transpiled TypeScript output under `npm/` and
-//! assert bidirectional agreement. No WASM runtime, no browser, no wasm-bindgen.
+//! assert bidirectional agreement. No WASM runtime, no browser.
 //!
 //! Contract under test (per `contracts/browser/README.md`):
-//! the WASI component (`wasm32-wasip1`) transpiled by jco exposes the `runner`
+//! the WASI component (`wasm32-wasip2`) transpiled by jco exposes the `runner`
 //! namespace with 16 camelCase functions whose signatures must match
 //! `npm/antikythera-sdk/component/interfaces/antikythera-agent-sdk-runner.d.ts`.
 //!
@@ -181,9 +181,9 @@ const WIT_LOGIC_CORE_MEMBERS: [&str; 3] = [
     "import tool-registry;",
     "export runner;",
 ];
-const LOGIC_CORE_EXAMPLE_WASM_REL: &str = "target/wasm32-wasip1/release/logic_core_example.wasm";
+const LOGIC_CORE_EXAMPLE_WASM_REL: &str = "target/wasm32-wasip2/release/logic_core_example.wasm";
 const LOGIC_CORE_HOST_EXAMPLE_WASM_REL: &str =
-    "target/wasm32-wasip1/release/logic_core_host_example.wasm";
+    "target/wasm32-wasip2/release/logic_core_host_example.wasm";
 const HOST_IMPORTS_IMPORT: &str = "import antikythera:agent-sdk/host-imports@1.0.0";
 const VOCABULARY_IMPORT: &str = "import antikythera:agent-sdk/vocabulary@1.0.0";
 const LOGIC_CORE_RUNNER_EXPORT: &str = "export antikythera:agent-sdk/runner@1.0.0";
@@ -207,7 +207,7 @@ const LOGIC_CORE_RUNNER_FUNCTIONS: [&str; 16] = [
 ];
 
 // Standalone SDK component contract (uncomposed build artifact).
-const STANDALONE_SDK_WASM_REL: &str = "target/wasm32-wasip1/release/antikythera_sdk.wasm";
+const STANDALONE_SDK_WASM_REL: &str = "target/wasm32-wasip2/release/antikythera_sdk.wasm";
 const STANDALONE_IMPORT_TOOL_REGISTRY: &str = "import antikythera:agent-sdk/tool-registry@1.0.0";
 const STANDALONE_IMPORT_LOGIC_HOOKS: &str = "import antikythera:agent-sdk/logic-hooks@1.0.0";
 const STANDALONE_IMPORT_RUNTIME_HOOKS: &str = "import antikythera:agent-sdk/runtime-hooks@1.0.0";

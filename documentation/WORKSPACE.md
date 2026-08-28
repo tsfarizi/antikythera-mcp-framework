@@ -23,7 +23,6 @@ flowchart TD
     ROOT --> PROVIDER_GEMINI[antikythera-provider-gemini]
     ROOT --> SDK[antikythera-sdk]
     ROOT --> FACADE[antikythera-facade]
-    ROOT --> WASM_BINDGEN[antikythera-wasm-bindgen (legacy)]
     ROOT --> TOOLRUNNER[antikythera-toolrunner]
     ROOT --> TESTS[tests]
     ROOT --> SCRIPTS[scripts]
@@ -78,7 +77,6 @@ flowchart TD
 
 | Path | Role |
 |:-----|:-----|
-| `plugin/antikythera-wasm-bindgen/` | **Legacy** wasm-bindgen bindings for browser targets (`wasm32-unknown-unknown`) — deprecated, digantikan jalur WASI component + jco — depends on SDK |
 | `plugin/antikythera-toolrunner/` | In-process tool execution — standalone |
 | `antikythera-server-runtime/` | Server host runtime for the WASM composite — wasmtime core + HTTP/SSE wire bridge (Runtime Bridge) — lib + bin |
 
@@ -106,7 +104,6 @@ flowchart LR
     SDK[antikythera-sdk] --> CORE
     SDK --> SESSION[antikythera-session]
     SDK --> LOG
-    WASM_BINDGEN[antikythera-wasm-bindgen (legacy)] --> SDK
     CORE --> DOMAIN
     CORE --> PORTS[antikythera-ports]
     CORE --> CONFIG[antikythera-config]

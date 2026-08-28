@@ -104,7 +104,6 @@ Example applications:
 - `examples/antikythera-web` — Web frontend (TypeScript/Vite).
 
 Supporting crates:
-- `antikythera-wasm-bindgen` — **legacy** wasm-bindgen bindings for browser targets (deprecated; digantikan jalur WASI component + jco).
-- `antikythera-toolrunner` — in-process tool execution.
+- `antikythera-toolrunner` -- in-process tool execution (`wasm32-wasip2` component).
 
 > **Note:** `antikythera-core/src/domain/` and `antikythera-core/src/application/ports/` are now thin re-exports from the `antikythera-domain` and `antikythera-ports` crates respectively. The canonical definitions live in those crates.

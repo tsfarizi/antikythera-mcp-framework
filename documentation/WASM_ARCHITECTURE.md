@@ -1,8 +1,8 @@
-# WASM Architecture
+﻿# WASM Architecture
 
 This document describes the WASM integration paths in the Antikythera Agent SDK, their target platforms, feature flags, contracts, and common pitfalls.
 
-Currently, there are **two active WASM paths** (WASI Component for server, and the same component transpiled by `jco` for the browser), plus a **native sandbox** runner. The former `wasm-bindgen` browser path (`wasm32-unknown-unknown` + `wasm` feature) is **deprecated** and retained only for crate-level compatibility.
+Currently, there are **two active WASM paths** (WASI Component `wasm32-wasip2` for server, and the same component transpiled by `jco` for the browser), plus a **native sandbox** runner.
 
 The WASI component deliverable is **composite** (three members): `dist/antikythera-sdk.wasm` is produced by `wasm-tools compose`, wiring the `antikythera-sdk` component (exports `runner`, imports `tool-registry`, `logic-hooks`, and `runtime-hooks`) to the `antikythera-toolrunner` component (exports `tool-registry`, builtin tool execution) and the `antikythera-default-hooks` component (exports `logic-hooks`, no-op passthrough). The standalone SDK component is an **intermediate artifact only** — it carries unmet `tool-registry`, `logic-hooks`, and `runtime-hooks` imports and must never be transpiled or embedded directly. Composition satisfies the first two imports; `runtime-hooks` is a **host import** and stays unmet — the composite carries exactly one non-WASI import, and the host MUST wire it at runtime (wasmtime linker on the server, jco import object on the client).
 
@@ -10,18 +10,15 @@ The WASI component deliverable is **composite** (three members): `dist/antikythe
 
 | Path | Target | Feature Flag | Build Command | Contract | When to Use |
 |------|--------|-------------|---------------|----------|-------------|
-| **WASI Component (server)** | `wasm32-wasip1` | `component` (SDK, toolrunner, default-hooks) | `task build` = `cargo component build -p antikythera-sdk` + `-p antikythera-toolrunner` + `-p antikythera-default-hooks` + `wasm-tools compose` | `wit/antikythera.wit` (worlds `antikythera-agent-sdk` + `tool-registry-component` + `logic-hooks-component`); composite exports `runner`, imports exactly one non-WASI interface (`runtime-hooks`) + WASI | Server-side: host embeds wasmtime and calls exports via FFI |
-| **Browser (via jco)** | `wasm32-wasip1` composite → JS | `component` (Rust) + `@bytecodealliance/jco` (tooling) | `task build` (composite) + `task transpile` (`jco transpile` of the **composite**) | `npm/antikythera-sdk/component/` (ESM, namespace `runner`, camelCase) | Browser: JS host imports the transpiled ESM module and calls `runner` functions |
+| **WASI Component (server)** | `wasm32-wasip2` | `component` (SDK, toolrunner, default-hooks) | `task build` = `cargo component build -p antikythera-sdk` + `-p antikythera-toolrunner` + `-p antikythera-default-hooks` + `wasm-tools compose` | `wit/antikythera.wit` (worlds `antikythera-agent-sdk` + `tool-registry-component` + `logic-hooks-component`); composite exports `runner`, imports exactly one non-WASI interface (`runtime-hooks`) + WASI | Server-side: host embeds wasmtime and calls exports via FFI |
+| **Browser (via jco)** | `wasm32-wasip2` composite → JS | `component` (Rust) + `@bytecodealliance/jco` (tooling) | `task build` (composite) + `task transpile` (`jco transpile` of the **composite**) | `npm/antikythera-sdk/component/` (ESM, namespace `runner`, camelCase) | Browser: JS host imports the transpiled ESM module and calls `runner` functions |
 | **Sandbox** | native | `wasm-sandbox` | `cargo build` | JSON over WASM memory | Host-side runner that loads pre-compiled WASM modules via wasmtime |
-| **wasm-bindgen (legacy)** | `wasm32-unknown-unknown` | `wasm` | `cargo build` + wasm-pack | TypeScript `.d.ts` | **Deprecated** — kept for `antikythera-log`/`plugin/antikythera-wasm-bindgen` compatibility during the transition |
 
 ## Feature Flag Matrix
 
 | Flag | Crate | Enables | Disables | Target |
 |------|-------|---------|----------|--------|
-| `component` | `antikythera-sdk` | `wasm_agent` module + `wasm_exports` WIT export layer (`dep:wit-bindgen`) | — | `wasm32-wasip1` |
-| `wasm` | `antikythera-sdk` | `antikythera-log/wasm` (js-sys time) — **legacy** for crate-level compatibility | tokio runtime, filesystem | `wasm32-unknown-unknown` (legacy) |
-| `wasm` | `antikythera-log` | `wasm-bindgen` + `js-sys` (browser-safe time) — **legacy**, no longer the browser path | — | `wasm32-unknown-unknown` (legacy) |
+| `component` | `antikythera-sdk` | `wasm_agent` module + `wasm_exports` WIT export layer (`dep:wit-bindgen`) | — | `wasm32-wasip2` |
 | `wasm-sandbox` | `antikythera-sdk` | wasmtime host runner | — | native |
 | `subscriber` | `antikythera-log` | tokio + crossbeam-channel | — | native only |
 | `lint` | `antikythera-log` | compile-time lint blocking println!, eprintln!, dbg!, tracing | — | any |
@@ -69,20 +66,13 @@ Browser path (build-time tooling, not a Rust dependency):
     → maps the runtime-hooks import to runtime-hooks.js and every WASI import
       (cli, io, clocks, filesystem, random) to local wasi-stubs/*.js
 
-Legacy path (deprecated, crate-level compatibility only):
-antikythera-wasm-bindgen
-  → antikythera-sdk (features: component, no default-features)
-    → antikythera-log (no wasm feature)
-
-antikythera-sdk (features: wasm)
-  → antikythera-log (features: wasm)
-    → js-sys (browser WASM time via Date.now())
-    → wasm-bindgen (JsValue type)
+Browser path:
+  jco transpiled `dist/antikythera-sdk.wasm` → `npm/antikythera-sdk/component/`
 ```
 
 ## Contracts per Target
 
-### WASI Component — server (`wasm32-wasip1`)
+### WASI Component — server (`wasm32-wasip2`)
 
 **WIT file** (`wit/antikythera.wit`), canonical and wired to the build:
 
@@ -127,26 +117,26 @@ The host-facing interfaces (`prompt-manager`, `mcp-client`, `ffi-server`) plus t
 **Build** (composite deliverable; `task build` runs the full composite build, `task compose` wraps the compose step):
 
 ```bash
-cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component
-cargo component build -p antikythera-toolrunner --release --target wasm32-wasip1 --no-default-features --features component
-cargo component build -p antikythera-default-hooks --release --target wasm32-wasip1 --no-default-features --features component
-cp target/wasm32-wasip1/release/antikythera_toolrunner.wasm target/wasm32-wasip1/release/antikythera-toolrunner.wasm
-cp target/wasm32-wasip1/release/antikythera_default_hooks.wasm target/wasm32-wasip1/release/antikythera-default-hooks.wasm
-wasm-tools compose target/wasm32-wasip1/release/antikythera_sdk.wasm \
-  -d target/wasm32-wasip1/release/antikythera-toolrunner.wasm \
-  -d target/wasm32-wasip1/release/antikythera-default-hooks.wasm \
+cargo component build -p antikythera-sdk --release --target wasm32-wasip2 --no-default-features --features component
+cargo component build -p antikythera-toolrunner --release --target wasm32-wasip2 --no-default-features --features component
+cargo component build -p antikythera-default-hooks --release --target wasm32-wasip2 --no-default-features --features component
+cp target/wasm32-wasip2/release/antikythera_toolrunner.wasm target/wasm32-wasip2/release/antikythera-toolrunner.wasm
+cp target/wasm32-wasip2/release/antikythera_default_hooks.wasm target/wasm32-wasip2/release/antikythera-default-hooks.wasm
+wasm-tools compose target/wasm32-wasip2/release/antikythera_sdk.wasm \
+  -d target/wasm32-wasip2/release/antikythera-toolrunner.wasm \
+  -d target/wasm32-wasip2/release/antikythera-default-hooks.wasm \
   -o dist/antikythera-sdk.wasm
 ```
 
 `wasm-tools compose` rejects crate names containing underscores, so the toolrunner and default-hooks artifacts are first copied to their kebab-case names.
 
-Canonical artifact: `dist/antikythera-sdk.wasm` — the **composite** (exports `runner`; imports exactly one non-WASI interface, `antikythera:agent-sdk/runtime-hooks@1.0.0`, plus WASI — verifiable with `wasm-tools component wit`). The `runtime-hooks` import is a host import: the composite carries it unmet, so any consumer MUST wire it (wasmtime linker on the server, jco `-M` mapping on the client) or component instantiation fails. The standalone SDK artifact `target/wasm32-wasip1/release/antikythera_sdk.wasm` still imports `tool-registry`, `logic-hooks`, and `runtime-hooks` and is **not** a consumable deliverable.
+Canonical artifact: `dist/antikythera-sdk.wasm` — the **composite** (exports `runner`; imports exactly one non-WASI interface, `antikythera:agent-sdk/runtime-hooks@1.0.0`, plus WASI — verifiable with `wasm-tools component wit`). The `runtime-hooks` import is a host import: the composite carries it unmet, so any consumer MUST wire it (wasmtime linker on the server, jco `-M` mapping on the client) or component instantiation fails. The standalone SDK artifact `target/wasm32-wasip2/release/antikythera_sdk.wasm` still imports `tool-registry`, `logic-hooks`, and `runtime-hooks` and is **not** a consumable deliverable.
 
 **Server proof**: `examples/component-harness` is a wasmtime server binary that loads a component path (default `dist/antikythera-sdk.wasm`) and asserts the builtin tool `echo` executes inside the composite with `success=true` and no host round-trip. The harness wires the `runtime-hooks` import into its linker with a deterministic provider selected by `--runtime-hooks=passthrough|override|deny` (default passthrough) and exposes dedicated probes `--probe=runtime-hooks-passthrough|override|deny|disabled` against the composite — proving the passthrough default, a runtime `decide-action` override forcing `action=final`, a fail-closed denial, and the `runtime_hooks_enabled: false` skip path (see the Runtime hooks section below). The final probe is generic: with `--expect=final --expect-content=<string>` it asserts the commit envelope carries `action=final` with the given content and no tool executes — covering a host-authored `decide-action` override (`hook-forced-final`) or a drop-in logic core's deterministic commit (`echo-agent-done`); `--expect=notimpl` probes logic-core template holes and asserts the structured `{"error":"not implemented",...}` error (`cargo run -p component-harness -- <component-path> --expect=default|final|notimpl --expect-content=<string>`).
 
 ### Browser — same composite transpiled with jco
 
-The browser path reuses the **composite WASI component** (`wasm32-wasip1`, feature `component` on all three crates, composed with `wasm-tools compose`) and transpiles it to browser-safe ESM with `@bytecodealliance/jco`. The SDK's `tool-registry` import is satisfied by the embedded toolrunner and its `logic-hooks` import by the embedded default-hooks passthrough; the one remaining non-WASI import — `runtime-hooks` — is mapped with `-M` to `npm/antikythera-sdk/component/runtime-hooks.js` (see the transpile command below). That stub defaults to passthrough for all three decision points, so the transpiled module runs in Node/browser without any host configuration; a host that wants runtime decisions injects a provider (see [Runtime hooks (host-supplied)](#runtime-hooks-host-supplied)). Transpiling the standalone SDK instead still yields a module with unmet imports that fails at runtime.
+The browser path reuses the **composite WASI component** (`wasm32-wasip2`, feature `component` on all three crates, composed with `wasm-tools compose`) and transpiles it to browser-safe ESM with `@bytecodealliance/jco`. The SDK's `tool-registry` import is satisfied by the embedded toolrunner and its `logic-hooks` import by the embedded default-hooks passthrough; the one remaining non-WASI import — `runtime-hooks` — is mapped with `-M` to `npm/antikythera-sdk/component/runtime-hooks.js` (see the transpile command below). That stub defaults to passthrough for all three decision points, so the transpiled module runs in Node/browser without any host configuration; a host that wants runtime decisions injects a provider (see [Runtime hooks (host-supplied)](#runtime-hooks-host-supplied)). Transpiling the standalone SDK instead still yields a module with unmet imports that fails at runtime.
 
 **Output**: `npm/antikythera-sdk/component/` — ESM module exposing the `runner` namespace with 16 camelCase functions (all JSON strings; WIT `option<T>` renders as `T | undefined`; WIT errors surface as thrown JS errors):
 
@@ -295,11 +285,11 @@ cargo run -p component-harness --release -- <logic-core>.wasm --expect=final --e
 - `save-state` / `load-state` — **bounded storage**: files live under a fixed storage root (`<storage-dir>/<context-id>.json`), and the context-id is validated before any filesystem access; traversal ids are rejected `Err("permission: invalid context id")`.
 - `log-message` — passthrough to host stderr.
 
-**Server proof.** The harness runs four probes against the host-imports artifact (`target/wasm32-wasip1/release/logic_core_host_example.wasm`):
+**Server proof.** The harness runs four probes against the host-imports artifact (`target/wasm32-wasip2/release/logic_core_host_example.wasm`):
 
 ```bash
 cargo run -p component-harness --release -- \
-  target/wasm32-wasip1/release/logic_core_host_example.wasm \
+  target/wasm32-wasip2/release/logic_core_host_example.wasm \
   --probe=full-loop|quota|allowlist|storage
 ```
 
@@ -342,17 +332,12 @@ The `antikythera-log` crate provides `wasm_compat` module for platform-safe time
 
 | Target | Implementation | Mechanism |
 |--------|---------------|-----------|
-| Native (`not(wasm32)`) | `native.rs` | `chrono::Utc::now()` |
-| WASI (`wasm32-wasip1`) — incl. the browser-via-jco component | `native.rs` | `chrono::Utc::now()` (WASI has system clock) |
-| Browser without `wasm` feature | `native.rs` | `chrono::Utc::now()` (will panic at runtime) |
-| `wasm32-unknown-unknown` + `wasm` feature (**legacy**) | `browser.rs` | `js_sys::Date::now()` |
+| Native / WASI (`wasm32-wasip2`) | `native.rs` | `chrono::Utc::now()` (WASI has system clock) |
 
 **Functions**:
 - `now_unix_ms() -> i64` — Unix timestamp in milliseconds
 - `now_rfc3339() -> String` — RFC 3339 formatted timestamp
 - `now_timestamp_nanos() -> i64` — Unix timestamp in nanoseconds
-
-**Why this exists**: `chrono::Utc::now()` calls `SystemTime::now()` which panics in `wasm32-unknown-unknown`. The `wasm` feature gates the browser-safe implementation using JavaScript's `Date.now()`. The WASI component path does **not** need this fallback because WASI provides a system clock; the legacy `wasm` feature remains only for crate-level compatibility.
 
 ## Common Pitfalls
 
@@ -380,20 +365,13 @@ The `antikythera-log` crate provides `wasm_compat` module for platform-safe time
 
 **Fix**: `init` returns the raw session id string (e.g. `session-...`). Treat it as an opaque string; do not `JSON.parse` it.
 
-### 5. `chrono::Utc::now()` panics in legacy browser WASM
-
-**Symptom**: Runtime panic when calling `chrono::Utc::now()` in `wasm32-unknown-unknown`.
-
-**Fix**: This only affects the **legacy** `wasm` feature path. The WASI component (`wasm32-wasip1`) has a system clock, so `antikythera_log::wasm_compat::now_unix_ms()` works without the `wasm` feature. On the legacy path, ensure the `wasm` feature is enabled.
-
-### 6. Wrong feature flag for target
+### 5. Wrong feature flag for target
 
 **Symptom**: Compilation error or runtime panic.
 
 **Checklist**:
-- `wasm32-wasip1` → use `component` feature
-- browser (current) → build the `component` for `wasm32-wasip1`, then `jco transpile`
-- `wasm32-unknown-unknown` → `wasm` feature (**legacy** only)
+- `wasm32-wasip2` → use `component` feature
+- browser → build the `component` for `wasm32-wasip2`, then `jco transpile`
 - native → use `sdk-core` or `full` features
 
 ### 7. FSM parity drift
@@ -427,9 +405,9 @@ lto = true         # Link-time optimization
 
 The CI pipeline includes:
 1. **Native test + clippy** — `cargo test --workspace` on ubuntu/windows/macos
-2. **WASM compile check** — `cargo check` for `wasm32-wasip1` (feature `component`); the legacy `wasm32-unknown-unknown` + `wasm` feature check is retained for the deprecated path
+2. **WASM compile check** — `cargo check` for `wasm32-wasip2` (feature `component`)
 3. **WIT conformance validation** — `cargo run -p build-scripts --release -- validate`
-4. **Composite build** — build SDK component (`cargo component build -p antikythera-sdk --release --target wasm32-wasip1 --no-default-features --features component`), build toolrunner component (`-p antikythera-toolrunner`), build default-hooks component (`-p antikythera-default-hooks`), then `wasm-tools compose` the three into `dist/antikythera-sdk.wasm` (the kebab-case copies of the component artifacts are required — compose rejects underscore names); only then transpile with jco (13 mappings: `runtime-hooks` + 12 WASI stubs) and smoke-test in Node
+4. **Composite build** — build SDK component (`cargo component build -p antikythera-sdk --release --target wasm32-wasip2 --no-default-features --features component`), build toolrunner component (`-p antikythera-toolrunner`), build default-hooks component (`-p antikythera-default-hooks`), then `wasm-tools compose` the three into `dist/antikythera-sdk.wasm` (the kebab-case copies of the component artifacts are required — compose rejects underscore names); only then transpile with jco (13 mappings: `runtime-hooks` + 12 WASI stubs) and smoke-test in Node
 5. **Contract tests** — `cargo test -p antikythera-tests --test compatibility_tests` (runner signatures vs golden, payload shapes vs golden, runner namespace re-export, and `composed_component_world_single_runtime_hooks_import` — asserts the composite world imports exactly one non-WASI interface, `runtime-hooks`)
 6. **Documentation build** — mdBook build
 

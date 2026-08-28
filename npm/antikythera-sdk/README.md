@@ -1,4 +1,4 @@
-# antikythera-agent
+﻿# antikythera-agent
 
 General-purpose agent runtime with multi-agent orchestration, MCP tool integration, and WebAssembly support.
 
@@ -27,9 +27,9 @@ prompts.register({
 const content = prompts.getContent('assistant');
 ```
 
-### WASM via jco component (recommended)
+### WASM via jco component
 
-The browser WASM path is a **composite** WASI component (`wasm32-wasip1`) transpiled with `@bytecodealliance/jco`: the `antikythera-sdk` runner component is composed with the embedded `antikythera-toolrunner` component and the `antikythera-default-hooks` passthrough provider (`wasm-tools compose`), so builtin tools execute inside the module without host round-trip and the pipeline defaults match the SDK alone. Import the `runner` namespace from `antikythera-agent/component`:
+The browser WASM path is a **composite** WASI component (`wasm32-wasip2`) transpiled with `@bytecodealliance/jco`: the `antikythera-sdk` runner component is composed with the embedded `antikythera-toolrunner` component and the `antikythera-default-hooks` passthrough provider (`wasm-tools compose`), so builtin tools execute inside the module without host round-trip and the pipeline defaults match the SDK alone. Import the `runner` namespace from `antikythera-agent/component`:
 
 ```javascript
 import { runner } from 'antikythera-agent/component';
@@ -70,17 +70,6 @@ loading the bundled component (default, backward compatible — the no-option
 path makes no network request). Consumers that already hold a runner namespace
 can inject it directly with the `runner` option to skip the import entirely;
 injection takes precedence over `componentBase`.
-
-### WASM Initialization (legacy wasm-bindgen, deprecated)
-
-The `antikythera_wasm_bindgen` export is the **legacy** wasm-bindgen browser path (`wasm32-unknown-unknown`). It is deprecated and kept only for compatibility during the transition to the WASI component + jco path above. The package-export `node` condition for this entry has been removed (D3): resolvers can only match its `browser` or `default` condition, both pointing at the deprecated browser glue. There is no Node-native execution path behind this export.
-
-```javascript
-import init from 'antikythera-agent/antikythera_wasm_bindgen';
-
-// Initialize WASM with browser binary
-await init();
-```
 
 ### Multi-Agent Orchestration
 
@@ -146,8 +135,6 @@ const prompts = PromptManager.fromJSON('[{"id":"agent","name":"Agent","content":
 | `index.js` | Main exports (PromptManager, SessionManager, Orchestrator, createAgentRuntime, getVersion) |
 | `orchestrator.js` | Multi-agent `Orchestrator` (requires `serverUrl`; `dispatch` / `dispatchMany` / `pipeline` / `getBudget` / `cancel` / `close`) |
 | `component/` | Composite WASI component (SDK runner + embedded toolrunner + default-hooks) transpiled with jco — ESM bindings, namespace `runner` (camelCase), semantic core-module names (`runner`, `tool-registry`, `logic-hooks-passthrough`, `support-N`) assigned by `scripts/post-transpile-rename.mjs`, WASI stubs under `wasi-stubs/` |
-| `antikythera_wasm_bindgen.js` | **Legacy** wasm-bindgen WASM glue code for browser (deprecated) |
-| `antikythera_wasm_bindgen_bg.wasm` | **Legacy** browser WASM binary (deprecated) |
 
 ## Requirements
 

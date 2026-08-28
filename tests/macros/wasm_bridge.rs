@@ -50,10 +50,7 @@ fn test_wasm_type_name_explicit_target() {
         <TestBridgeExplicit as WasmBridge>::WASM_TYPE_NAME,
         "TestBridgeExplicit"
     );
-    assert_eq!(
-        <TestBridgeExplicit as WasmBridge>::BRIDGE_TARGET,
-        "wasm"
-    );
+    assert_eq!(<TestBridgeExplicit as WasmBridge>::BRIDGE_TARGET, "wasm");
 }
 
 #[test]

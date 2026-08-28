@@ -28,7 +28,7 @@
 //! Build the component:
 //!
 //! ```text
-//! cargo component build -p logic-core-example --release --target wasm32-wasip1 --no-default-features --features component
+//! cargo component build -p logic-core-example --release --target wasm32-wasip2 --no-default-features --features component
 //! ```
 //!
 //! The artifact exports `antikythera:agent-sdk/runner@1.0.0` (16 functions).
@@ -75,7 +75,10 @@ pub fn custom_init(_config_json: &str) -> Option<String> {
 pub fn custom_prepare_turn(request_json: &str) -> Option<String> {
     let request: serde_json::Value = serde_json::from_str(request_json).ok()?;
 
-    let prompt = request.get("prompt").and_then(serde_json::Value::as_str).unwrap_or_default();
+    let prompt = request
+        .get("prompt")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or_default();
     let system_prompt = request
         .get("system_prompt")
         .and_then(serde_json::Value::as_str)

@@ -1,6 +1,6 @@
-# Shared Contract Schemas
+﻿# Shared Contract Schemas
 
-This directory contains contract schemas shared across the WASI and browser targets. Both targets now ship the same WASI component (`wasm32-wasip1`); the browser target consumes it via jco-transpiled JS bindings.
+This directory contains contract schemas shared across the WASI and browser targets. Both targets now ship the same WASI component (`wasm32-wasip2`); the browser target consumes it via jco-transpiled JS bindings.
 
 ## Contract Files
 
