@@ -9,7 +9,8 @@ readme = "README.md"
 description = "High-level API wrapper with FFI and WASM bindings"
 
 [lib]
-crate-type = ["rlib"]
+# rlib for native + cdylib for cargo-component wasip2 component emission
+crate-type = ["rlib", "cdylib"]
 
 [package.metadata.component]
 package = "antikythera:agent-sdk"

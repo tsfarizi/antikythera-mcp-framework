@@ -15,7 +15,9 @@
 //   antikythera-sdk.runner.core.wasm                 — main SDK agent-runner
 //   antikythera-sdk.tool-registry.core.wasm          — toolrunner/tool-registry impl
 //   antikythera-sdk.logic-hooks-passthrough.core.wasm— default-hooks/logic-hooks impl
-//   antikythera-sdk.support-N.core.wasm              — internal, unclassified shim
+//   antikythera-sdk.wasi-clocks.core.wasm            — WASI clocks (wall/monotonic) shim
+//   antikythera-sdk.wasi-streams.core.wasm           — WASI streams (check-write/write) shim
+//   antikythera-sdk.wasi-filesystem.core.wasm        — WASI filesystem (blocking-flush) shim
 //
 // Classification is EMPIRICAL (content-derived, never name-derived): each
 // *.core*.wasm is scored by counting ASCII byte-signature occurrences, then
@@ -60,7 +62,9 @@ const loaderBasename = 'antikythera-sdk.js';
 const NAME_RUNNER = 'antikythera-sdk.runner.core.wasm';
 const NAME_TOOL_REGISTRY = 'antikythera-sdk.tool-registry.core.wasm';
 const NAME_LOGIC_HOOKS = 'antikythera-sdk.logic-hooks-passthrough.core.wasm';
-const NAME_SUPPORT = (n) => `antikythera-sdk.support-${n}.core.wasm`;
+const NAME_WASI_CLOCKS = 'antikythera-sdk.wasi-clocks.core.wasm';
+const NAME_WASI_STREAMS = 'antikythera-sdk.wasi-streams.core.wasm';
+const NAME_WASI_FILESYSTEM = 'antikythera-sdk.wasi-filesystem.core.wasm';
 
 // Old-name literal emitted by jco into the loader; rewritten via renameMap.
 const LOADER_LITERAL = /\.\/antikythera-sdk\.core\d*\.wasm/g;
@@ -226,17 +230,27 @@ function classify(inventory) {
     pool.splice(pool.indexOf(pick.winner), 1);
   }
 
-  // Slot 4 — support-N: unclassified internal shims, sequential numbers.
-  pool.sort((a, b) => {
+  // Slot 4 — wasi shims: unclassified internal WASI adapters, descriptive names.
+  // Descriptive mapping (short, stable, content-derived):
+  //   wasi-clocks      — unique holder of wall-clock/monotonic-clock
+  //   wasi-streams     — streams write/check-write without blocking-flush
+  //   wasi-filesystem  — filesystem + blocking-flush holder
+  const wasiClocks = pool.filter((r) => r.scores.get('wasi-imports') > 0 && (r.buffer.toString('ascii').includes('wall-clock') || r.buffer.toString('ascii').includes('monotonic-clock')));
+  const wasiFilesystem = pool.filter((r) => r.buffer.toString('ascii').includes('blocking-flush'));
+  const wasiStreams = pool.filter((r) => !wasiClocks.includes(r) && !wasiFilesystem.includes(r));
+  const ordered = [...wasiClocks, ...wasiStreams, ...wasiFilesystem];
+  // Fallback to original order if classification ambiguous (e.g. wit-bindgen grouping changed)
+  const supportPool = ordered.length === pool.length ? ordered : pool.sort((a, b) => {
     const ka = originalOrderKey(a);
     const kb = originalOrderKey(b);
-    return ka[0] - kb[0]
-      || (ka[0] === 0 ? ka[1] - kb[1] : String(ka[2]).localeCompare(String(kb[2])));
+    return ka[0] - kb[0] || (ka[0] === 0 ? ka[1] - kb[1] : String(ka[2]).localeCompare(String(kb[2])));
   });
-  pool.forEach((record, index) => {
+  const nameMap = [NAME_WASI_CLOCKS, NAME_WASI_STREAMS, NAME_WASI_FILESYSTEM];
+  supportPool.forEach((record, index) => {
+    const name = nameMap[index] || `antikythera-sdk.wasi-shim-${index + 1}.core.wasm`;
     assignments.set(record, {
-      name: NAME_SUPPORT(index + 1),
-      basis: `unclassified (no role signature) -> support-${index + 1}: ${describeScores(record.scores)}`,
+      name,
+      basis: `wasi shim -> ${name.split('.')[1]}: ${describeScores(record.scores)}`,
     });
   });
 
