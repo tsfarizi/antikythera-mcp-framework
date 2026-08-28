@@ -18,7 +18,7 @@
 
 wit_bindgen::generate!({
     world: "logic-hooks-component",
-    path: "../../wit/antikythera.wit",
+    path: "../../../wit/antikythera.wit",
 });
 
 /// The SDK's passthrough signal: use default behavior at this pipeline point.

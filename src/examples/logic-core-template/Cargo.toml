@@ -19,7 +19,7 @@ package = "antikythera:agent-sdk"
 # two levels below the repo root, so the canonical root `wit/` is `../../wit`
 # (same relative path as examples/logic-hooks-template).
 [package.metadata.component.target]
-path = "../../wit"
+path = "../../../wit"
 world = "logic-core-component"
 
 [features]

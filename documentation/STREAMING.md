@@ -1,4 +1,4 @@
-﻿# Streaming
+# Streaming
 
 This document covers the currently implemented streaming behavior.
 
@@ -10,8 +10,8 @@ Token streaming is built around a process-global event sink.
 flowchart LR
     Provider[LLM provider parser] --> Emit[emit_stream_event]
     Emit --> Sink[STREAM_SINK global]
-    Sink --> TUI[TUI mpsc channel → Conversation panel]
-    Sink --> Terminal[Terminal sink → stderr]
+    Sink --> TUI[TUI mpsc channel ? Conversation panel]
+    Sink --> Terminal[Terminal sink ? stderr]
 ```
 
 ## StreamEvent
@@ -36,16 +36,16 @@ Provider parsers emit one of three variants:
 - Only one sink is active at a time; `set_stream_event_sink` replaces any previous sink.
 - `clear_stream_event_sink` drops the sender, cleanly ending the mpsc channel after each response.
 - `Started` and `Completed` events are forwarded to `tracing::info!` for the log panel under the `cli:streaming` source label.
-- `Chunk` events are not traced — they are too frequent and their content is visible in the chat panel.
+- `Chunk` events are not traced � they are too frequent and their content is visible in the chat panel.
 
 ## Building your own streaming host
 
 Host applications can implement streaming by:
 
-1. Implementing the `ModelProvider` port trait from `antikythera-ports`
+1. Implementing the `ModelProvider` port trait from `src/antikythera-ports`
 2. Emitting `StreamEvent` variants during response generation
 3. Installing a custom sink to route events to your UI layer
 
 ## Related documents
 
-- [`SERVERS_AND_AGENTS.md`](SERVERS_AND_AGENTS.md) — server and agent management
+- [`SERVERS_AND_AGENTS.md`](SERVERS_AND_AGENTS.md) � server and agent management

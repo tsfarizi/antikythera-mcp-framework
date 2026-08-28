@@ -69,12 +69,13 @@ jobs:
           node-version: '20'
 
       - name: Install npm dependencies
+        working-directory: clients
         run: npm install
 
       - name: Transpile composite WASM component to JS with jco
         run: |
-          npx jco transpile dist/antikythera-sdk.wasm \
-            --out-dir npm/antikythera-sdk/component \
+          npx --prefix clients jco transpile dist/antikythera-sdk.wasm \
+            --out-dir clients/npm/antikythera-sdk/component \
             -M "wasi:cli/environment@0.2.3=./wasi-stubs/environment.js" \
             -M "wasi:cli/exit@0.2.3=./wasi-stubs/exit.js" \
             -M "wasi:cli/stderr@0.2.3=./wasi-stubs/stderr.js" \
@@ -89,7 +90,7 @@ jobs:
             -M "wasi:random/random@0.2.3=./wasi-stubs/random.js"
 
       - name: Rename transpiled core modules to semantic names
-        run: node scripts/post-transpile-rename.mjs
+        run: node src/scripts/post-transpile-rename.mjs
 
       - name: Upload WASM artifacts
         uses: actions/upload-artifact@v4
@@ -101,5 +102,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: antikythera-wasm-component
-          path: npm/antikythera-sdk/component/
+          path: clients/npm/antikythera-sdk/component/
           if-no-files-found: error

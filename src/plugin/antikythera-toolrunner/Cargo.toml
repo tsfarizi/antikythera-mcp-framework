@@ -21,7 +21,7 @@ package = "antikythera:agent-sdk"
 # two levels below the repo root, so the canonical root `wit/` is `../../wit`
 # (NOT `../wit`, which would resolve to the nonexistent plugin/wit).
 [package.metadata.component.target]
-path = "../../wit"
+path = "../../../wit"
 world = "tool-registry-component"
 
 [features]

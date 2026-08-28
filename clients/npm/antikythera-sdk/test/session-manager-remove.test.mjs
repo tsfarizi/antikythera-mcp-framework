@@ -1,11 +1,11 @@
 // session-manager-remove.test.mjs — B3: SessionManager.remove() harus
 // ber-semantik POP (hapus entri + kembalikan nilainya), bukan PEEK.
-// Implementasi saat ini (npm/antikythera-sdk/index.js:350-352) hanya menjalankan
+// Implementasi saat ini (clients/npm/antikythera-sdk/index.js:350-352) hanya menjalankan
 // `this.#sessions.get(sessionId) ?? null` TANPA delete — seluruh klausa
 // penghapusan di bawah teramati MERAH.
 //
 // Kontrak acuan:
-//   - npm/antikythera-sdk/index.d.ts:306-310 — "Remove a session.
+//   - clients/npm/antikythera-sdk/index.d.ts:306-310 — "Remove a session.
 //     @returns Removed session or null" -> remove(sessionId): SessionInfo | null
 //   - Padanan Python dict.pop: entri hilang, nilai lama dikembalikan sekali;
 //     pemanggilan berikutnya pada id yang sama menghasilkan null.

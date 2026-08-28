@@ -1,12 +1,12 @@
-﻿# Context Management
+# Context Management
 
 This document describes the active context management and session lifecycle behavior in the runtime.
 
 ## Storage and Source of Truth
 
-All conversational state, message history, metadata, and token tracking are strictly managed by `antikythera-session`. 
+All conversational state, message history, metadata, and token tracking are strictly managed by `src/antikythera-session`. 
 
-- The `McpClient` in `antikythera-core` utilizes an LRU-based adapter (`SessionStore`, an internal `pub(super)` type) to access the `SessionManager`.
+- The `McpClient` in `src/antikythera-core` utilizes an LRU-based adapter (`SessionStore`, an internal `pub(super)` type) to access the `SessionManager`.
 - This unifies session structures across host applications, the Core runtime, and the external SDK FFI boundaries.
 
 ## Runtime Flow

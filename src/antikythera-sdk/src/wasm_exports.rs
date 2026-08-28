@@ -15,7 +15,7 @@
 
 wit_bindgen::generate!({
     world: "antikythera-agent-sdk",
-    path: "../wit/antikythera.wit",
+    path: "../../wit/antikythera.wit",
 });
 
 use crate::wasm_agent::runner;

@@ -8,8 +8,8 @@
 //   - documentation/WIRE_PROTOCOL.md (endpoint §2, envelope §3, streaming §4,
 //     timeout §5, mapping §6)
 //   - contracts/shared/wire_protocol.golden.json
-//   - npm/antikythera-sdk/runtime/** (client runtime ASLI)
-//   - python/antikythera_agent/server/__main__.py (CLI U32: `--bind`,
+//   - clients/npm/antikythera-sdk/runtime/** (client runtime ASLI)
+//   - clients/python/antikythera_agent/server/__main__.py (CLI U32: `--bind`,
 //     `--provider-stub`, `--server-tool`, `--allow-tool`, `--client-id`,
 //     baris `[server-runtime] HTTP wire bridge listening on <url>`)
 //

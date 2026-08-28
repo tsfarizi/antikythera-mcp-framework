@@ -382,7 +382,7 @@ class SessionManager {
  * Get the SDK version.
  *
  * The return line below is the version-bearing marker for
- * `scripts/sync-release-version.rs` (quoted 1.x literal) — keep it a string
+ * `src/scripts/sync-release-version.rs` (quoted 1.x literal) — keep it a string
  * literal, not a package.json lookup, and never quote the marker elsewhere
  * in this file: the sync script rewrites the FIRST matching line.
  * @returns {string} Version string

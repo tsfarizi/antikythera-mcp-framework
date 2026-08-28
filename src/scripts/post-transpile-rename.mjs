@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // post-transpile-rename — rename the generic jco-emitted core modules to
 // semantic names and rewrite the corresponding URL literals inside
-// npm/antikythera-sdk/component/antikythera-sdk.js.
+// clients/npm/antikythera-sdk/component/antikythera-sdk.js.
 //
 // jco transpile emits opaque numbered modules (the historical pattern this
 // script migrates away from):
@@ -45,8 +45,8 @@
 // candidates for one slot) fails closed with a score matrix plus the longest
 // distinctive ASCII strings per file so a human can adjudicate.
 //
-// Usage: node scripts/post-transpile-rename.mjs [component-dir]
-//   (component-dir defaults to npm/antikythera-sdk/component)
+// Usage: node src/scripts/post-transpile-rename.mjs [component-dir]
+//   (component-dir defaults to clients/npm/antikythera-sdk/component)
 //
 // Node >= 18, ESM, zero dependencies.
 
@@ -55,8 +55,8 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const defaultComponentDir = path.join(repoRoot, 'npm', 'antikythera-sdk', 'component');
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const defaultComponentDir = path.join(repoRoot, 'clients', 'npm', 'antikythera-sdk', 'component');
 const loaderBasename = 'antikythera-sdk.js';
 
 const NAME_RUNNER = 'antikythera-sdk.runner.core.wasm';

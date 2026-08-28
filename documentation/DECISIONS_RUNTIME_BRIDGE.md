@@ -208,7 +208,7 @@ drop-in.
   a server responsibility that the client resolves at runtime.
 
 Downstream impact: `entry` names the same jco output the npm package
-already ships (`npm/antikythera-sdk/component/antikythera-sdk.js`); the
+already ships (`clients/npm/antikythera-sdk/component/antikythera-sdk.js`); the
 server must serve the bundle with the registered MIME types; clients
 resolve bundle paths from the manifest instead of assuming a layout;
 manifest version vs client version skew becomes a client-visible signal.

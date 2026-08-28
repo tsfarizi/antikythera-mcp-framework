@@ -28,7 +28,7 @@ flowchart TD
 
 ## Multi-Agent Orchestration
 
-Multi-agent orchestration is available via `antikythera-sdk`'s `agents` module.
+Multi-agent orchestration is available via `src/antikythera-sdk`'s `agents` module.
 
 ### Agent Setup with Prompts
 

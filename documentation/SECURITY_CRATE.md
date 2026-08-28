@@ -4,7 +4,7 @@ Concrete security implementations for the Antikythera Agent SDK.
 
 ## Overview
 
-`antikythera-security` provides production-ready implementations of the security port traits defined in `antikythera-ports`. It migrates the security implementations from the example CLI into a reusable, feature-gated workspace crate.
+`src/antikythera-security` provides production-ready implementations of the security port traits defined in `src/antikythera-ports`. It migrates the security implementations from the example CLI into a reusable, feature-gated workspace crate.
 
 ## Architecture
 

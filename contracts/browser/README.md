@@ -1,16 +1,16 @@
-ï»¿# Browser WASM Contract
+# Browser WASM Contract
 
 This directory defines the contract for the **browser/WASM target** of the SDK: a WASI component (`wasm32-wasip2`) transpiled to JavaScript bindings with `jco`.
 
 ## Contract Files
 
-- `browser_function_signatures.golden.txt` â€” expected exported function signatures (golden file)
-- `../shared/wit_signatures.golden.txt` â€” WIT signatures for the `runner` interface (reference)
-- `../shared/payload_contract.golden.json` â€” shared JSON payload key shapes (reference)
+- `browser_function_signatures.golden.txt` — expected exported function signatures (golden file)
+- `../shared/wit_signatures.golden.txt` — WIT signatures for the `runner` interface (reference)
+- `../shared/payload_contract.golden.json` — shared JSON payload key shapes (reference)
 
 The **source of truth for the transpiled output** is the generated TypeScript artifact:
-`npm/antikythera-sdk/component/interfaces/antikythera-agent-sdk-runner.d.ts`
-(plus the world root `npm/antikythera-sdk/component/antikythera-sdk.d.ts`).
+`clients/npm/antikythera-sdk/component/interfaces/antikythera-agent-sdk-runner.d.ts`
+(plus the world root `clients/npm/antikythera-sdk/component/antikythera-sdk.d.ts`).
 
 ## Build Target
 
@@ -22,10 +22,10 @@ The **source of truth for the transpiled output** is the generated TypeScript ar
 cargo component build -p antikythera-sdk --release --target wasm32-wasip2 --no-default-features --features component
 ```
 
-- Transpile to JS bindings (jco emits TypeScript by default; there is no `--dts` flag â€” use `--no-typescript` only to suppress it):
+- Transpile to JS bindings (jco emits TypeScript by default; there is no `--dts` flag — use `--no-typescript` only to suppress it):
 
 ```bash
-npx jco transpile dist/antikythera-sdk.wasm --out-dir npm/antikythera-sdk/component \
+npx jco transpile dist/antikythera-sdk.wasm --out-dir clients/npm/antikythera-sdk/component \
   -M "wasi:cli/environment@0.2.3=./wasi-stubs/environment.js" \
   -M "wasi:cli/exit@0.2.3=./wasi-stubs/exit.js" \
   -M "wasi:cli/stderr@0.2.3=./wasi-stubs/stderr.js" \
@@ -40,7 +40,7 @@ npx jco transpile dist/antikythera-sdk.wasm --out-dir npm/antikythera-sdk/compon
   -M "wasi:random/random@0.2.3=./wasi-stubs/random.js"
 ```
 
-The 12 `-M` flags map every WASI import the component makes (cli, io, clocks, filesystem, random) to the browser-safe stubs under `npm/antikythera-sdk/component/wasi-stubs/`. Command details live in `documentation/BUILD.md` and the `transpile` task in `Taskfile.yml`.
+The 12 `-M` flags map every WASI import the component makes (cli, io, clocks, filesystem, random) to the browser-safe stubs under `clients/npm/antikythera-sdk/component/wasi-stubs/`. Command details live in `documentation/BUILD.md` and the `transpile` task in `Taskfile.yml`.
 
 ## Interface
 
@@ -62,7 +62,7 @@ The component exports the `runner` interface (world `antikythera-agent-sdk`, def
 | `resetSession` | `sessionId: string` | `boolean` |
 | `sweepIdleSessions` | `nowUnixMs: bigint \| undefined` | `number` |
 | `registerTools` | `toolsJson: string` | `number` |
-| `getToolsPrompt` | â€” | `string` |
+| `getToolsPrompt` | — | `string` |
 | `setContextPolicy` | `policyJson: string` | `boolean` |
 | `getTelemetrySnapshot` | `sessionId: string` | `string` |
 | `getSloSnapshot` | `sessionId: string` | `string` |

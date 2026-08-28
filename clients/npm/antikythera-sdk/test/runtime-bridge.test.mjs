@@ -4,7 +4,7 @@
 // Kontrak acuan:
 //   - documentation/WIRE_PROTOCOL.md
 //   - contracts/shared/wire_protocol.golden.json
-//   - npm/antikythera-sdk/runtime/** (client runtime ASLI, jco composite)
+//   - clients/npm/antikythera-sdk/runtime/** (client runtime ASLI, jco composite)
 //   - antikythera-server-runtime/src/main.rs (binary flags)
 //
 // Putaran KOREKSI (keputusan terkunci): streaming disinyalkan via QUERY PARAM

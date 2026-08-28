@@ -11,10 +11,10 @@
 //   - antikythera-server-runtime/src/registry.rs:88-93 — format! string pesan
 //     collision; doc komentar kanonik di registry.rs:82. Owner EXISTING selalu
 //     disebut lebih dulu, owner penggantinya kedua.
-//   - python/antikythera_agent/server/registry.py:108-111 — mirror pesan yang sama;
-//   - python/antikythera_agent/server/registry.py:38-67 (_normalize_definition) —
+//   - clients/python/antikythera_agent/server/registry.py:108-111 — mirror pesan yang sama;
+//   - clients/python/antikythera_agent/server/registry.py:38-67 (_normalize_definition) —
 //     shape golden 6 kunci; :28 DEFAULT_INPUT_SCHEMA;
-//   - python/antikythera_agent/server/registry.py:130-138 — definitions() terurut
+//   - clients/python/antikythera_agent/server/registry.py:130-138 — definitions() terurut
 //     per nama, salinan, "tidak ada kunci lain".
 //
 // Pesan kanonik yang DIPIN (sumber: antikythera-server-runtime/src/registry.rs:88-93):

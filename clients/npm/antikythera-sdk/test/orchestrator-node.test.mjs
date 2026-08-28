@@ -6,7 +6,7 @@
 //     session-per-agent-profile ; getBudget faktual.
 //   - debug/U1-design-notes.md §E3.3 — getVersion() marker literal, nilai ===
 //     versi package.json (sumber kebenaran S7).
-//   - npm/antikythera-sdk/runtime/runner-core.js:389-477 — runTurn ->
+//   - clients/npm/antikythera-sdk/runtime/runner-core.js:389-477 — runTurn ->
 //     {sessionId, action:'final', content, iterations} ; resetSession -> bool.
 //
 // Amanemen orkestrator (port S2 untuk test): Orchestrator menerima opsi

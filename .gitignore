@@ -1,19 +1,23 @@
 /target
+/src/target
 /config
 /book
 *.txt
-!tests/fixtures/contracts/wit_signatures.golden.txt
+!src/tests/fixtures/contracts/wit_signatures.golden.txt
 /servers
 .env
 .code-review-graph/
 .cargo/
 debug/
 graphify-out/
+# js / wasm build artifacts
 node_modules/
 dist/
+clients/python/build/
+clients/python/dist/
 app.toml
-antikythera-sdk/src/bindings.rs
-examples/logic-core-template/src/bindings.rs
+# generated WIT bindings
+**/bindings.rs
 
 # Python build artifacts (KONVENSI-01)
 __pycache__/

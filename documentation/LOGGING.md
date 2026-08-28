@@ -27,7 +27,7 @@ flowchart TD
 
 | Tier | Crate | Purpose |
 |:-----|:------|:--------|
-| `antikythera-log` | `antikythera-log` | `Logger`, `LogEntry`, `LogBuffer`, `LogFilter`, `LogSubscriber`, convenience macros. Foundation for all log emission, storage, and retrieval. |
+| `src/antikythera-log` | `src/antikythera-log` | `Logger`, `LogEntry`, `LogBuffer`, `LogFilter`, `LogSubscriber`, convenience macros. Foundation for all log emission, storage, and retrieval. |
 | Typed module loggers | `antikythera-core::logging` | 13 domain-specific loggers that wrap `Logger` with automatic `source` tagging. |
 | SDK loggers | `antikythera-sdk::sdk_logging` | 2 FFI-facing loggers with their own global registry. |
 
@@ -68,7 +68,7 @@ Macros are the **only sanctioned** logging emission points. All framework crates
 | `alog_debug_ctx!` / `alog_info_ctx!` / `alog_warn_ctx!` / `alog_error_ctx!` | Log with context payload |
 | `cli_print!` / `cli_eprint!` | Sanctioned host application output (never for runtime logs) |
 
-Enable the `lint` feature on `antikythera-log` to enforce this at compile time — it shadows `println!`, `eprintln!`, `dbg!`, and `tracing` macros with compile-error stubs.
+Enable the `lint` feature on `src/antikythera-log` to enforce this at compile time — it shadows `println!`, `eprintln!`, `dbg!`, and `tracing` macros with compile-error stubs.
 
 ```rust
 use antikythera_log::{Logger, alog_info, alog_info_ctx};
@@ -140,7 +140,7 @@ res.warn("Circuit breaker opened for provider gpt-4o-mini");
 
 ## Global LOGGERS Registry
 
-`antikythera-core` maintains a `HashMap<String, Arc<Logger>>` behind `LazyLock<Mutex<...>>` — one `Logger` instance per session ID. All 13 module loggers resolve their underlying `Logger` through this shared registry via `get_logger(session_id)`.
+`src/antikythera-core` maintains a `HashMap<String, Arc<Logger>>` behind `LazyLock<Mutex<...>>` — one `Logger` instance per session ID. All 13 module loggers resolve their underlying `Logger` through this shared registry via `get_logger(session_id)`.
 
 | Function | Purpose |
 |:---------|:--------|

@@ -6,7 +6,7 @@ This document explains the WASM component model used by the project documentatio
 
 The component model keeps agent logic inside the component and pushes environment-specific I/O into the host.
 
-The same component is the basis for both active WASM paths: the server embeds it via wasmtime, and the browser consumes it after `jco` transpiles it to ESM bindings (`npm/antikythera-sdk/component/`, namespace `runner`). See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) for the target/feature/build matrix.
+The same component is the basis for both active WASM paths: the server embeds it via wasmtime, and the browser consumes it after `jco` transpiles it to ESM bindings (`clients/npm/antikythera-sdk/component/`, namespace `runner`). See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) for the target/feature/build matrix.
 
 ## Component view
 
@@ -65,7 +65,7 @@ Beyond composing hooks, the host can replace the runner itself. A host-authored 
 
 The SDK composite stays **host-push**: the host drives `runner` calls and feeds tool results back through `process-tool-result-for-session`; it never imports `host-imports`. A drop-in logic core may switch to **host-pull** by importing `host-imports` (`call-llm`, `save-state`, `load-state`, `emit-tool-call`, `log-message`) — the component then calls the host for LLM, state, tool execution, and logging. The two models coexist: host-push for the SDK composite, host-pull for logic cores that choose the escape hatch.
 
-The escape hatch is permission-gated by the host. A host that wires `host-imports` MUST implement it behind permission gates (call-llm quota, emit-tool-call allowlist, bounded state storage, log passthrough) and reject anything outside the grant — without permission the component is rejected (fail-closed). `examples/logic-core-host-example/` proves the host-pull loop; `examples/component-harness` proves the gated host (`--probe=full-loop|quota|allowlist|storage`). See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Host-imports (activated for drop-in logic cores) and [`BUILD.md`](BUILD.md) — Host-imports wiring.
+The escape hatch is permission-gated by the host. A host that wires `host-imports` MUST implement it behind permission gates (call-llm quota, emit-tool-call allowlist, bounded state storage, log passthrough) and reject anything outside the grant — without permission the component is rejected (fail-closed). `examples/logic-core-host-example/` proves the host-pull loop; `src/examples/component-harness` proves the gated host (`--probe=full-loop|quota|allowlist|storage`). See [`WASM_ARCHITECTURE.md`](WASM_ARCHITECTURE.md) — Host-imports (activated for drop-in logic cores) and [`BUILD.md`](BUILD.md) — Host-imports wiring.
 
 ## Why this design is useful
 

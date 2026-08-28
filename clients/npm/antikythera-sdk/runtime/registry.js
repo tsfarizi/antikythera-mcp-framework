@@ -9,7 +9,7 @@ const { WIRE } = require('./types.js');
  * error. The merged list is pushed to the runner in a single `register-tools`
  * call (register-tools replaces the whole registry).
  *
- * Parity contract (mirrors python/antikythera_agent/server/registry.py and
+ * Parity contract (mirrors clients/python/antikythera_agent/server/registry.py and
  * antikythera-server-runtime/src/registry.rs):
  * - every definition is normalized to the golden 6-key shape;
  * - stored values are deep copies, so caller-side mutation cannot leak in and

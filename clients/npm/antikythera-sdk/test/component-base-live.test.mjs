@@ -5,12 +5,12 @@
 //   - documentation/DECISIONS_RUNTIME_BRIDGE.md (D4 manifest + bundle jco,
 //     D5 opsi componentBase/runner, D2 drop-in peer Python)
 //   - documentation/WIRE_PROTOCOL.md §2.6 (component manifest + MIME)
-//   - python/antikythera_agent/server/__main__.py (CLI `--bind`,
+//   - clients/python/antikythera_agent/server/__main__.py (CLI `--bind`,
 //     `--provider-stub`, `--component-dir`, `--client-id`, baris
 //     `[server-runtime] HTTP wire bridge listening on <url>`)
-//   - python/antikythera_agent/server/component.py (BASE_PATH, ENTRY,
+//   - clients/python/antikythera_agent/server/component.py (BASE_PATH, ENTRY,
 //     MIME_TYPES: .js = text/javascript)
-//   - npm/antikythera-sdk/runtime/runner-core.js (loadRunnerModule:
+//   - clients/npm/antikythera-sdk/runtime/runner-core.js (loadRunnerModule:
 //     componentBase -> manifest dari serverUrl -> import `${componentBase}/${entry}`;
 //     komponen default TANPA componentBase TIDAK pernah fetch manifest)
 //

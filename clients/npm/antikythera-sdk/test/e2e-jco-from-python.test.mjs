@@ -1,23 +1,23 @@
 // e2e-jco-from-python.test.mjs — U62: rantai E2E PENUH.
 //
-// Server bridge Python (python/antikythera_agent/server, U32) menyajikan
-// bundle jco NYATA (npm/antikythera-sdk/component, 36 file) melalui
+// Server bridge Python (clients/python/antikythera_agent/server, U32) menyajikan
+// bundle jco NYATA (clients/npm/antikythera-sdk/component, 36 file) melalui
 // `GET /antikythera/v1/component/manifest` + `GET /antikythera/v1/component/{path}`;
-// client JS runtime (npm/antikythera-sdk/runtime, U41) mengunduh manifest,
+// client JS runtime (clients/npm/antikythera-sdk/runtime, U41) mengunduh manifest,
 // memuat bundle dari server, dan menjalankan turn sampai final dengan LLM
 // stub.
 //
 // Kontrak acuan (klausa yang difalsifikasi):
 //   - documentation/WIRE_PROTOCOL.md  §2.6 (manifest + MIME component)
 //   - contracts/shared/wire_protocol.golden.json  (entry `component_manifest`)
-//   - python/antikythera_agent/server/__main__.py (CLI `--component-dir`,
+//   - clients/python/antikythera_agent/server/__main__.py (CLI `--component-dir`,
 //     `--provider-stub`, baris `[server-runtime] HTTP wire bridge listening on <url>`)
-//   - python/antikythera_agent/server/component.py (BASE_PATH, MIME_TYPES:
+//   - clients/python/antikythera_agent/server/component.py (BASE_PATH, MIME_TYPES:
 //     .js = text/javascript, .wasm = application/wasm)
-//   - python/antikythera_agent/server/transport.py (routes component)
-//   - npm/antikythera-sdk/runtime/runner-core.js (loadRunnerModule:
+//   - clients/python/antikythera_agent/server/transport.py (routes component)
+//   - clients/npm/antikythera-sdk/runtime/runner-core.js (loadRunnerModule:
 //     componentBase + manifest -> import `${componentBase}/${entry}`)
-//   - npm/antikythera-sdk/runtime/types.js (WIRE.COMPONENT_MANIFEST)
+//   - clients/npm/antikythera-sdk/runtime/types.js (WIRE.COMPONENT_MANIFEST)
 //
 // Peta falsifikasi U62 (kontrak 1..6 dari plan eksekusi):
 //   1. Spawn server Python dengan --component-dir + --provider-stub   -> U62#1

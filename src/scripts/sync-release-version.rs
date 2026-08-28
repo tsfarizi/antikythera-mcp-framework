@@ -4,11 +4,11 @@
 //! `Cargo.toml` (single source of truth) and rewrites every package version
 //! that must follow it:
 //!
-//!   - npm/antikythera-sdk/package.json       ->  "version": "<v>"
-//!   - python/pyproject.toml                  ->  version = "<v>"
-//!   - python/antikythera_agent/__init__.py   ->  __version__ = "<v>"
-//!   - python/antikythera_agent/utils.py      ->  return "<v>"
-//!   - npm/antikythera-sdk/index.js            ->  return "<v>";  (inside
+//!   - clients/npm/antikythera-sdk/package.json       ->  "version": "<v>"
+//!   - clients/python/pyproject.toml                  ->  version = "<v>"
+//!   - clients/python/antikythera_agent/__init__.py   ->  __version__ = "<v>"
+//!   - clients/python/antikythera_agent/utils.py      ->  return "<v>"
+//!   - clients/npm/antikythera-sdk/index.js            ->  return "<v>";  (inside
 //!     function getVersion — may not exist yet, see PENDING TARGETS below)
 //!
 //! Modes:
@@ -52,22 +52,22 @@ struct Target {
 const TARGETS: &[Target] = &[
     Target {
         label: "npm package.json",
-        rel_path: "npm/antikythera-sdk/package.json",
+        rel_path: "clients/npm/antikythera-sdk/package.json",
         marker: "\"version\"",
     },
     Target {
         label: "python pyproject.toml",
-        rel_path: "python/pyproject.toml",
+        rel_path: "clients/python/pyproject.toml",
         marker: "version = \"",
     },
     Target {
         label: "python __init__.py",
-        rel_path: "python/antikythera_agent/__init__.py",
+        rel_path: "clients/python/antikythera_agent/__init__.py",
         marker: "__version__",
     },
     Target {
         label: "python utils.py",
-        rel_path: "python/antikythera_agent/utils.py",
+        rel_path: "clients/python/antikythera_agent/utils.py",
         marker: "return \"",
     },
     // Pending target: getVersion() does not exist in index.js yet (owned by
@@ -82,7 +82,7 @@ const TARGETS: &[Target] = &[
     // earlier target's failure ordering.
     Target {
         label: "npm index.js getVersion",
-        rel_path: "npm/antikythera-sdk/index.js",
+        rel_path: "clients/npm/antikythera-sdk/index.js",
         marker: "return \"1.",
     },
 ];
@@ -209,7 +209,7 @@ fn print_usage() {
          \n\
          Usage: sync-release-version [--check | --print | --help]\n\
          \n\
-         (no flag)  rewrite npm/package.json + python pyproject/__init__/utils\n\
+         (no flag)  rewrite clients/npm/package.json + python pyproject/__init__/utils\n\
           --check    verify targets match the Cargo version (no writes);\n\
                      targets whose marker has not landed yet are skipped only\n\
                      when SYNC_ALLOW_PENDING_TARGETS=1 (default: strict)\n\

@@ -18,7 +18,7 @@ package = "antikythera:agent-sdk"
 # Target world for the component; `path` is resolved relative to this
 # crate's manifest directory, pointing at the canonical root `wit/`.
 [package.metadata.component.target]
-path = "../wit"
+path = "../../wit"
 world = "antikythera-agent-sdk"
 
 [package.metadata.component.dependencies]

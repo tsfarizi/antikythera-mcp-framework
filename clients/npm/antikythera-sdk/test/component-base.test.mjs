@@ -4,7 +4,7 @@
 // Kontrak acuan:
 //   - documentation/DECISIONS_RUNTIME_BRIDGE.md (D5)
 //   - documentation/WIRE_PROTOCOL.md §2.6 (component manifest)
-//   - npm/antikythera-sdk/runtime/runner-core.js (loadRunnerModule)
+//   - clients/npm/antikythera-sdk/runtime/runner-core.js (loadRunnerModule)
 //
 // Semantik yang difalsifikasi:
 //   - prioritas: runner (injeksi) > componentBase (manifest/URL) > bundled path

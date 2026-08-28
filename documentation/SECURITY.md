@@ -14,18 +14,18 @@ All security parameters are configurable via FFI, allowing hosts to customize se
 
 ## Architecture
 
-### Port Traits (`antikythera-ports`)
+### Port Traits (`src/antikythera-ports`)
 
-The `antikythera-ports` crate defines the security port traits:
+The `src/antikythera-ports` crate defines the security port traits:
 
 ```
 antikythera-ports/src/security/
 ├── mod.rs      # Port trait definitions
 ```
 
-### Concrete Implementations (`antikythera-security`)
+### Concrete Implementations (`src/antikythera-security`)
 
-The `antikythera-security` crate provides concrete implementations:
+The `src/antikythera-security` crate provides concrete implementations:
 
 ```
 antikythera-security/src/
@@ -445,7 +445,7 @@ All security parameters can be configured dynamically via FFI:
 
 ## Security Logging
 
-The `SecurityFacade` (in `antikythera-security`) provides structured logging for security events:
+The `SecurityFacade` (in `src/antikythera-security`) provides structured logging for security events:
 
 ### Methods
 
@@ -481,8 +481,8 @@ cargo test -p antikythera-tests --test security_config_tests
 
 The security implementation follows the principle of separation of concerns:
 
-- **Port Traits** (`antikythera-ports`): Defines security port traits for validation, rate limiting, and secrets management.
-- **Concrete Implementations** (`antikythera-security`): Provides concrete implementations of security subsystems.
+- **Port Traits** (`src/antikythera-ports`): Defines security port traits for validation, rate limiting, and secrets management.
+- **Concrete Implementations** (`src/antikythera-security`): Provides concrete implementations of security subsystems.
 - **FFI Interface** (SDK): Provides a clean boundary for host languages to interact with security features.
 
 This ensures that the security ports are reusable by any embedding host, while host applications can use the provided implementations or provide their own.

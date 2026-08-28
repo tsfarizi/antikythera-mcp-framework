@@ -1,6 +1,6 @@
 // hooks-ownership.test.mjs — R3: kepemilikan hooks provider global berbasis
 // token. Kontrak MIKRO BARU (keputusan tunggal orkestrator, sumber acuan satu
-// pintu) untuk npm/antikythera-sdk/runtime/control.js:
+// pintu) untuk clients/npm/antikythera-sdk/runtime/control.js:
 //
 //   - control.js mengekspor acquireRuntimeHooksProvider(hooks) -> token opaque
 //     dan releaseRuntimeHooksProvider(token).

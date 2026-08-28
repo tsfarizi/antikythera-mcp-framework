@@ -33,11 +33,11 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install Python test dependencies
-        run: pip install -e "python[dev]"
+        run: pip install -e "clients/python[dev]"
       - name: Run Python test suite
-        run: python -m pytest python/tests/ -q --basetemp "${{ runner.temp }}/pytest" -p no:cacheprovider
+        run: python -m pytest clients/python/tests/ -q --basetemp "${{ runner.temp }}/pytest" -p no:cacheprovider
         env:
-          PYTHONPATH: python
+          PYTHONPATH: clients/python
 
   static-gates:
     runs-on: ubuntu-latest
@@ -49,9 +49,9 @@ jobs:
       - name: Install static gate tools
         run: pip install ruff mypy pytest
       - name: Ruff lint gates
-        run: ruff check python/antikythera_agent python/tests
+        run: ruff check clients/python/antikythera_agent clients/python/tests
       - name: Mypy type gates
-        run: mypy python/antikythera_agent --config-file python/pyproject.toml
+        run: mypy clients/python/antikythera_agent --config-file clients/python/pyproject.toml
 
   msrv:
     runs-on: ubuntu-latest
@@ -104,12 +104,12 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: examples/antikythera-web/package-lock.json
+          cache-dependency-path: src/examples/antikythera-web/package-lock.json
       - name: Install dependencies
-        working-directory: examples/antikythera-web
+        working-directory: src/examples/antikythera-web
         run: npm ci
       - name: Build web example
-        working-directory: examples/antikythera-web
+        working-directory: src/examples/antikythera-web
         run: npm run build
 
   wasm-component-smoke:
@@ -143,9 +143,10 @@ jobs:
           python-version: '3.11'
 
       - name: Install Python test dependencies
-        run: pip install -e "python[dev]"
+        run: pip install -e "clients/python[dev]"
 
       - name: Install npm dependencies
+        working-directory: clients
         run: npm install
 
       - name: Build SDK component
@@ -185,8 +186,8 @@ jobs:
 
       - name: Transpile composite WASM component to JS with jco
         run: |
-          npx jco transpile dist/antikythera-sdk.wasm \
-            --out-dir npm/antikythera-sdk/component \
+          npx --prefix clients jco transpile dist/antikythera-sdk.wasm \
+            --out-dir clients/npm/antikythera-sdk/component \
             -M "antikythera:agent-sdk/runtime-hooks@1.0.0=./runtime-hooks.js" \
             -M "wasi:cli/environment@0.2.3=./wasi-stubs/environment.js" \
             -M "wasi:cli/exit@0.2.3=./wasi-stubs/exit.js" \
@@ -202,7 +203,7 @@ jobs:
             -M "wasi:random/random@0.2.3=./wasi-stubs/random.js"
 
       - name: Rename transpiled core modules to semantic names
-        run: node scripts/post-transpile-rename.mjs
+        run: node src/scripts/post-transpile-rename.mjs
 
       - name: Run composite compatibility tests
         run: cargo test -p antikythera-tests --test compatibility_tests
@@ -213,7 +214,7 @@ jobs:
       - name: Smoke test transpiled WASM component
         run: |
           node --input-type=module - <<'EOF'
-          import { runner } from './npm/antikythera-sdk/component/antikythera-sdk.js';
+          import { runner } from './clients/npm/antikythera-sdk/component/antikythera-sdk.js';
           const initResult = runner.init('{"session_id":"smoke-1"}');
           if (initResult !== 'smoke-1') {
             throw new Error('init did not return session_id "smoke-1", got: ' + JSON.stringify(initResult));
@@ -226,7 +227,7 @@ jobs:
           EOF
 
       - name: Run Node.js SDK test suites
-        working-directory: npm/antikythera-sdk
+        working-directory: clients/npm/antikythera-sdk
         run: node --test test/
         env:
-          PYTHONPATH: ${{ github.workspace }}/python
+          PYTHONPATH: ${{ github.workspace }}/clients/python

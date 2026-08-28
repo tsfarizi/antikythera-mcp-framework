@@ -2,53 +2,53 @@
 resolver = "2"
 members = [
     # Layer 0: Types
-    "antikythera-domain",
-    "antikythera-ports",
+    "src/antikythera-domain",
+    "src/antikythera-ports",
 
     # Layer 1: Implementations
-    "antikythera-config",
-    "antikythera-log",
-    "antikythera-resilience",
-    "antikythera-tooling",
-    "antikythera-observability",
-    "antikythera-security",
-    "antikythera-storage",
+    "src/antikythera-config",
+    "src/antikythera-log",
+    "src/antikythera-resilience",
+    "src/antikythera-tooling",
+    "src/antikythera-observability",
+    "src/antikythera-security",
+    "src/antikythera-storage",
 
     # Layer 2: Core
-    "antikythera-core",
-    "antikythera-session",
+    "src/antikythera-core",
+    "src/antikythera-session",
 
     # Layer 3: Providers
-    "antikythera-provider-ollama",
-    "antikythera-provider-openai",
-    "antikythera-provider-gemini",
+    "src/antikythera-provider-ollama",
+    "src/antikythera-provider-openai",
+    "src/antikythera-provider-gemini",
 
     # Layer 4: SDK & Facade
-    "antikythera-sdk",
-    "antikythera-facade",
+    "src/antikythera-sdk",
+    "src/antikythera-facade",
 
     # Layer 5: Server host runtime (U8 — wasmtime + wire bridge)
-    "antikythera-server-runtime",
+    "src/antikythera-server-runtime",
 
     # Layer 5: Deployment
-    "plugin/antikythera-toolrunner",
-    "plugin/antikythera-default-hooks",
+    "src/plugin/antikythera-toolrunner",
+    "src/plugin/antikythera-default-hooks",
 
     # Infra
-    "scripts",
-    "tests",
+    "src/scripts",
+    "src/tests",
 
     # Examples
-    "examples/chat",
-    "examples/component-harness",
-    "examples/logic-hooks-template",
-    "examples/logic-hooks-example",
-    "examples/logic-core-template",
-    "examples/logic-core-example",
-    "examples/logic-core-host-example",
+    "src/examples/chat",
+    "src/examples/component-harness",
+    "src/examples/logic-hooks-template",
+    "src/examples/logic-hooks-example",
+    "src/examples/logic-core-template",
+    "src/examples/logic-core-example",
+    "src/examples/logic-core-host-example",
 
     # Build-time: Proc macros
-    "antikythera-macros",
+    "src/antikythera-macros",
 ]
 
 
@@ -97,7 +97,7 @@ dotenvy = "0.15.7"
 shellexpand = "3.1.2"
 
 # Internal crates
-antikythera-domain = { path = "antikythera-domain" }
+antikythera-domain = { path = "src/antikythera-domain" }
 
 [profile.release]
 lto = true

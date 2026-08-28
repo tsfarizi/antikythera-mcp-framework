@@ -1,13 +1,13 @@
 //! Contract compatibility tests — mechanical verification of golden artifacts.
 //!
 //! These tests are deliberately **text-only**: they read the golden files under
-//! `contracts/` and the real transpiled TypeScript output under `npm/` and
+//! `contracts/` and the real transpiled TypeScript output under `clients/npm/` and
 //! assert bidirectional agreement. No WASM runtime, no browser.
 //!
 //! Contract under test (per `contracts/browser/README.md`):
 //! the WASI component (`wasm32-wasip2`) transpiled by jco exposes the `runner`
 //! namespace with 16 camelCase functions whose signatures must match
-//! `npm/antikythera-sdk/component/interfaces/antikythera-agent-sdk-runner.d.ts`.
+//! `clients/npm/antikythera-sdk/component/interfaces/antikythera-agent-sdk-runner.d.ts`.
 //!
 //! Composite-artifact test (`composed_component_world_single_runtime_hooks_import`)
 //! shells out to `wasm-tools component wit` on the composite
@@ -34,7 +34,7 @@ use std::path::{Path, PathBuf};
 /// The `antikythera-tests` package lives directly under the repo root
 /// (`<root>/tests`), so the package manifest dir's parent is the root.
 /// `CARGO_MANIFEST_DIR` is read at runtime with the compile-time baked value
-/// as fallback; existence of `contracts/` and `npm/` is asserted so a wrong
+/// as fallback; existence of `contracts/` and `clients/npm/` is asserted so a wrong
 /// resolution fails loudly instead of producing a confusing file-not-found.
 fn repo_root() -> PathBuf {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
@@ -54,7 +54,7 @@ fn repo_root() -> PathBuf {
     );
     assert!(
         root.join("npm").is_dir(),
-        "repo root must contain npm/ (resolved root: {})",
+        "repo root must contain clients/npm/ (resolved root: {})",
         root.display()
     );
     root
@@ -119,8 +119,8 @@ fn find_wasm_tools() -> Option<PathBuf> {
 
 const GOLDEN_BROWSER_SIGS: &str = "contracts/browser/browser_function_signatures.golden.txt";
 const DTS_RUNNER_INTERFACE: &str =
-    "npm/antikythera-sdk/component/interfaces/antikythera-agent-sdk-runner.d.ts";
-const DTS_SDK_ROOT: &str = "npm/antikythera-sdk/component/antikythera-sdk.d.ts";
+    "clients/npm/antikythera-sdk/component/interfaces/antikythera-agent-sdk-runner.d.ts";
+const DTS_SDK_ROOT: &str = "clients/npm/antikythera-sdk/component/antikythera-sdk.d.ts";
 const GOLDEN_PAYLOAD_CONTRACT: &str = "contracts/shared/payload_contract.golden.json";
 
 const EXPECTED_RUNNER_FUNCTION_COUNT: usize = 16;

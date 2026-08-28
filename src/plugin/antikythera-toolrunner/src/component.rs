@@ -19,7 +19,7 @@
 
 wit_bindgen::generate!({
     world: "tool-registry-component",
-    path: "../../wit/antikythera.wit",
+    path: "../../../wit/antikythera.wit",
 });
 
 use std::sync::OnceLock;

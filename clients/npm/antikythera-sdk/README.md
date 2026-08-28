@@ -1,4 +1,4 @@
-ï»¿# antikythera-agent
+# antikythera-agent
 
 General-purpose agent runtime with multi-agent orchestration, MCP tool integration, and WebAssembly support.
 
@@ -34,7 +34,7 @@ The browser WASM path is a **composite** WASI component (`wasm32-wasip2`) transp
 ```javascript
 import { runner } from 'antikythera-agent/component';
 
-// Initialize the agent runner â€” returns the raw session id (plain string, not JSON)
+// Initialize the agent runner — returns the raw session id (plain string, not JSON)
 const sessionId = runner.init(JSON.stringify({ session_id: 's1' }));
 
 // Get the agent state for a session
@@ -43,9 +43,9 @@ const state = runner.getState(sessionId);
 
 The `runner` namespace exposes 16 camelCase functions (all payloads are JSON strings): `init`, `prepareUserTurn`, `commitLlmResponse`, `commitLlmStream`, `processLlmResponseForSession`, `processToolResultForSession`, `appendLlmChunk`, `drainEvents`, `getState`, `resetSession`, `sweepIdleSessions`, `registerTools`, `getToolsPrompt`, `setContextPolicy`, `getTelemetrySnapshot`, `getSloSnapshot`.
 
-> The composite also imports one host-supplied interface, `antikythera:agent-sdk/runtime-hooks@1.0.0` (runtime pipeline-hook decisions), which `jco` maps to `component/runtime-hooks.js` (default passthrough stub; inject a provider via `globalThis.__ANTIKYTHERA_RUNTIME_HOOKS_PROVIDER__`). For automatic clientâ€“server connectivity (LLM proxy, tool routing, hook decisions over HTTP+SSE), use the high-level host runtime: `createAgentRuntime` from `antikythera-agent/runtime` â€” see `documentation/WIRE_PROTOCOL.md`.
+> The composite also imports one host-supplied interface, `antikythera:agent-sdk/runtime-hooks@1.0.0` (runtime pipeline-hook decisions), which `jco` maps to `component/runtime-hooks.js` (default passthrough stub; inject a provider via `globalThis.__ANTIKYTHERA_RUNTIME_HOOKS_PROVIDER__`). For automatic client–server connectivity (LLM proxy, tool routing, hook decisions over HTTP+SSE), use the high-level host runtime: `createAgentRuntime` from `antikythera-agent/runtime` — see `documentation/WIRE_PROTOCOL.md`.
 
-> Note: the transpiled module uses top-level await â€” set your bundler build target to ES2022 (e.g. Vite `build.target: 'es2022'`).
+> Note: the transpiled module uses top-level await — set your bundler build target to ES2022 (e.g. Vite `build.target: 'es2022'`).
 
 ### Loading the component from a server (`componentBase`)
 
@@ -64,9 +64,9 @@ const runtime = await createAgentRuntime({
 
 `componentBase` is the absolute URL of the bundle directory; the entry file
 name is resolved from the server manifest (`GET /antikythera/v1/component/manifest`,
-see `documentation/WIRE_PROTOCOL.md` Â§2.6), so the client never hardcodes the
+see `documentation/WIRE_PROTOCOL.md` §2.6), so the client never hardcodes the
 server's bundle layout. When `componentBase` is omitted the runtime keeps
-loading the bundled component (default, backward compatible â€” the no-option
+loading the bundled component (default, backward compatible — the no-option
 path makes no network request). Consumers that already hold a runner namespace
 can inject it directly with the `runner` option to skip the import entirely;
 injection takes precedence over `componentBase`.
@@ -97,7 +97,7 @@ orchestrator.registerAgent({
 });
 
 // Dispatching acquires and connects one client-core runtime per profile
-// automatically â€” there is no separate connect() step.
+// automatically — there is no separate connect() step.
 const results = await orchestrator.dispatchMany([
   'Write a sorting algorithm',
   'Explain big-O notation'
@@ -134,7 +134,7 @@ const prompts = PromptManager.fromJSON('[{"id":"agent","name":"Agent","content":
 |:-----|:------------|
 | `index.js` | Main exports (PromptManager, SessionManager, Orchestrator, createAgentRuntime, getVersion) |
 | `orchestrator.js` | Multi-agent `Orchestrator` (requires `serverUrl`; `dispatch` / `dispatchMany` / `pipeline` / `getBudget` / `cancel` / `close`) |
-| `component/` | Composite WASI component (SDK runner + embedded toolrunner + default-hooks) transpiled with jco â€” ESM bindings, namespace `runner` (camelCase), semantic core-module names (`runner`, `tool-registry`, `logic-hooks-passthrough`, `support-N`) assigned by `scripts/post-transpile-rename.mjs`, WASI stubs under `wasi-stubs/` |
+| `component/` | Composite WASI component (SDK runner + embedded toolrunner + default-hooks) transpiled with jco — ESM bindings, namespace `runner` (camelCase), semantic core-module names (`runner`, `tool-registry`, `logic-hooks-passthrough`, `support-N`) assigned by `src/scripts/post-transpile-rename.mjs`, WASI stubs under `wasi-stubs/` |
 
 ## Requirements
 

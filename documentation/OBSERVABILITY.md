@@ -1,4 +1,4 @@
-﻿# Observability
+# Observability
 
 This document describes the active observability model used by runtime and host integrations.
 
@@ -16,23 +16,23 @@ flowchart TD
 
 ## Crate Structure
 
-### Port Traits (`antikythera-ports`)
+### Port Traits (`src/antikythera-ports`)
 
 ```
 antikythera-ports/src/observability/
-├── mod.rs      # Port trait definitions
++-- mod.rs      # Port trait definitions
 ```
 
-### Concrete Implementations (`antikythera-observability`)
+### Concrete Implementations (`src/antikythera-observability`)
 
 ```
 antikythera-observability/src/
-├── facade.rs           # ObservabilityFacade combining all subsystems
-├── metrics/            # In-memory metrics exporter
-├── audit/              # Audit trail records
-├── tracing/            # Tracing hooks
-├── telemetry.rs        # Telemetry events
-└── error.rs            # Error types
++-- facade.rs           # ObservabilityFacade combining all subsystems
++-- metrics/            # In-memory metrics exporter
++-- audit/              # Audit trail records
++-- tracing/            # Tracing hooks
++-- telemetry.rs        # Telemetry events
++-- error.rs            # Error types
 ```
 
 ## Current Signals

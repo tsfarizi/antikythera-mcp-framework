@@ -29,7 +29,7 @@ vars:
   DIST_SDK_CUSTOM: dist/antikythera-sdk-custom.wasm
   # The Python package embeds the composite; runtime.py resolves this exact
   # path at import time (_WASM_PATH = Path(__file__).parent / "antikythera.wasm").
-  PYTHON_WASM: python/antikythera_agent/antikythera.wasm
+  PYTHON_WASM: clients/python/antikythera_agent/antikythera.wasm
   # Path to a built custom logic-hooks component (host-authored override).
   # Empty by default; compose-hooks-custom fails fast until HOOKS_COMPONENT is
   # set explicitly (no silent fallback to an example component).
@@ -68,7 +68,7 @@ tasks:
         echo "  task build-logic-core-example - Build standalone logic-core example WASM artifact"
         echo "  task compose         - Compose SDK + toolrunner + default-hooks into dist/antikythera-sdk.wasm"
         echo "  task compose-hooks-custom - Compose SDK + toolrunner + CUSTOM hooks (HOOKS_COMPONENT=...) into dist/antikythera-sdk-custom.wasm"
-        echo "  task build-python-wasm - Copy composite WASM + jco component bundle into Python package (python/antikythera_agent/)"
+        echo "  task build-python-wasm - Copy composite WASM + jco component bundle into Python package (clients/python/antikythera_agent/)"
         echo "  task build-all       - Build all WASM artifacts (standalone SDK + toolrunner + default-hooks + composite)"
         echo "  task check-wasm      - Check WASM compilation"
         echo "  task transpile       - Transpile composite (dist) to JS bindings with jco"
@@ -194,7 +194,7 @@ tasks:
       - task: size
 
   build-python-wasm:
-    desc: Copy composite WASM and jco component bundle into the Python package (python/antikythera_agent/)
+    desc: Copy composite WASM and jco component bundle into the Python package (clients/python/antikythera_agent/)
     # transpile already depends on compose; depending on both would run compose twice.
     deps:
       - transpile
@@ -204,12 +204,12 @@ tasks:
       # rm -rf first so a stale transpile output never leaks into the wheel; the
       # destination is a pure build target, mirroring the release staging step.
       - |
-        rm -rf python/antikythera_agent/component
-        mkdir -p python/antikythera_agent/component
-        cp -r npm/antikythera-sdk/component/. python/antikythera_agent/component/
+        rm -rf clients/python/antikythera_agent/component
+        mkdir -p clients/python/antikythera_agent/component
+        cp -r clients/npm/antikythera-sdk/component/. clients/python/antikythera_agent/component/
       - echo ""
       - 'echo "OK composite copied to: {{.PYTHON_WASM}}"'
-      - 'echo "OK jco component bundle copied to: python/antikythera_agent/component"'
+      - 'echo "OK jco component bundle copied to: clients/python/antikythera_agent/component"'
 
   build-all:
     desc: Build all WASM artifacts (standalone SDK + toolrunner + default-hooks + composite)
@@ -245,9 +245,9 @@ tasks:
       # jco has no --dts flag (typescript output is default); the 13 -M flags
       # map the host `runtime-hooks` import to the local runtime-hooks.js stub
       # plus every WASI interface the component imports to local stubs under
-      # the output directory (npm/antikythera-sdk/component/wasi-stubs).
+      # the output directory (clients/npm/antikythera-sdk/component/wasi-stubs).
       - |
-        npx jco transpile dist/antikythera-sdk.wasm --out-dir npm/antikythera-sdk/component \
+        npx --prefix clients jco transpile dist/antikythera-sdk.wasm --out-dir clients/npm/antikythera-sdk/component \
           -M "antikythera:agent-sdk/runtime-hooks@1.0.0=./runtime-hooks.js" \
           -M "wasi:cli/environment@0.2.3=./wasi-stubs/environment.js" \
           -M "wasi:cli/exit@0.2.3=./wasi-stubs/exit.js" \
@@ -262,19 +262,19 @@ tasks:
           -M "wasi:io/streams@0.2.3=./wasi-stubs/streams.js" \
           -M "wasi:random/random@0.2.3=./wasi-stubs/random.js"
       # jco emits opaque numbered core modules; rename to semantic names
-      # (runner / tool-registry / logic-hooks-passthrough / support-N) and
+      # (runner / tool-registry / logic-hooks-passthrough / wasi-*) and
       # rewrite the './antikythera-sdk.coreN.wasm' literals in the loader.
-      - node scripts/post-transpile-rename.mjs
+      - node src/scripts/post-transpile-rename.mjs
       - echo ""
-      - echo "✓ Transpiled to npm/antikythera-sdk/component"
+      - echo "✓ Transpiled to clients/npm/antikythera-sdk/component"
 
   transpile-clean:
     desc: Remove transpiled JS output directory
     cmds:
       - echo "Cleaning transpiled output..."
       - |
-        if [ -d "npm/antikythera-sdk/component" ]; then
-          rm -rf "npm/antikythera-sdk/component"
+        if [ -d "clients/npm/antikythera-sdk/component" ]; then
+          rm -rf "clients/npm/antikythera-sdk/component"
         fi
       - echo "✓ Transpile output clean complete"
 
@@ -296,25 +296,25 @@ tasks:
 
   run-chat:
     desc: Run chat example from examples/chat
-    dir: examples/chat
+    dir: src/examples/chat
     cmds:
       - echo "Starting chat example..."
       - cargo run --release
 
   run-web:
     desc: Run web frontend dev server (Vite)
-    dir: examples/antikythera-web
+    dir: src/examples/antikythera-web
     cmds:
       - echo "Starting web frontend dev server..."
       - npm run dev
 
   build-web:
     desc: Build web frontend for production
-    dir: examples/antikythera-web
+    dir: src/examples/antikythera-web
     cmds:
       - echo "Building web frontend..."
       - npm run build
-      - echo "✓ Web frontend built to examples/antikythera-web/dist/"
+      - echo "✓ Web frontend built to src/examples/antikythera-web/dist/"
 
   # ===========================================================================
   # Test Tasks

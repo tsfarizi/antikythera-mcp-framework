@@ -4,7 +4,7 @@ Concrete observability implementations for the Antikythera Agent SDK.
 
 ## Overview
 
-`antikythera-observability` provides in-memory implementations of the observability port traits defined in `antikythera-ports`. It migrates the observability implementations from `antikythera-core` into a reusable, feature-gated workspace crate.
+`src/antikythera-observability` provides in-memory implementations of the observability port traits defined in `src/antikythera-ports`. It migrates the observability implementations from `src/antikythera-core` into a reusable, feature-gated workspace crate.
 
 ## Architecture
 
@@ -25,7 +25,7 @@ flowchart TD
 - **Metrics** — Counter, gauge, histogram with in-memory storage; latency percentile tracking (p50/p95/p99)
 - **Tracing** — Span lifecycle tracking with trace/span IDs and status
 - **Audit** — Structured audit trail with category filtering and detail records
-- **Telemetry** — `CallerContext` and `TelemetryEvent` re-exported from `antikythera-domain`
+- **Telemetry** — `CallerContext` and `TelemetryEvent` re-exported from `src/antikythera-domain`
 
 ## Feature Flags
 
@@ -58,8 +58,8 @@ audit.record_event("policy_decision", "allow:model:gpt-4", true, vec![]).await;
 ## Dual Trait Implementation
 
 `InMemoryMetricsExporter` and `InMemoryTracingHook` implement both:
-- **Local sync trait** — for backward compatibility with `antikythera-core` internal usage
-- **Port async trait** — for compliance with `antikythera-ports` contract
+- **Local sync trait** — for backward compatibility with `src/antikythera-core` internal usage
+- **Port async trait** — for compliance with `src/antikythera-ports` contract
 
 This ensures existing code continues to work while new code can use the standardized port traits.
 

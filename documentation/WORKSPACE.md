@@ -85,10 +85,10 @@ flowchart TD
 | Path | Role |
 |:-----|:-----|
 | `tests/` | Workspace integration tests and scenario coverage |
-| `scripts/` | WIT generation and component build helpers |
+| `src/scripts/` | WIT generation and component build helpers |
 | `wit/` | Generated WIT output |
 | `documentation/` | Focused guides and references |
-| `examples/chat` | Rust chat example using antikythera-facade |
+| `src/examples/chat` | Rust chat example using antikythera-facade |
 | `examples/antikythera-web` | TypeScript/Vite web frontend (not a workspace member) |
 
 ## Workspace dependency shape
@@ -139,9 +139,9 @@ flowchart LR
 
 ## Practical reading order
 
-1. Start with `antikythera-domain` to understand the canonical types.
-2. Move to `antikythera-ports` to see the port/adapter trait definitions.
-3. Check `antikythera-core` to understand the runtime behavior.
-4. Move to `antikythera-sdk` to see the public API and bindings layer.
-5. Check `antikythera-facade` to see the high-level API with provider selection.
+1. Start with `src/antikythera-domain` to understand the canonical types.
+2. Move to `src/antikythera-ports` to see the port/adapter trait definitions.
+3. Check `src/antikythera-core` to understand the runtime behavior.
+4. Move to `src/antikythera-sdk` to see the public API and bindings layer.
+5. Check `src/antikythera-facade` to see the high-level API with provider selection.
 6. Use `tests/` to see how the repository is exercised end-to-end.
